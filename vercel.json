@@ -4,4 +4,8 @@
   "routes": [
     { "src": "/(.*)", "dest": "/app.py" }
   ]
+  "env": {
+    "API_KEY": "YOUR_API_KEY_HERE",
+    "API_URL": "YOUR_API_URL_HERE"
+  }
 }
