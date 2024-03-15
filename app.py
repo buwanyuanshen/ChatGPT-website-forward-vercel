@@ -12,7 +12,7 @@ app.config['API_URL'] = os.environ.get('API_URL', '')
 def get_config():
     return jsonify({
         'apiKey': app.config['API_KEY'],
-        'apiUrl': app.config['API_URL']
+        'api_url': app.config['API_URL']
     }
 
 @app.route('/')
