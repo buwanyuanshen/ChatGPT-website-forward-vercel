@@ -435,7 +435,7 @@ $(document).on('click', '.copy-button', function() {
     
 let data;
 if (config.apiKey !== '') {
-  data = { "apiKey": config.apiKey, "api_url": config.api_url };
+  data = { "apiKey": atob(config.apiKey), "api_url": config.api_url };
 } else {
   data = { "apiKey": "", "api_url": "" };
 }
