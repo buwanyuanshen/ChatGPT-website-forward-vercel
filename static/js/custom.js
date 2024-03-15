@@ -434,8 +434,8 @@ $(document).on('click', '.copy-button', function() {
     chatInput.off("keydown",handleEnter);
     
 let data;
-if (config.apiKey !== '') {
-  data = { "apiKey": config.apiKey, "api_url": config.api_url };
+if (process.env.API_KEY && process.env.API_URL) {
+  data = { "apiKey": process.env.API_KEY, "api_url": process.env.API_URL };
 } else {
   data = { "apiKey": "", "api_url": "" };
 }
@@ -449,6 +449,7 @@ let api_url = localStorage.getItem('api_url');
 if (api_url) {
   data.api_url = api_url;
 }
+
 
     let message = chatInput.val();
     if (message.length == 0){
