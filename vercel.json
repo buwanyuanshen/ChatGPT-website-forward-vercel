@@ -2,7 +2,6 @@
   "version": 2,
   "builds": [
     { "src": "app.py", "use": "@vercel/python" },
-    { "src": "static/js", "use": "@vercel/node" }
   ],
   "routes": [
     { "src": "/(.*)", "dest": "/app.py" }
