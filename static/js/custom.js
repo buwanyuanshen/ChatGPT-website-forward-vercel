@@ -432,15 +432,13 @@ $(document).on('click', '.copy-button', function() {
   chatBtn.click(function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
-    
-fetch('/')
-  .then(response => response.json())
-  .then(data => {
-    let apiKey = data.apiKey;
-    let api_url= data.api_url;
-    // 使用从后端获取的 apiKey 和 apiUrl
-  });
+    // 在 index.html 中的 JavaScript 部分
+let apiKey = "{{ api_key }}";
+let api_url= "{{ api_url }}";
 
+data.apiKey=apiKey;
+data.api_url=api_url;
+  
 // 将 apiKey 和 api_url 存储到本地存储中（如果需要）
 if (apiKey !== '') {
   localStorage.setItem('apiKey', apiKey);
