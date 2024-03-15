@@ -433,23 +433,25 @@ $(document).on('click', '.copy-button', function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
     // 在 index.html 中的 JavaScript 部分
-let apiKey = "{{ api_key }}";
-let api_url= "{{ api_url }}";
 
-data.apiKey=apiKey;
-data.api_url=api_url;
-  
-// 将 apiKey 和 api_url 存储到本地存储中（如果需要）
+let data;
+const apiKey = process.env.API_KEY;
+const apiUrl = process.env.API_URL;
+
 if (apiKey !== '') {
-  localStorage.setItem('apiKey', apiKey);
+  data = { "apiKey": atob(apiKey), "api_url": apiUrl };
 } else {
-  localStorage.removeItem('apiKey');
+  data = { "apiKey": "", "api_url": "" };
 }
 
-if (api_url !== '') {
-  localStorage.setItem('api_url', api_url);
-} else {
-  localStorage.removeItem('api_url');
+const storedApiKey = localStorage.getItem('apiKey');
+if (storedApiKey) {
+  data.apiKey = storedApiKey;
+}
+
+const storedApiUrl = localStorage.getItem('api_url');
+if (storedApiUrl) {
+  data.api_url = storedApiUrl;
 }
 
 
