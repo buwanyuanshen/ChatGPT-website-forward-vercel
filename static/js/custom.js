@@ -433,11 +433,10 @@ $(document).on('click', '.copy-button', function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
     
-let data = {};
-
-// 从环境变量中读取 apiKey 和 api_url
-  var apiKey = "{{ api_key }}";
-  var apiUrl = "{{ api_url }}";
+    let data = {
+        apiKey: "{{ api_key }}",
+        apiUrl: "{{ api_url }}"
+    };
 
 // 设置 data 对象
 data.apiKey = apiKey;
