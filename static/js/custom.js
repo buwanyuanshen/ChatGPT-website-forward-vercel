@@ -433,7 +433,7 @@ $(document).on('click', '.copy-button', function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
     
-fetch('/config')
+fetch('/')
   .then(response => response.json())
   .then(data => {
     let apiKey = data.apiKey;
