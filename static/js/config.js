@@ -1,4 +1,4 @@
 const config = {
     api_url: "https://api.openai-proxy.com/v1/chat/completions",  // gpt3.5代理接口
-    apiKey: "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"  // openAi apiKey
+    apiKey: "c2stR1VKaVdWamx3UkdodE8zb3Eyc0hUM0JsYmtGSnp2cGVFWUFMN0pZbFN0QjFORHBj"  // openAi apiKey
 };  
