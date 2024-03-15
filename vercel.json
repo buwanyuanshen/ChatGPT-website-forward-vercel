@@ -5,7 +5,7 @@
     { "src": "/(.*)", "dest": "/app.py" }
   ]
   "env": {
-    "API_KEY": "YOUR_API_KEY_HERE",
-    "API_URL": "YOUR_API_URL_HERE"
+    "API_KEY": "11111",
+    "API_URL": "666"
   }
 }
