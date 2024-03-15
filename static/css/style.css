@@ -76,14 +76,14 @@
 }
 
 :root[bg-theme='dark'] .copy-button i,
-:root[bg-theme='dark'] .send-button i,
+:root[bg-theme='dark'] .view-button i,
 :root[bg-theme='dark'] .edit-button i,
 :root[bg-theme='dark'] .delete-message-btn i {
   color: white; /* 将按钮图标颜色设置为白色 */
 }
 
 :root[bg-theme='dark'] .copy-button:hover i,
-:root[bg-theme='dark'] .send-button:hover i,
+:root[bg-theme='dark'] .view-button:hover i,
 :root[bg-theme='dark'] .edit-button:hover i {
   color: #90ee90; /* 悬停时将按钮图标颜色设置为绿色 */
 }
@@ -93,6 +93,7 @@
 }
 
 :root[bg-theme='gray'] .copy-button i,
+:root[bg-theme='gray'] .view-button i,
 :root[bg-theme='gray'] .send-button i,
 :root[bg-theme='gray'] .edit-button i,
 :root[bg-theme='gray'] .delete-message-btn i {
@@ -100,7 +101,7 @@
 }
 
 :root[bg-theme='gray'] .copy-button:hover i,
-:root[bg-theme='gray'] .send-button:hover i,
+:root[bg-theme='gray'] .view-button:hover i,
 :root[bg-theme='gray'] .edit-button:hover i {
   color: blue; /* 悬停时将按钮图标颜色设置为蓝色 */
 }
@@ -111,13 +112,14 @@
 
 /* 与主题颜色为 silver 时应用相同的设置 */
 :root[bg-theme='silver'] .copy-button i,
-:root[bg-theme='silver'] .send-button i,
+:root[bg-theme='silver'] .view-button i,
 :root[bg-theme='silver'] .edit-button i,
 :root[bg-theme='silver'] .delete-message-btn i {
   color: black;
 }
 
 :root[bg-theme='silver'] .copy-button:hover i,
+:root[bg-theme='silver'] .view-button:hover i,
 :root[bg-theme='silver'] .send-button:hover i,
 :root[bg-theme='silver'] .edit-button:hover i {
   color: blue;
@@ -152,19 +154,29 @@
   color: #000000; /* 悬停时图标颜色变为黑色 */
 }
 
-/* CSS 样式中为发送按钮设置图标 */
-.send-button {
-  display: none; /* 默认隐藏发送按钮 */
+/* CSS 样式中为查看按钮设置图标 */
+.view-button {
+  display: none; /* 默认隐藏查看按钮 */
   background: none;
   border: none;
   cursor: pointer;
-  margin-left: 5.5px; /* 设置左侧间距为 5.5px */
+  margin-left: 4px; /* 设置左侧间距为 4px */
   margin-right: 5.5px; /* 设置右侧间距为 5.5px */
 }
 
-.send-button i {
+.view-button i {
   color: #808080; /* 默认图标颜色为灰色 */
   font-size: 14px; /* 图标大小 */
+}
+
+.message-text.request:hover .view-button,
+.message-text.response:hover .view-button {
+  display: inline-block; /* 鼠标悬停时显示查看按钮 */
+}
+
+/* 悬停时变色 */
+.view-button:hover i {
+  color: #000000; /* 悬停时图标颜色变为黑色 */
 }
 
 .message-text.request:hover .send-button,
@@ -245,9 +257,12 @@ body {
   .foot p a{
     font-size: 13px !important;
   }
-    .settings-common {
-        width: 110%;
-    }
+  .settings-common {
+        width: 120%;
+  }
+  .dropdown-menu {
+        width: 120%;
+  }
 }
 
 @media screen and (min-width: 1200px) {
@@ -531,7 +546,7 @@ input[type="checkbox"]:checked + .check-trail .check-handler::before {
 .message-bubble .message-text.response{
   width: auto;
   max-width: calc(100% - 45px);
-  font-size: 18px;
+  font-size: 17px;
   margin-left:10px;
   word-break: break-all;
 }
@@ -539,7 +554,7 @@ input[type="checkbox"]:checked + .check-trail .check-handler::before {
 .message-bubble .message-text.request{
   width: auto;
   max-width: calc(100% - 45px);
-  font-size: 18px;
+  font-size: 17px;
   margin-left:10px;
   word-break: break-all;
 }
@@ -614,7 +629,7 @@ input[type="checkbox"]:checked + .check-trail .check-handler::before {
 
 .answer .others .common.settings {
     position: absolute;
-    top: 85%;
+    top: 75%;
     transform: translateY(-50%);
     left: -15px; /* 调整左侧距离 */
     z-index: 1; /* 将设置按钮置于输入框上层 */
@@ -657,7 +672,7 @@ input[type="checkbox"]:checked + .check-trail .check-handler::before {
     .lead.text-center a {
         margin: 5.5px;
     }
-.settings-common {
-    height: 40px; 
-    max-height: none; 
-}
+    .settings-common {
+        height: 35px; 
+        max-height: none; 
+    }
