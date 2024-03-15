@@ -435,24 +435,14 @@ $(document).on('click', '.copy-button', function() {
     // 在 index.html 中的 JavaScript 部分
 
 let data;
-const apiKey = process.env.API_KEY;
-const apiUrl = process.env.API_URL;
-
-if (apiKey !== '') {
-  data = { "apiKey": atob(apiKey), "api_url": apiUrl };
-} else {
-  data = { "apiKey": "", "api_url": "" };
-}
-
-const storedApiKey = localStorage.getItem('apiKey');
-if (storedApiKey) {
-  data.apiKey = storedApiKey;
-}
-
-const storedApiUrl = localStorage.getItem('api_url');
-if (storedApiUrl) {
-  data.api_url = storedApiUrl;
-}
+ if (config.apiKey !== '')
+ { data = { "apiKey": atob(config.apiKey), "api_url": config.api_url }; } 
+else { 
+data = { "apiKey": "", "api_url": "" 
+}; }
+let apiKey = localStorage.getItem('apiKey'); if (apiKey) { data.apiKey = apiKey; }
+let api_url = localStorage.getItem('api_url'); if (api_url) 
+{ data.api_url = api_url; }
 
 
     let message = chatInput.val();
