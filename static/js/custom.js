@@ -436,8 +436,8 @@ $(document).on('click', '.copy-button', function() {
 let data = {};
 
 // 从环境变量中读取 apiKey 和 api_url
-  const apiKey = "{{ api_key }}";
-  const apiUrl = "{{ api_url }}";
+  let apiKey = "{{ api_key }}";
+  let apiUrl = "{{ api_url }}";
 
 // 设置 data 对象
 data.apiKey = apiKey;
