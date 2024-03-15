@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="images/x-icon" href="./static/images/favicon.ico">
+    <link rel="stylesheet" href="./static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="./static/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="./static/css/github-dark-dimmed.min.css">
+    <link rel="stylesheet" href="./static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>ChatGPT-website</title>
+</head>
+<body>
+  <div class="container">
+    <div class="row">
+      <div class="box col-xs-12">
+        <div class="title">
+            <h2 class="text-center"><span style="margin-right: 10px;"><i class="fa fa-optin-monster fa-lg" aria-hidden="true"></i></span>ChatGPT-website</h2>
+        </div>
+        <div class="answer">
+          <div class="tips">
+            <h4 class="text-center">欢迎！更多功能请点击下方设置按钮</h4>
+            <img src="./static/images/reward.png">
+          </div>
+          <div id="chatWindow"></div>
+          <div class="function">
+            <div class="others">
+              <div class="left">
+                <div class="settings common dropup">
+                  <a class="dropdown-toggle icon-style" id="dropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="设置">
+                    <i class="fa fa-cogs fa-lg" aria-hidden="true"></i>
+                  </a>
+                  <div class="dropdown-menu" style="padding:0;" onclick="event.stopPropagation()">
+                    <div class="settings-common">
+                      <span><i class="fa fa fa-linode fa-lg" aria-hidden="true"></i>&nbsp; 主题</span>
+                      <select class="form-control ipt-common theme">
+                        <option value="light">light</option>
+                        <option value="gray">gray</option>
+                        <option value="light-red">light-red</option>
+                        <option value="light-blue">light-blue</option>
+                        <option value="light-purple">light-purple</option>
+                        <option value="light-green">light-green</option>
+                        <option value="light-yellow">light-yellow</option>
+                      </select>
+                    </div>
+                    <div class="settings-common">
+                      <span><i class="fa fa-key fa-lg" aria-hidden="true"></i>&nbsp; OpenAI Key</span>
+                      <input type="text" class="form-control ipt-common api-key" placeholder="可用自己的api key">
+                    </div>
+<div class="settings-common">
+                                        <span><i class="fa fa-globe fa-lg" aria-hidden="true"></i>&nbsp; OpenAI API URL</span>
+                                        <input type="text" class="form-control ipt-common api_url" placeholder="示例:https://xx.com">
+                                    </div>
+                    <div class="settings-common">
+                      <span><i class="fa fa-reddit-alien fa-lg" aria-hidden="true"></i>&nbsp; OpenAI 模型</span>
+                      <select class="form-control ipt-common model">
+                                            <option value="gpt-3.5-turbo">gpt-3.5-turbo（4k）</option>
+                                            <option value="gpt-3.5-turbo-0301">gpt-3.5-turbo-0301（4k）</option>
+                                            <option value="gpt-3.5-turbo-0613">gpt-3.5-turbo-0613（4k）</option>
+                                            <option value="gpt-3.5-turbo-1106">gpt-3.5-turbo-1106（4k）</option>
+					    <option value="gpt-3.5-turbo-0125">gpt-3.5-turbo-0125（4k，最新）</option>
+                                            <option value="gpt-3.5-turbo-16k">gpt-3.5-turbo-16k（16k）</option>
+                                            <option value="gpt-3.5-turbo-16k-0613">gpt-3.5-turbo-16k-0613（16k）</option>
+					    <option value="gpt-4-turbo-preview">gpt-4-turbo-preview（128k，最新）</option>
+                                            <option value="gpt-4-0125-preview">gpt-4-0125-preview（128k，最新）</option>
+                                            <option value="gpt-4-1106-preview">gpt-4-1106-preview（128k）</option>
+                                            <option value="gpt-4">gpt-4（8k）</option>
+                                            <option value="gpt-4-0314">gpt-4-0314（8k）</option>
+                                            <option value="gpt-4-0613">gpt-4-0613（8k）</option>
+                                            <option value="gpt-4-32k">gpt-4-32k（32k）</option>
+                                            <option value="gpt-4-32k-0314">gpt-4-32k-0314（32k）</option>
+                                            <option value="gpt-4-32k-0613">gpt-4-32k-0613（32k）</option>
+                                            <option value="gemini-pro">gemini-pro</option>
+                                            <option value="claude-3-haiku-20240307">claude-3-haiku（200k）</option>
+                                            <option value="claude-3-sonnet-20240229">claude-3-sonnet（200k）</option>
+                                            <option value="claude-3-opus-20240229">claude-3-opus（200k）</option>
+                      </select>
+                    </div>
+<div class="settings-common">
+    <span><i class="fa fa-plus-square fa-lg" aria-hidden="true"></i>&nbsp; 自定义模型</span>
+    <button class="btn btn-secondary btn-sm add-custom-model">添加</button>
+    <button class="btn btn-danger btn-sm delete-custom-model">删除</button>
+    <input type="text" class="form-control ipt-common custom-model" id="customModelInput" placeholder="输入自定义模型名称">
+</div>
+<div class="settings-common">
+    <span><i class="fa fa-thermometer-half fa-lg" aria-hidden="true"></i>&nbsp; Temperature:</span>
+    <input type="range" min="0" max="2" step="0.1" value="0.5" class="form-control ipt-common temperature" id="temperature">
+    <input type="number" min="0" max="2" step="0.1" value="0.5" class="form-control ipt-common temperature-input" id="temperature-input">
+</div>
+<div class="settings-common">
+    <span><i class="fa fa-sliders-h fa-lg" aria-hidden="true"></i>&nbsp; Max Tokens:</span>
+    <input type="range" min="100" max="32000" step="100" value="2000" class="form-control ipt-common max-tokens" id="maxTokens">
+    <input type="number" min="100" max="32000" step="100" value="2000" class="form-control ipt-common max-tokens-input" id="maxTokens-input">
+</div>
+
+                    <div class="settings-common">
+                      <span><i class="fa fa-floppy-o fa-lg" aria-hidden="true"></i>&nbsp; 记录对话内容，刷新不会消失</span>
+                      <div class="chck-btn">
+                        <input id="chck-1" type="checkbox">
+                        <label for="chck-1" class="check-trail">
+                        <div class="check-handler"></div>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="settings-common">
+                      <span><i class="fa fa-retweet fa-lg" aria-hidden="true"></i>&nbsp; 开启连续对话，加倍消耗tokens</span>
+                      <div class="chck-btn">
+                        <input id="chck-2" type="checkbox">
+                        <label for="chck-2" class="check-trail">
+                        <div class="check-handler"></div>
+                        </label>
+                      </div>
+                    </div>
+                    <div class="settings-common">
+                      <span style="font-size: 14px;"><i class="fa fa-qq fa-lg" aria-hidden="true"></i>&nbsp; 学习交流群</span>
+                      <span style="font-size: 14px;">QQ群：799160455</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="right">
+                <div class="screenshot common">
+                  <a class="icon-style" title="截图保存对话"><i class="fa fa-file-image-o fa-lg" aria-hidden="true"></i></a>
+                </div>
+               <div class="delete common">
+    			        <a id="deleteBtn" class="icon-style" title="删除历史记录"><i class="fa fa-trash-alt fa-lg" aria-hidden="true"></i></a>
+			    </div>
+
+              </div>
+            </div>
+             <div class="ipt">
+                        <div class="col-xs-12">
+                            <textarea id="chatInput" class="form-control" rows="1" placeholder="Tips:Ctrl+Enter快捷发送消息哦! "></textarea>
+                        </div>
+                        <button id="chatBtn" class="btn btn-primary" type="button">发送</button>
+
+            </div>
+          </div>
+        </div>
+        <footer class="foot" style="margin-top: 20px;">
+          <p class="lead text-center">“抢走工作的不会是AI,而是率先掌握AI能力的人”</p>
+          <p class="lead text-center">
+            <a href="https://blog.csdn.net/qq_57421630" target="_blank"><i class="fa fa-link fa-lg" aria-hidden="true"></i>&nbsp; 联系我</a>
+            <a href="https://gitee.com/aniu-666/chat-gpt-website" target="_blank"><i class="fa fa-github fa-lg" aria-hidden="true"></i>&nbsp; 项目地址</a>
+          </p>
+        </footer>
+      </div>
+    </div>
+  </div>
+</body>
+<script src="./static/js/jquery-2.1.1.js"></script>
+<script src="./static/js/bootstrap.min.js"></script>
+<script src="./static/js/highlight.min.js"></script>
+<script src="./static/js/marked.min.js"></script>
+<script src="./static/js/html2canvas.min.js"></script>
+<script src="./static/js/config.js"></script>
+<script src="./static/js/custom.js"></script>
+</html>
