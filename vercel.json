@@ -1,11 +1,11 @@
 {
   "version": 2,
-  "builds": [{ "src": "app.py", "use": "@vercel/python" }],
+  "builds": [
+    { "src": "app.py", "use": "@vercel/python" },
+    { "src": "static/js/*", "use": "@vercel/node" }
+  ],
   "routes": [
+    { "src": "/static/js/(.*)", "dest": "/static/js/$1" },
     { "src": "/(.*)", "dest": "/app.py" }
   ]
-  "env": {
-    "API_KEY": "11111",
-    "API_URL": "666"
-  }
 }
