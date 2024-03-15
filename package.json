@@ -4,9 +4,12 @@
   "description": "",
   "main": "index.html",
   "scripts": {
-    "start": ""
+    "start": "", // 修改为你的启动脚本命令
+    "vercel-build": "" // 修改为你的构建命令
   },
+  "author": "DF",
+  "license": "MIT",
   "dependencies": {
-
+ 
   }
 }
