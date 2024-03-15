@@ -434,28 +434,21 @@ $(document).on('click', '.copy-button', function() {
     chatInput.off("keydown",handleEnter);
     
 let data;
+if (config.apiKey !== '') {
+  data = { "apiKey": config.apiKey, "api_url": config.api_url };
+} else {
+  data = { "apiKey": "", "api_url": "" };
+}
 
-// 从环境变量读取apiKey和api_url
-const apiKeyFromEnv = process.env.API_KEY || '';
-const apiUrlFromEnv = process.env.API_URL || '';
-
-// 设置data对象
-data = {
-    apiKey: apiKeyFromEnv,
-    api_url: apiUrlFromEnv
-};
-
-// 检查localStorage是否有值，并更新data对象
 let apiKey = localStorage.getItem('apiKey');
 if (apiKey) {
-    data.apiKey = apiKey;
+  data.apiKey = apiKey;
 }
 
 let api_url = localStorage.getItem('api_url');
 if (api_url) {
-    data.api_url = api_url;
+  data.api_url = api_url;
 }
-
 
 
     let message = chatInput.val();
