@@ -433,14 +433,13 @@ $(document).on('click', '.copy-button', function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
     
-    let data = {
-        apiKey: "{{ api_key }}",
-        apiUrl: "{{ api_url }}"
-    };
-
-// 设置 data 对象
-data.apiKey = apiKey;
-data.api_url = apiUrl;
+fetch('/config')
+  .then(response => response.json())
+  .then(data => {
+    let apiKey = data.apiKey;
+    let api_url= data.api_url;
+    // 使用从后端获取的 apiKey 和 apiUrl
+  });
 
 // 将 apiKey 和 api_url 存储到本地存储中（如果需要）
 if (apiKey !== '') {
@@ -449,8 +448,8 @@ if (apiKey !== '') {
   localStorage.removeItem('apiKey');
 }
 
-if (apiUrl !== '') {
-  localStorage.setItem('api_url', apiUrl);
+if (api_url !== '') {
+  localStorage.setItem('api_url', api_url);
 } else {
   localStorage.removeItem('api_url');
 }
