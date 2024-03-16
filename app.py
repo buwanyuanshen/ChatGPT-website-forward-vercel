@@ -9,13 +9,13 @@ config = {
     "api_url": os.environ.get('API_URL', None)
 }
 
+@app.route('/config')
+def get_config():
+    return jsonify(config)
+
 @app.route('/')
 def index():
     return render_template('index.html')
-
-@app.route('/get_config', methods=['GET'])
-def get_config():
-    return jsonify(config)
 
 if __name__ == '__main__':
     app.run('0.0.0.0', 80)
