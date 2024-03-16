@@ -486,7 +486,7 @@ $(document).ready(function() {
       chatBtn.attr('disabled',false) // 让按钮可点击
       return ;
     }
-
+let data;
  // 获取所选的模型
   data.model = $(".settings-common .model").val();
   data.temperature = parseFloat($(".settings-common .temperature").val());
