@@ -1,20 +1,36 @@
-import os
 import random
-from flask import Flask, render_template, jsonify
+import base64
+from flask import Flask, jsonify, render_template, request
+import os
 
 app = Flask(__name__)
 
-api_keys = os.environ.get("API_KEYS", None).strip().replace('"', '').replace("'", "").split(",|")
-
-# 设置默认配置
 config = {
-    "apiKey": random.choice(api_keys),
-    "api_url": os.environ.get('API_URL', None)
+    "apiKeys": os.environ.get("API_KEYS", None).strip().replace('"', '').replace("'", "").split(",|"),
+    "api_url": os.environ.get('API_URL', None),
+    "admin_password": os.environ.get("CODE", None).strip()
 }
+
+def get_random_api_key():
+    return random.choice(config["apiKeys"])
+
+def encode_api_key(api_key):
+    return base64.b64encode(api_key.encode()).decode()
 
 @app.route('/config')
 def get_config():
-    return jsonify(config)
+    # In a real scenario, ensure you have proper security measures to protect sensitive information
+    return jsonify({"api_url": config["api_url"]})
+
+@app.route('/get_api_key', methods=['POST'])
+def get_api_key():
+    # Check if the password is correct
+    if request.form.get('password') == config["admin_password"]:
+        api_key = get_random_api_key()
+        encoded_api_key = encode_api_key(api_key)
+        return jsonify({"apiKey": encoded_api_key})
+    else:
+        return jsonify({"error": "Incorrect password"}), 403
 
 @app.route('/')
 def index():
