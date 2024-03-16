@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 config = {
     "apiKeys": os.environ.get("API_KEYS", None).strip().replace('"', '').replace("'", "").split(",|"),
-    "api_url": os.environ.get('API_URL', None),
+    "api_url": os.environ.get('API_URL', None)+ "/v1/chat/completions",
     "admin_password": os.environ.get("CODE", None).strip()
 }
 
