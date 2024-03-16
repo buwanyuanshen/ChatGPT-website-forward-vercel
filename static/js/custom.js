@@ -434,8 +434,8 @@ $(document).on('click', '.copy-button', function() {
     chatInput.off("keydown",handleEnter);
     
 let data;
-if (config.apiKey !== '') {
-  data = { "apiKey": config.apiKey, "api_url": config.api_url };
+if (data.apiKey !== '') {
+  data = { "apiKey": data.apiKey, "api_url": data.api_url };
 } else {
   data = { "apiKey": "", "api_url": "" };
 }
