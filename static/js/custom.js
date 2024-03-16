@@ -374,14 +374,41 @@ $(document).on('click', '.copy-button', function() {
     messages.pop() // 失败就让用户输入信息从数组删除
   }
   
+let datas;
+$.ajax({
+  url: "/config",
+  type: "GET",
+  success: function(response) {
+    if (response.apiKey !== '') {
+      datas = { "apiKey": response.apiKey, "api_url": response.api_url };
+    } else {
+      datas = { "apiKey": "", "api_url": "" };
+    }
+
+    let apiKey = localStorage.getItem('apiKey');
+    if (apiKey) {
+      datas.apiKey = apiKey;
+    }
+
+    let api_url = localStorage.getItem('api_url');
+    if (api_url) {
+      datas.api_url = api_url;
+    }
+
+    // 在这里执行其他操作，使用 data 变量
+  },
+  error: function(xhr, status, error) {
+    // 处理错误情况
+  }
+});
 
   // 发送请求获得响应
   async function sendRequest(data) {
-    const response = await fetch(data.api_url, {
+    const response = await fetch(datas.api_url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + data.apiKey
+        'Authorization': 'Bearer ' + datas.apiKey
       },
       body: JSON.stringify({
         "messages": data.prompts,
@@ -432,39 +459,7 @@ $(document).on('click', '.copy-button', function() {
   chatBtn.click(function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
-let data;
-$(document).ready(function() {
-    $.ajax({
-        url: "/get_config",
-        type: "GET",
-        success: function(response) {
-            if (response.apiKey !== '') {
-                data = { "apiKey": response.apiKey, "api_url": response.api_url };
-            } else {
-                data = { "apiKey": "", "api_url": "" };
-            }
-
-            let apiKey = localStorage.getItem('apiKey');
-            if (apiKey) {
-                data.apiKey = apiKey;
-            }
-
-            let api_url = localStorage.getItem('api_url');
-            if (api_url) {
-                data.api_url = api_url;
-            }
-
-            // 在这里执行基于data的逻辑
-            console.log(data);
-        },
-        error: function(xhr) {
-            // 处理错误情况
-            console.log("Error:", xhr.responseText);
-        }
-    });
-});
-
-
+let data = {};
     let message = chatInput.val();
     if (message.length == 0){
       // 重新绑定键盘事件
@@ -485,6 +480,7 @@ $(document).ready(function() {
       chatBtn.attr('disabled',false) // 让按钮可点击
       return ;
     }
+ 
  // 获取所选的模型
   data.model = $(".settings-common .model").val();
   data.temperature = parseFloat($(".settings-common .temperature").val());
