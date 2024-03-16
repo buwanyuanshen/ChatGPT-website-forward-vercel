@@ -434,16 +434,13 @@ $(document).on('click', '.copy-button', function() {
     chatInput.off("keydown",handleEnter);
     
 $(document).ready(function() {
-    // 获取配置信息
     $.ajax({
-        url: '/get_config',
-        type: 'GET',
+        url: "/get_config",
+        type: "GET",
         success: function(response) {
-            let config = response;
             let data;
-
-            if (config.apiKey !== '') {
-                data = { "apiKey": config.apiKey, "api_url": config.api_url };
+            if (response.apiKey !== '') {
+                data = { "apiKey": response.apiKey, "api_url": response.api_url };
             } else {
                 data = { "apiKey": "", "api_url": "" };
             }
@@ -458,13 +455,16 @@ $(document).ready(function() {
                 data.api_url = api_url;
             }
 
-            // 发送请求获得响应
-            sendRequest(data);
+            // 在这里执行基于data的逻辑
+            console.log(data);
         },
-        error: function(xhr, status, error) {
-            console.error('Error fetching config:', error);
+        error: function(xhr) {
+            // 处理错误情况
+            console.log("Error:", xhr.responseText);
         }
     });
+});
+
 
     let message = chatInput.val();
     if (message.length == 0){
