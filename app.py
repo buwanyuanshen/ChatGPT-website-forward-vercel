@@ -6,7 +6,7 @@ import os
 app = Flask(__name__)
 
 config = {
-    "apiKeys": os.environ.get("API_KEYS", None).strip().replace('"', '').replace("'", "").split(",|"),
+    "apiKeys": os.environ.get("API_KEYS", None).strip().split(","),
     "api_url": os.environ.get('API_URL', None)+ "/v1/chat/completions",
     "admin_password": os.environ.get("CODE", None).strip()
 }
@@ -17,11 +17,6 @@ def get_random_api_key():
 def encode_api_key(api_key):
     return base64.b64encode(api_key.encode()).decode()
 
-@app.route('/config')
-def get_config():
-    # In a real scenario, ensure you have proper security measures to protect sensitive information
-    return jsonify({"api_url": config["api_url"]})
-
 @app.route('/get_api_key', methods=['POST'])
 def get_api_key():
     # Check if the password is correct
@@ -31,6 +26,7 @@ def get_api_key():
         return jsonify({"apiKey": encoded_api_key})
     else:
         return jsonify({"error": "Incorrect password"}), 403
+
 
 @app.route('/')
 def index():
