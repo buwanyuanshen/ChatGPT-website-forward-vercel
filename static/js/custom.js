@@ -375,52 +375,109 @@ $(document).on('click', '.copy-button', function() {
   }
   
 let datas;
-$.ajax({
-  url: "/config",
-  type: "GET",
-  success: function(response) {
-    if (response.apiKey !== '') {
-      datas = { "apiKey": response.apiKey, "api_url": response.api_url };
+
+// 解码 Base64 编码的 API 密钥
+function decodeApiKey(encodedApiKey) {
+  return atob(encodedApiKey);
+}
+
+// 获取配置信息
+async function getConfig() {
+  try {
+    const response = await fetch("/config");
+    const data = await response.json();
+
+    if (data.api_url) {
+      datas = { "api_url": data.api_url };
     } else {
-      datas = { "apiKey": "", "api_url": "" };
+      datas = { "api_url": "" };
     }
-
-    let apiKey = localStorage.getItem('apiKey');
-    if (apiKey) {
-      datas.apiKey = apiKey;
-    }
-
-    let api_url = localStorage.getItem('api_url');
-    if (api_url) {
-      datas.api_url = api_url;
-    }
-
-    // 在这里执行其他操作，使用 data 变量
-  },
-  error: function(xhr, status, error) {
+  } catch (error) {
+    console.error("Error fetching config:", error);
     // 处理错误情况
   }
-});
+}
 
-  // 发送请求获得响应
-  async function sendRequest(data) {
-    const response = await fetch(datas.api_url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + datas.apiKey
-      },
-      body: JSON.stringify({
-        "messages": data.prompts,
-        "model": data.model,
-        "max_tokens": data.max_tokens,
-        "temperature": data.temperature,
-        "top_p": 1,
-        "n": 1,
-        "stream": true
-      })
-    }); 
-  
+// 获取随机的 API 密钥
+function getRandomApiKey() {
+  const apiKeyInput = $(".settings-common .api-key").val().trim();
+  if (apiKeyInput) {
+    const apiKeys = apiKeyInput.split(',').map(key => key.trim());
+    return apiKeys[Math.floor(Math.random() * apiKeys.length)];
+  }
+  return null;
+}
+
+// 获取 API 密钥
+async function getApiKey() {
+  try {
+    let apiKey = getRandomApiKey();
+
+    if (!apiKey) {
+      const password = $(".settings-common .password").val();
+
+      if (!password) {
+        console.error("Please enter an API key or password.");
+        return null;
+      }
+
+      const response = await fetch("/get_api_key", {
+        method: "POST",
+        body: new URLSearchParams({ password }),
+      });
+      
+      if (response.status === 403) {
+        const errorData = await response.json();
+        console.error("Error:", errorData.error);
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (data.apiKey) {
+        // 解码 API 密钥
+        apiKey = decodeApiKey(data.apiKey);
+        console.log("API Key:", apiKey);
+        return apiKey;
+      } else {
+        console.error("API key not found in response.");
+        return null;
+      }
+    } else {
+      return apiKey;
+    }
+  } catch (error) {
+    console.error("Error fetching API key:", error);
+    return null;
+  }
+}
+
+// 发送请求获得响应
+async function sendRequest(data) {
+  await getConfig();
+  const apiKey = await getApiKey();
+
+  if (!datas || !datas.api_url || !apiKey) {
+    console.error("Config data or API key is missing.");
+    return;
+  }
+
+  const response = await fetch(datas.api_url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey
+    },
+    body: JSON.stringify({
+      "messages": data.prompts,
+      "model": data.model,
+      "max_tokens": data.max_tokens,
+      "temperature": data.temperature,
+      "top_p": 1,
+      "n": 1,
+      "stream": true
+    })
+  })
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -565,6 +622,22 @@ let data = {};
     $('.settings-common').css('background-color', 'var(--bg-color)');
   });
 
+  // password
+  const password = localStorage.getItem('password');
+  if (password) {
+    $(".settings-common .password").val(password);
+  }
+
+  // password输入框事件
+  $(".settings-common .password").blur(function() { 
+    const password = $(this).val();
+    if(password.length!=0){
+      localStorage.setItem('password', password);
+    }else{
+      localStorage.removeItem('password');
+    }
+
+  })
   // apiKey
   const apiKey = localStorage.getItem('apiKey');
   if (apiKey) {
