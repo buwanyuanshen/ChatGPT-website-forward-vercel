@@ -433,22 +433,34 @@ $(document).on('click', '.copy-button', function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
     
-let data;
-if (data.apiKey !== '') {
-  data = { "apiKey": data.apiKey, "api_url": data.api_url };
-} else {
-  data = { "apiKey": "", "api_url": "" };
-}
+$.ajax({
+  url: "/config",
+  type: "GET",
+  success: function(response) {
+    let data;
+    if (response.apiKey !== '') {
+      data = { "apiKey": response.apiKey, "api_url": response.api_url };
+    } else {
+      data = { "apiKey": "", "api_url": "" };
+    }
 
-let apiKey = localStorage.getItem('apiKey');
-if (apiKey) {
-  data.apiKey = apiKey;
-}
+    let apiKey = localStorage.getItem('apiKey');
+    if (apiKey) {
+      data.apiKey = apiKey;
+    }
 
-let api_url = localStorage.getItem('api_url');
-if (api_url) {
-  data.api_url = api_url;
-}
+    let api_url = localStorage.getItem('api_url');
+    if (api_url) {
+      data.api_url = api_url;
+    }
+
+    // 这里可以继续使用 data 对象进行后续操作
+  },
+  error: function(xhr, status, error) {
+    console.error("Error fetching config:", error);
+  }
+});
+
 
     let message = chatInput.val();
     if (message.length == 0){
