@@ -433,34 +433,38 @@ $(document).on('click', '.copy-button', function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
     
-$.ajax({
-  url: "/config",
-  type: "GET",
-  success: function(response) {
-    let data;
-    if (response.apiKey !== '') {
-      data = { "apiKey": response.apiKey, "api_url": response.api_url };
-    } else {
-      data = { "apiKey": "", "api_url": "" };
-    }
+$(document).ready(function() {
+    // 获取配置信息
+    $.ajax({
+        url: '/get_config',
+        type: 'GET',
+        success: function(response) {
+            let config = response;
+            let data;
 
-    let apiKey = localStorage.getItem('apiKey');
-    if (apiKey) {
-      data.apiKey = apiKey;
-    }
+            if (config.apiKey !== '') {
+                data = { "apiKey": config.apiKey, "api_url": config.api_url };
+            } else {
+                data = { "apiKey": "", "api_url": "" };
+            }
 
-    let api_url = localStorage.getItem('api_url');
-    if (api_url) {
-      data.api_url = api_url;
-    }
+            let apiKey = localStorage.getItem('apiKey');
+            if (apiKey) {
+                data.apiKey = apiKey;
+            }
 
-    // 这里可以继续使用 data 对象进行后续操作
-  },
-  error: function(xhr, status, error) {
-    console.error("Error fetching config:", error);
-  }
-});
+            let api_url = localStorage.getItem('api_url');
+            if (api_url) {
+                data.api_url = api_url;
+            }
 
+            // 发送请求获得响应
+            sendRequest(data);
+        },
+        error: function(xhr, status, error) {
+            console.error('Error fetching config:', error);
+        }
+    });
 
     let message = chatInput.val();
     if (message.length == 0){
