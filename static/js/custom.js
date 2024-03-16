@@ -437,7 +437,6 @@ async function getApiKey() {
       if (data.apiKey) {
         // 解码 API 密钥
         apiKey = decodeApiKey(data.apiKey);
-        console.log("API Key:", apiKey);
         return apiKey;
       } else {
         console.error("API key not found in response.");
