@@ -1,20 +1,21 @@
-from flask import Flask, render_template
 import os
+from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
-@app.route("/", methods=["GET"])
-def index():
-    return render_template("index.html")
+# 设置默认配置
+config = {
+    "apiKey": os.environ.get('API_KEY', None),
+    "api_url": os.environ.get('API_URL', None)
+}
 
-@app.route("/chat", methods=["POST"])
+@app.route('/')
 def index():
-    apiKey = request.form.get("apiKey", None)
-    api_url = request.form.get("api_url", None)
-    if api_url is None:
-        api_url = os.environ.get("API_URL", None)
-    if apiKey is None:
-    apiKey = os.environ.get("API_KEY", None)
+    return render_template('index.html')
+
+@app.route('/config', methods=['GET'])
+def get_config():
+    return jsonify(config)
 
 if __name__ == '__main__':
     app.run('0.0.0.0', 80)
