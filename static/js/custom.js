@@ -432,18 +432,23 @@ $(document).on('click', '.copy-button', function() {
   chatBtn.click(function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
-    // 在 index.html 中的 JavaScript 部分
-
+    
 let data;
- if (config.apiKey !== '')
- { data = { "apiKey": atob(config.apiKey), "api_url": config.api_url }; } 
-else { 
-data = { "apiKey": "", "api_url": "" 
-}; }
-let apiKey = localStorage.getItem('apiKey'); if (apiKey) { data.apiKey = apiKey; }
-let api_url = localStorage.getItem('api_url'); if (api_url) 
-{ data.api_url = api_url; }
+if (config.apiKey !== '') {
+  data = { "apiKey": config.apiKey, "api_url": config.api_url };
+} else {
+  data = { "apiKey": "", "api_url": "" };
+}
 
+let apiKey = localStorage.getItem('apiKey');
+if (apiKey) {
+  data.apiKey = apiKey;
+}
+
+let api_url = localStorage.getItem('api_url');
+if (api_url) {
+  data.api_url = api_url;
+}
 
     let message = chatInput.val();
     if (message.length == 0){
