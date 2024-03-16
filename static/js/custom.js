@@ -432,13 +432,12 @@ $(document).on('click', '.copy-button', function() {
   chatBtn.click(function() {
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
-    
+let data;
 $(document).ready(function() {
     $.ajax({
         url: "/get_config",
         type: "GET",
         success: function(response) {
-            let data;
             if (response.apiKey !== '') {
                 data = { "apiKey": response.apiKey, "api_url": response.api_url };
             } else {
@@ -486,7 +485,6 @@ $(document).ready(function() {
       chatBtn.attr('disabled',false) // 让按钮可点击
       return ;
     }
-let data;
  // 获取所选的模型
   data.model = $(".settings-common .model").val();
   data.temperature = parseFloat($(".settings-common .temperature").val());
