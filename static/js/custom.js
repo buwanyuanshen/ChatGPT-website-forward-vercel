@@ -849,6 +849,11 @@ $(".delete a").click(function(){
     localStorage.setItem('max_tokens ', max_tokens );
       })
 
+// 删除输入框中的消息
+function deleteInputMessage() {
+  chatInput.val('');
+}
+
 // 删除功能
 $(".delete a").click(function(){
   chatWindow.empty();
