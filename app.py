@@ -13,7 +13,7 @@ config = {
 def index():
     return render_template('index.html')
 
-@app.route('/config', methods=['GET'])
+@app.route('/get_config', methods=['GET'])
 def get_config():
     return jsonify(config)
 
