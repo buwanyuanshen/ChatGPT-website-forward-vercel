@@ -1,11 +1,14 @@
 import os
+import random
 from flask import Flask, render_template, jsonify
 
 app = Flask(__name__)
 
+api_keys = os.environ.get("API_KEYS", None).strip().replace('"', '').replace("'", "").split(",|")
+
 # 设置默认配置
 config = {
-    "apiKey": os.environ.get('API_KEY', None),
+    "apiKey": random.choice(api_keys),
     "api_url": os.environ.get('API_URL', None)
 }
 
