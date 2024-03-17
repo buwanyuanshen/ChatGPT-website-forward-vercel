@@ -293,33 +293,8 @@ function addResponseMessage(message) {
       escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
     }
   }
-
-  if (message.includes('https://')) {
-    // 使用正则表达式提取链接
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
-    const urls = message.match(urlRegex);
-
-    if (urls && urls.length > 0) {
-      // 获取第一个链接，并将其添加到img标签中
-      const imageUrl = urls[0].replace(/\)$/, '');
-      lastResponseElement.append('<div class="message-text">' + escapedMessage +'<img src="' + imageUrl + '" style="max-width: 25%; max-height: 25%;" alt="messages"> ' + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-
-    }
-  } else if (message.startsWith('"//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message.replace(/"/g, '');
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } 
-else if (message.startsWith('//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } 
-else {
-    lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  }
-
-  chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
 
 // 绑定查看按钮事件
 $('.view-button').on('click', function() {
@@ -461,54 +436,75 @@ async function sendRequest(data) {
     return;
   }
 
-  const response = await fetch(datas.api_url, {
+let apiUrl = datas.api_url + "/v1/chat/completions";
+let requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": data.temperature,
+    "top_p": 1,
+    "n": 1,
+    "stream": true
+};
+
+if (data.model.includes("gpt-3.5-turbo-instruct") || data.model.includes("babbage-002") || data.model.includes("davinci-002")) {
+    apiUrl = datas.api_url + "/v1/completions";
+    requestBody = {
+        "prompt": data.prompts[0].content,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": true
+    };
+}
+
+const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
     },
-    body: JSON.stringify({
-      "messages": data.prompts,
-      "model": data.model,
-      "max_tokens": data.max_tokens,
-      "temperature": data.temperature,
-      "top_p": 1,
-      "n": 1,
-      "stream": true
-    })
-  })
-    const reader = response.body.getReader();
-    let res = '';
-    let str;
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) {
+    body: JSON.stringify(requestBody)
+});
+
+const reader = response.body.getReader();
+let res = '';
+let str;
+while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
         break;
-      }
-      str = '';
-      res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]",'');
-      const lines = res.trim().split(/[\n]+(?=\{)/);
-      for (let i = 0; i < lines.length; i++) {
+    }
+    str = '';
+    res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+    const lines = res.trim().split(/[\n]+(?=\{)/);
+    for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
         let jsonObj;
-        try{
-          jsonObj = JSON.parse(line);
-        }catch(e){
-          break;
+        try {
+            jsonObj = JSON.parse(line);
+        } catch (e) {
+            break;
         }
-        if (jsonObj.choices && jsonObj.choices[0].delta.content) {
-          str += jsonObj.choices[0].delta.content;
-          addResponseMessage(str);
-          resFlag = true;
-        }else{
-          if(jsonObj.error){
-            addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-            resFlag = false;
-          }
-        } 
-      }
+        if (jsonObj.choices) {
+            if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta.content) {
+                str += jsonObj.choices[0].delta.content;
+            } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+                str += jsonObj.choices[0].text;
+            }
+            addResponseMessage(str);
+            resFlag = true;
+        } else {
+            if (jsonObj.error) {
+                addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                resFlag = false;
+            }
+        }
     }
-    return str;
+}
+return str;
   }
 
   // 处理用户输入
@@ -746,35 +742,25 @@ const selectedModel = localStorage.getItem('selectedModel');
 
 // 检测是否含有"tts"或"dall"并设置连续对话状态
 function checkAndSetContinuousDialogue(modelName) {
-    const hasTTS = modelName.toLowerCase().includes("tts");
     const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hasCompletion2 = modelName.toLowerCase().includes("babbage-002");
     const hasCompletion3 = modelName.toLowerCase().includes("davinci-002");
-    const hasTextem = modelName.toLowerCase().includes("text-embedding");
-    const hasTextmo = modelName.toLowerCase().includes("text-moderation");
-    const hasDALL = modelName.toLowerCase().includes("dall");
-    const hasVs = modelName.toLowerCase().includes("gpt-4-vision-preview");
-    const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs);
+    const isContinuousDialogueEnabled = !(hasCompletion1 || hasCompletion2 || hasCompletion3);
 
     // 设置连续对话状态
     $("#chck-2").prop("checked", isContinuousDialogueEnabled);
     localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
 
     // 设置是否禁用checkbox
-    $("#chck-2").prop("disabled", hasTTS || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs);
+    $("#chck-2").prop("disabled", hasCompletion1 || hasCompletion2 || hasCompletion3);
 
     // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
-    const hadTTS = previousModel.toLowerCase().includes("tts");
-    const hadDALL = previousModel.toLowerCase().includes("dall");
     const hadCompletion1 = previousModel.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hadCompletion2 = previousModel.toLowerCase().includes("babbage-002");
     const hadCompletion3= previousModel.toLowerCase().includes("davinci-002");
-    const hadTextem = previousModel.toLowerCase().includes("text-embedding");
-    const hadTextmo = previousModel.toLowerCase().includes("text-moderation");
-    const hadVs = previousModel.toLowerCase().includes("gpt-4-vision-preview");
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs) && !(hasTTS || hasDALL || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo|| hasVs)) {
+    if ((hadCompletion1 || hadCompletion2 || hadCompletion3) && !(hasCompletion1 || hasCompletion2 || hasCompletion3)) {
         clearConversation();
     }
 
