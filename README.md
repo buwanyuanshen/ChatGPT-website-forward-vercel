@@ -27,4 +27,5 @@ API_KEYS支持多个填写，以英文逗号分隔即可！
 12. 可以加入[q群226848325](https://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=1OOigjF5hxHUSQ5GE5U2UOIwswuckYOe&authKey=2pdTkM0NqehD2OuMojvBMnsmCAUcD6oO3ttDzS5CNle8tnre1a9Jp30aJZVUnC2c&noverify=0&group_code=226848325)学习交流！
 ## 其余项目网址
 1.[ChatGPT-website-vercel(后端)](https://github.com/buwanyuanshen/ChatGPT-website-vercel),一键部署无流式。
+
 2.[ChatGPT-website-plus(后端)](https://github.com/buwanyuanshen/ChatGPT-website-plus)，本地部署有流式。
