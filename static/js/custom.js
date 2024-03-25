@@ -441,8 +441,10 @@ async function sendRequest(data) {
     return;
   }
     
+  let apiUrl;
+
   // 使用输入框中的 API URL，如果输入框不为空
-  let apiUrl = $(".settings-common .api_url").val().trim();
+  apiUrl = $(".settings-common .api_url").val().trim();
   if (!apiUrl) {
     apiUrl = datas.api_url;
   }
