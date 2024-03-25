@@ -393,8 +393,7 @@ async function getApiKey() {
 
       if (!password) {
         console.error("Please enter an API key or password.");
-        // 当密码和 API 密钥输入框都为空时，设置 str 为指定的消息
-        str = "请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！";
+        addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
         return null;
       }
 
@@ -427,7 +426,6 @@ async function getApiKey() {
     return null;
   }
 }
-
 
 // 发送请求获得响应
 async function sendRequest(data) {
@@ -509,6 +507,7 @@ while (true) {
 }
 return str;
   }
+    
 
   // 处理用户输入
   chatBtn.click(function() {
