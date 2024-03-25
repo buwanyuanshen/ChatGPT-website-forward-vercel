@@ -441,12 +441,16 @@ async function sendRequest(data) {
     return;
   }
     
-// 正则表达式用于验证网址格式
-var urlPattern = /^(http(s)?:\/\/)?([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?$/;
-
-// 检查是否输入框中的api_url不是正确的网址格式
-if ($(".settings-common .api_url").val().trim() && !urlPattern.test($(".settings-common .api_url").val().trim())) {
-    addFailMessage("请检查并输入正确的代理网址");
+// 检查api_url是否存在非空值
+if ($(".settings-common .api_url").val().trim()) {
+    // 存储api_url值
+    datas.api_url = $(".settings-common .api_url").val().trim();
+    // 检查api_url是否是正确的网址格式
+    var apiUrlRegex = /^(http|https):\/\/[^ "]+$/;
+    if (!apiUrlRegex.test(datas.api_url)) {
+        // 如果不是正确的网址格式，则返回错误消息
+        addFailMessage("请检查并输入正确的代理网址");
+    }
 }
 
 let apiUrl = datas.api_url + "/v1/chat/completions";
