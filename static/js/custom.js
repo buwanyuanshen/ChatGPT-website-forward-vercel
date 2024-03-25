@@ -436,7 +436,7 @@ async function sendRequest(data) {
   const apiKey = await getApiKey();
 
   if (!datas || !datas.api_url || !apiKey) {
-    addFailMessage("未能获取到正确的apikey和api_url,请在设置填写好环境变量");
+    addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
     console.error("Config data or API key is missing.");
     return;
   }
