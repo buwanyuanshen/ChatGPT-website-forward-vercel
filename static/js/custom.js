@@ -404,7 +404,7 @@ async function getApiKey() {
       
       if (response.status === 403) {
         const errorData = await response.json();
-        addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
+        addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
         console.error("Error:", errorData.error);
         return null;
       }
@@ -436,9 +436,15 @@ async function sendRequest(data) {
   const apiKey = await getApiKey();
 
   if (!datas || !datas.api_url || !apiKey) {
-    addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
+    addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
     console.error("Config data or API key is missing.");
     return;
+  }
+    
+  // 使用输入框中的 API URL，如果输入框不为空
+  let apiUrl = $(".settings-common .api_url").val().trim();
+  if (!apiUrl) {
+    apiUrl = datas.api_url;
   }
 
 let apiUrl = datas.api_url + "/v1/chat/completions";
