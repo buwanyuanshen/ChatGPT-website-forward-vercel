@@ -585,27 +585,28 @@ let data = {};
     });
   });  
 
-// 根据用户设备类型绑定键盘事件
-if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
-  // 手机端：绑定 Enter 键盘事件
-  chatInput.on("keydown", function(e) {
-    // 判断按下 Enter 键
-    if (e.keyCode == 13){
-      chatBtn.click();
-      e.preventDefault();  // 防止默认行为（换行）
-    }
-  });
-} else {
-  // 电脑端：绑定 Ctrl+Enter 键盘事件
-  chatInput.on("keydown", function(e) {
-    // 判断同时按下 Ctrl 键和 Enter 键
-    if (e.ctrlKey && e.keyCode == 13){
-      chatBtn.click();
-      e.preventDefault();  // 防止默认行为（换行）
-    }
-  });
+// Enter键盘事件
+function handleEnter(e) {
+  // 如果是电脑端，判断同时按下Ctrl键和Enter键
+  if (!isMobile() && e.ctrlKey && e.keyCode == 13) {
+    chatBtn.click();
+    e.preventDefault();  //避免回车换行
+  }
+  // 如果是手机端，直接按下Enter键发送
+  else if (isMobile() && e.keyCode == 13) {
+    chatBtn.click();
+    e.preventDefault();  //避免回车换行
+  }
 }
 
+// 绑定键盘事件
+chatInput.on("keydown", handleEnter);
+
+// 判断是否是移动端
+function isMobile() {
+  // 使用适当的移动设备检测逻辑，这里简单地检查是否小于某个屏幕宽度
+  return window.innerWidth <= 768; // 这里假设小于等于768像素的宽度是移动端
+}
 
   // 设置栏宽度自适应
   let width = $('.function .others').width();
