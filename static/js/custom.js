@@ -522,8 +522,7 @@ let data = {};
     addRequestMessage(message);
     // 将用户消息保存到数组
     messages.push({"role": "user", "content": message})
-    // 收到回复前让按钮不可点击
-    chatBtn.attr('disabled',true)
+
 
     if(messages.length>40){
       addFailMessage("此次对话长度过长，请点击下方删除按钮清除对话内容！");
@@ -568,16 +567,17 @@ let data = {};
     });
   });  
 
-  // Enter键盘事件
-  function handleEnter(e){
-    if (e.keyCode==13){
-      chatBtn.click();
-      e.preventDefault();  //避免回车换行
-    }
+// Enter键盘事件
+function handleEnter(e){
+  // 判断同时按下Ctrl键和Enter键
+  if (e.ctrlKey && e.keyCode == 13){
+    chatBtn.click();
+    e.preventDefault();  //避免回车换行
   }
+}
 
-  // 绑定Enter键盘事件
-  chatInput.on("keydown",handleEnter);
+// 绑定Ctrl + Enter键盘事件
+chatInput.on("keydown", handleEnter);
 
 
   // 设置栏宽度自适应
