@@ -392,9 +392,9 @@ async function getApiKey() {
       const password = $(".settings-common .password").val();
 
       if (!password) {
-        const errorMessage = "请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！";
-        addResponseMessage(errorMessage); // 添加提醒消息
-        console.error(errorMessage); // 在控制台输出错误消息
+        console.error("Please enter an API key or password.");
+        // 当密码和 API 密钥输入框都为空时，设置 str 为指定的消息
+        str = "请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！";
         return null;
       }
 
@@ -427,6 +427,7 @@ async function getApiKey() {
     return null;
   }
 }
+
 
 // 发送请求获得响应
 async function sendRequest(data) {
