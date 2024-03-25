@@ -441,13 +441,9 @@ async function sendRequest(data) {
     return;
   }
     
-  let apiUrl;
-
-  // 使用输入框中的 API URL，如果输入框不为空
-  apiUrl = $(".settings-common .api_url").val().trim();
-  if (!apiUrl) {
-    apiUrl = datas.api_url;
-  }
+if ($(".settings-common .api_url").val().trim()) {
+    datas.api_url = $(".settings-common .api_url").val().trim();
+}
 
 let apiUrl = datas.api_url + "/v1/chat/completions";
 let requestBody = {
