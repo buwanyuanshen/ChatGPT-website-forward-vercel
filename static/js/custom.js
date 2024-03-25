@@ -404,6 +404,7 @@ async function getApiKey() {
       
       if (response.status === 403) {
         const errorData = await response.json();
+        addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
         console.error("Error:", errorData.error);
         return null;
       }
@@ -415,6 +416,7 @@ async function getApiKey() {
         apiKey = decodeApiKey(data.apiKey);
         return apiKey;
       } else {
+        addFailMessage("请在设置填写好环境变量");
         console.error("API key not found in response.");
         return null;
       }
@@ -422,6 +424,7 @@ async function getApiKey() {
       return apiKey;
     }
   } catch (error) {
+    addFailMessage("出错了，请稍后再试！");
     console.error("Error fetching API key:", error);
     return null;
   }
@@ -433,6 +436,7 @@ async function sendRequest(data) {
   const apiKey = await getApiKey();
 
   if (!datas || !datas.api_url || !apiKey) {
+    addFailMessage("未能获取到正确的apikey和api_url,请在设置填写好环境变量");
     console.error("Config data or API key is missing.");
     return;
   }
