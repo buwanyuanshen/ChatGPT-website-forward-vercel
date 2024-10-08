@@ -1,4 +1,33 @@
 $(document).ready(function () {
+        // Function to detect links
+    function containsLink(input) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return urlRegex.test(input);
+    }
+
+    // Existing input event listener for dynamic resizing
+    chatInput.addEventListener('input', function () {
+        // Save the current scroll height
+        var currentScrollHeight = chatInput.scrollHeight;
+
+        // Adjust the height of the input box
+        chatInput.style.height = 'auto';
+        chatInput.style.height = (Math.min(maxHeight, chatInput.scrollHeight)) + 'px';
+
+        // Set the height of the outer container
+        iptContainer.style.height = (Math.min(maxHeight, chatInput.scrollHeight) + 20) + 'px';
+
+        // Restore the scroll height to prevent flickering
+        chatInput.scrollTop = currentScrollHeight;
+
+        // Check if the input contains a link
+        if (containsLink(chatInput.value)) {
+            // Disable continuous dialogue
+            $("#chck-2").prop("checked", false);
+            localStorage.setItem('continuousDialogue', false);
+        }
+    });
+    
     // 读取本地存储中的模型列表，并初始化模型选择下拉框
     var savedModels = localStorage.getItem('customModels');
     if (savedModels) {
@@ -787,27 +816,45 @@ function deleteInputMessage() {
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
 
-// 检测是否含有"tts"或"dall"并设置连续对话状态
 function checkAndSetContinuousDialogue(modelName) {
+    const hasTTS = modelName.toLowerCase().includes("tts");
     const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hasCompletion2 = modelName.toLowerCase().includes("babbage-002");
     const hasCompletion3 = modelName.toLowerCase().includes("davinci-002");
-    const isContinuousDialogueEnabled = !(hasCompletion1 || hasCompletion2 || hasCompletion3);
+    const hasTextem = modelName.toLowerCase().includes("embedding");
+    const hasTextmo = modelName.toLowerCase().includes("moderation");
+    const hasDALL = modelName.toLowerCase().includes("dall");
+    const hasVs = modelName.toLowerCase().includes("v");
+    const hasMj = modelName.toLowerCase().includes("midjourney");
+    const hasSD = modelName.toLowerCase().includes("stable");
+    const hasFlux = modelName.toLowerCase().includes("flux");
+    const hasVd = modelName.toLowerCase().includes("video");
+    const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasMj || hasSD || hasFlux || hasVd);
 
     // 设置连续对话状态
     $("#chck-2").prop("checked", isContinuousDialogueEnabled);
     localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
 
     // 设置是否禁用checkbox
-    $("#chck-2").prop("disabled", hasCompletion1 || hasCompletion2 || hasCompletion3);
+    $("#chck-2").prop("disabled", hasTTS || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasMj || hasSD || hasFlux || hasVd);
 
     // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
+    const hadTTS = previousModel.toLowerCase().includes("tts");
+    const hadDALL = previousModel.toLowerCase().includes("dall");
     const hadCompletion1 = previousModel.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hadCompletion2 = previousModel.toLowerCase().includes("babbage-002");
     const hadCompletion3= previousModel.toLowerCase().includes("davinci-002");
+    const hadTextem = previousModel.toLowerCase().includes("embedding");
+    const hadTextmo = previousModel.toLowerCase().includes("moderation");
+    const hadVs = previousModel.toLowerCase().includes("v");
+    const hadMj = previousModel.toLowerCase().includes("midjourney");
+    const hadSD = previousModel.toLowerCase().includes("stable");
+    const hadFlux = previousModel.toLowerCase().includes("flux");
+    const hadVd = previousModel.toLowerCase().includes("video");
+
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadCompletion1 || hadCompletion2 || hadCompletion3) && !(hasCompletion1 || hasCompletion2 || hasCompletion3)) {
+    if ((hadTTS || hadDALL || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadMj || hadSD || hadFlux || hadVd) && !(hasTTS || hasDALL || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo|| hasVs || hasMj || hasSD || hasFlux || hasVd)) {
         clearConversation();
     }
 
