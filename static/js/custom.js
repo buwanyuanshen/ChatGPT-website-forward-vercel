@@ -679,6 +679,9 @@ while (true) {
             } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
                 str += jsonObj.choices[0].text;
             }
+             else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message.content) {
+                str += jsonObj.choices[0].message.content;
+            }
             addResponseMessage(str);
             resFlag = true;
         } else {
