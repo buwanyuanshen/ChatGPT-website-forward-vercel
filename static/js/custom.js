@@ -674,7 +674,7 @@ while (true) {
             break;
         }
         if (jsonObj.choices) {
-            if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta.content) {
+            if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta && jsonObj.choices[0].delta.content) {
                 str += jsonObj.choices[0].delta.content;
             } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
                 str += jsonObj.choices[0].text;
