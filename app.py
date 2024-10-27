@@ -11,8 +11,8 @@ app = Flask(__name__)
 @app.route("/default_balance", methods=["GET"])
 def get_default_balance():
     # 从配置文件中获取默认的 API_KEY 和 API_URL
-    apiKey = os.environ.get("API_KEYS", None).strip().split(",")
-    apiUrl = os.environ.get('API_URL', None)
+    apiKey = random.choice(os.environ.get("API_KEYS",None).strip().split(","))
+    apiUrl = os.environ.get("API_URL", None)
 
     # 如果默认的 apiKey 或 apiUrl 为空，返回错误信息
     if not apiKey or not apiUrl:
