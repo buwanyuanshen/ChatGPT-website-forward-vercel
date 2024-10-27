@@ -868,7 +868,7 @@ function isMobile() {
 
   // 初始化archiveSession
   if(archiveSession == null){
-    archiveSession = "false";
+    archiveSession = "true";
     localStorage.setItem('archiveSession', archiveSession);
   }
   
