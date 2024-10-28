@@ -486,15 +486,7 @@ if (message.includes('Unexpected data format:')) {
     });
     lastResponseElement.append('<div class="message-text">' + escapedMessage + imagesHtml + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
   }
-} else if (message.startsWith('"//')) {
-  // 处理包含base64编码的音频
-  const base64Data = message.replace(/"/g, '');
-  lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-} else if (message.startsWith('//')) {
-  // 处理包含base64编码的音频
-  const base64Data = message;
-  lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-} else {
+}else {
   lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 }
 
@@ -680,7 +672,7 @@ if (data.model.includes("gpt-3.5-turbo-instruct") || data.model.includes("babbag
         "stream": true
     };
 }
-if (data.model.includes("o1") || !data.model.includes("all")) {
+if (data.model.includes("o1") && !data.model.includes("all")) {
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
     "messages": data.prompts,
