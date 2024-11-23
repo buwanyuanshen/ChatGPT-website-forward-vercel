@@ -672,6 +672,18 @@ if (data.model.includes("gpt-3.5-turbo-instruct") || data.model.includes("babbag
         "stream": true
     };
 }
+    if (data.model.includes("o1") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": true
+    };
+}
 const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
