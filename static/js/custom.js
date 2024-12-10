@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setCookie('balanceVisibility', 'hidden', 30); // 保存30天
         }
     });
-
+ });
 
 async function fetchBalance(apiUrl, apiKey) {
         const headers = new Headers({
