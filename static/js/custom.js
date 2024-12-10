@@ -1,26 +1,31 @@
+// Helper functions to set and get cookies
 function setCookie(name, value, days) {
     var expires = "";
     if (days) {
         var date = new Date();
-        date.setTime(date.getTime() + (days*24*60*60*1000));
-        expires = "; expires=" + date.toUTCString();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));  // Calculate expiration time
+        expires = "; expires=" + date.toUTCString();  // Convert to UTC string
     }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";  // Set cookie
 }
+
 function getCookie(name) {
     var nameEQ = name + "=";
     var ca = document.cookie.split(';');
-    for(var i=0;i < ca.length;i++) {
-        var c = ca[i];
-        while (c.charAt(0)==' ') c = c.substring(1,c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i].trim();  // Use trim() to clean up any extra spaces
+        if (c.indexOf(nameEQ) === 0) {
+            return c.substring(nameEQ.length, c.length);  // Return the cookie value
+        }
     }
-    return null;
+    return null;  // If cookie is not found, return null
 }
+
 document.addEventListener('DOMContentLoaded', function() {
     // 余额显示/隐藏功能
     var toggleBalance = document.getElementById('toggleBalance');
     var balanceInfo = document.getElementById('balanceInfo');
+
     // 读取Cookie并设置初始状态
     var balanceVisibility = getCookie('balanceVisibility');
     if (balanceVisibility === 'hidden') {
@@ -30,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         toggleBalance.checked = true;
         balanceInfo.style.display = 'block';
     }
+
     // 监听开关变化
     toggleBalance.addEventListener('change', function() {
         if (this.checked) {
@@ -40,7 +46,8 @@ document.addEventListener('DOMContentLoaded', function() {
             setCookie('balanceVisibility', 'hidden', 30); // 保存30天
         }
     });
- });
+});
+
 
 async function fetchBalance(apiUrl, apiKey) {
         const headers = new Headers({
