@@ -1199,7 +1199,7 @@ function checkAndSetContinuousDialogue(modelName) {
 if (selectedModel) {
     $(".settings-common .model").val(selectedModel);
     checkAndSetContinuousDialogue(selectedModel);
-    $(".title h2").text(selectedModel);
+    $(".title h2").text($(".settings-common .model option:selected").text());
 }
 
 // 监听model选择的变化
@@ -1207,7 +1207,7 @@ $('.settings-common .model').change(function() {
     const selectedModel = $(this).val();
     localStorage.setItem('selectedModel', selectedModel);
     checkAndSetContinuousDialogue(selectedModel);
-    $(".title h2").text(selectedModel);
+    $(".title h2").text($(this).find("option:selected").text());
 });
 
 // 删除对话
