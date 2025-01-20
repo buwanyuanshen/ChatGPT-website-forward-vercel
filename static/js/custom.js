@@ -895,8 +895,7 @@ if (jsonObj.choices) {
         } else if (!reasoningContent && content && content.trim() !== "") {
             str += content;
         }
-    }
-}
+  
 
             addResponseMessage(str);
             resFlag = true;
