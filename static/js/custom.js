@@ -873,19 +873,31 @@ while (true) {
         } catch (e) {
             break;
         }
-        if (jsonObj.choices) {
-            if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta && jsonObj.choices[0].delta.reasoning_content && jsonObj.choices[0].delta.reasoning_content.trim() !== "" && jsonObj.choices[0].delta.content.trim() !== "") {
-                str += jsonObj.choices[0].delta.reasoning_content + jsonObj.choices[0].delta.content;
-            }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta && jsonObj.choices[0].delta.content && !jsonObj.choices[0].delta.reasoning_content && jsonObj.choices[0].delta.content.trim() !== "") {
-                str += jsonObj.choices[0].delta.content;
-            }
-            else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                str += jsonObj.choices[0].text;
-            }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message && jsonObj.choices[0].message.content && jsonObj.choices[0].message.reasoning_content && jsonObj.choices[0].message.reasoning_content.trim() !== "" && jsonObj.choices[0].message.content.trim() !== "") {
-                str += jsonObj.choices[0].message.reasoning_content + jsonObj.choices[0].message.content;
-            }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message && jsonObj.choices[0].message.content && !jsonObj.choices[0].message.reasoning_content && jsonObj.choices[0].message.content.trim() !== "") {
-                str += jsonObj.choices[0].message.content;
-            }
+if (jsonObj.choices) {
+    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+        const content = jsonObj.choices[0].delta.content;
+
+        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() !== "") {
+            str += reasoningContent + content;
+        } else if (!reasoningContent && content && content.trim() !== "") {
+            str += content;
+        }
+    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+        str += jsonObj.choices[0].text;
+    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+        const message = jsonObj.choices[0].message;
+        const reasoningContent = message.reasoning_content;
+        const content = message.content;
+
+        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() !== "") {
+            str += reasoningContent + content;
+        } else if (!reasoningContent && content && content.trim() !== "") {
+            str += content;
+        }
+    }
+}
+
             addResponseMessage(str);
             resFlag = true;
         } else {
