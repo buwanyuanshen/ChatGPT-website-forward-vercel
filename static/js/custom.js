@@ -835,6 +835,17 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "stream": true
     };
 }
+        if (data.model.includes("deepseek-reasoner") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "top_p": 1,
+    "n": 1,
+    "stream": true
+    };
+}
 const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
