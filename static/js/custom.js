@@ -878,9 +878,9 @@ if (jsonObj.choices) {
         const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
         const content = jsonObj.choices[0].delta.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() !== "") {
-            str += reasoningContent + content;
-        } else if (!reasoningContent && content && content.trim() !== "") {
+        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() == "") {
+            str += reasoningContent;
+        } else if (content && content.trim() !== "") {
             str += content;
         }
     } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
@@ -890,9 +890,9 @@ if (jsonObj.choices) {
         const reasoningContent = message.reasoning_content;
         const content = message.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() !== "") {
-            str += reasoningContent + content;
-        } else if (!reasoningContent && content && content.trim() !== "") {
+        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() == "") {
+            str += reasoningContent;
+        } else if (content && content.trim() !== "") {
             str += content;
         }
   
