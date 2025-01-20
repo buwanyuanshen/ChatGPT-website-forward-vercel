@@ -841,9 +841,8 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "messages": data.prompts,
     "model": data.model,
     "max_tokens": data.max_tokens,
-    "top_p": 1,
     "n": 1,
-    "stream": true
+    "stream": false
     };
 }
 const response = await fetch(apiUrl, {
