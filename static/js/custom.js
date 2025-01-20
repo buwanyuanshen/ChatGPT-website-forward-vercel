@@ -895,7 +895,7 @@ if (jsonObj.choices) {
         } else if (content && content.trim() !== "") {
             str += content;
         }
-
+    }}
             addResponseMessage(str);
             resFlag = true;
         } else {
