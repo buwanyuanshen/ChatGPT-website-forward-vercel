@@ -878,7 +878,7 @@ if (jsonObj.choices) {
         const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
         const content = jsonObj.choices[0].delta.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() == "") {
+        if (reasoningContent && reasoningContent.trim() !== "") {
             str += reasoningContent;
         } else if (content && content.trim() !== "") {
             str += content;
@@ -890,12 +890,11 @@ if (jsonObj.choices) {
         const reasoningContent = message.reasoning_content;
         const content = message.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "" && content && content.trim() == "") {
+        if (reasoningContent && reasoningContent.trim() !== "") {
             str += reasoningContent;
         } else if (content && content.trim() !== "") {
             str += content;
         }
-  
 
             addResponseMessage(str);
             resFlag = true;
