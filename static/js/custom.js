@@ -876,14 +876,14 @@ while (true) {
         if (jsonObj.choices) {
             if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta && jsonObj.choices[0].delta.reasoning_content && jsonObj.choices[0].delta.reasoning_content.trim() !== "" && jsonObj.choices[0].delta.content.trim() !== "") {
                 str += jsonObj.choices[0].delta.reasoning_content + jsonObj.choices[0].delta.content;
-            }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta && jsonObj.choices[0].delta.content && !jsonObj.choices[0].delta.reasoning_content && jsonObj.choices[0].delta.reasoning_content.trim() !== "" && jsonObj.choices[0].delta.content.trim() !== "") {
+            }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta && jsonObj.choices[0].delta.content && !jsonObj.choices[0].delta.reasoning_content && jsonObj.choices[0].delta.content.trim() !== "") {
                 str += jsonObj.choices[0].delta.content;
             }
             else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
                 str += jsonObj.choices[0].text;
             }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message && jsonObj.choices[0].message.content && jsonObj.choices[0].message.reasoning_content && jsonObj.choices[0].message.reasoning_content.trim() !== "" && jsonObj.choices[0].message.content.trim() !== "") {
                 str += jsonObj.choices[0].message.reasoning_content + jsonObj.choices[0].message.content;
-            }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message && jsonObj.choices[0].message.content && !jsonObj.choices[0].message.reasoning_content && jsonObj.choices[0].message.reasoning_content.trim() !== "" && jsonObj.choices[0].message.content.trim() !== "") {
+            }else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message && jsonObj.choices[0].message.content && !jsonObj.choices[0].message.reasoning_content && jsonObj.choices[0].message.content.trim() !== "") {
                 str += jsonObj.choices[0].message.content;
             }
             addResponseMessage(str);
