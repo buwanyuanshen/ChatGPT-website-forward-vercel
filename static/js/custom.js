@@ -842,7 +842,7 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false
+    "stream": true
     };
 }
 const response = await fetch(apiUrl, {
