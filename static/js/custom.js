@@ -842,7 +842,7 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": true
+    "stream": false
     };
 }
 const response = await fetch(apiUrl, {
@@ -879,7 +879,7 @@ if (jsonObj.choices) {
         const content = jsonObj.choices[0].delta.content;
 
         if (reasoningContent && reasoningContent.trim() !== "") {
-            str += reasoningContent;
+            str += "思考过程:"+ reasoningContent +"\n" + "最终回答:" ;
         } else if (content && content.trim() !== "") {
             str += content;
         }
