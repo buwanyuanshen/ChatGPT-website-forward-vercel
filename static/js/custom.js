@@ -835,7 +835,7 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "stream": true
     };
 }
-        if (data.model.includes("deepseek-reasoner") ) {
+        if (data.model.includes("deepseek-r") ) {
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
     "messages": data.prompts,
