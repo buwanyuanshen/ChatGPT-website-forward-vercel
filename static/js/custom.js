@@ -891,7 +891,7 @@ if (jsonObj.choices) {
         const content = message.content;
 
         if (reasoningContent && reasoningContent.trim() !== "") {
-            str += reasoningContent;
+            str += "思考过程:"+ reasoningContent +"\n" + "最终回答:" ;
         } else if (content && content.trim() !== "") {
             str += content;
         }
