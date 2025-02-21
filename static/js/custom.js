@@ -879,7 +879,7 @@ if (jsonObj.choices) {
         const content = jsonObj.choices[0].delta.content;
 
         if (reasoningContent && reasoningContent.trim() !== "") {
-            str += "思考过程:"+ reasoningContent +"\n" + "最终回答:" ;
+            str += "思考过程:"+ +"\n" + reasoningContent +"\n" + "最终回答:" +"\n" + content ;
         } else if (content && content.trim() !== "") {
             str += content;
         }
@@ -891,7 +891,7 @@ if (jsonObj.choices) {
         const content = message.content;
 
         if (reasoningContent && reasoningContent.trim() !== "") {
-            str += "思考过程:"+ reasoningContent +"\n" + "最终回答:" ;
+            str += "思考过程:"+ +"\n" + reasoningContent +"\n" + "最终回答:" +"\n" + content ;
         } else if (content && content.trim() !== "") {
             str += content;
         }
