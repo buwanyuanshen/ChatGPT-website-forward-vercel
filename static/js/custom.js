@@ -54,6 +54,7 @@ function checkModelAndShowUpload() {
         selectedModel.includes("learnlm-1.5-pro-experimental") ||
         selectedModel.includes("vision") ||
         selectedModel.includes("o1")
+        selectedModel.includes("o3")
 
     ) {
         uploadArea.style.display = 'block';
@@ -832,7 +833,19 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": true
+    "stream": false
+    };
+}
+    if (data.model.includes("o3") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": false
     };
 }
         if (data.model.includes("deepseek-r") ) {
@@ -845,7 +858,27 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "stream": false
     };
 }
-            if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
+    if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+}
+    if (data.model.includes("claude-3-7-sonnet-thinking") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+}
+if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
     "messages": data.prompts,
