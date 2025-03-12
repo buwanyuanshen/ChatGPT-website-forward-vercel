@@ -136,15 +136,31 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-async function fetchBalance(apiUrl, apiKey) {
+    // Helper function to clean up API URL
+    function cleanApiUrl(apiUrl) {
+        if (!apiUrl) {
+            return apiUrl;
+        }
+        let cleanedUrl = apiUrl.trim();
+        cleanedUrl = cleanedUrl.replace(/\s/g, ''); // Remove spaces
+        cleanedUrl = cleanedUrl.replace(/\/+$/, ''); // Remove trailing slashes
+        cleanedUrl = cleanedUrl.replace(/\/v1(\/chat\/completions)?$/i, ''); // Remove /v1 or /v1/chat/completions at the end
+        return cleanedUrl;
+    }
+
+
+    async function fetchBalance(apiUrl, apiKey) {
         const headers = new Headers({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
         });
 
         try {
+            // Clean the apiUrl before using it
+            const cleanedApiUrl = cleanApiUrl(apiUrl);
+
             // Get the total balance (quota)
-            let subscriptionResponse = await fetch(`${apiUrl}/v1/dashboard/billing/subscription`, { headers });
+            let subscriptionResponse = await fetch(`${cleanedApiUrl}/v1/dashboard/billing/subscription`, { headers });
             if (!subscriptionResponse.ok) {
                 throw new Error('Failed to fetch subscription data');
             }
@@ -155,8 +171,8 @@ async function fetchBalance(apiUrl, apiKey) {
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - 99);
             let endDate = new Date();
-            const usageUrl = `${apiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
-            
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+
             let usageResponse = await fetch(usageUrl, { headers });
             if (!usageResponse.ok) {
                 throw new Error('Failed to fetch usage data');
@@ -180,6 +196,7 @@ async function fetchBalance(apiUrl, apiKey) {
     }
 
     // Function to fetch default balance from the backend
+    let defaultApiUrl = ''; // Variable to store default apiUrl from backend
     async function fetchDefaultBalance() {
         try {
             let response = await fetch('/default_balance');
@@ -190,6 +207,9 @@ async function fetchBalance(apiUrl, apiKey) {
             if (data.error) {
                 throw new Error(data.error.message);
             }
+
+            // Store default apiUrl
+            defaultApiUrl = data.url; // Assuming the backend returns url in data
 
             // Update the balance display with default balance
             document.getElementById('totalBalance').innerText = `总额: ${data.total_balance.toFixed(4)} $`;
@@ -209,32 +229,43 @@ async function fetchBalance(apiUrl, apiKey) {
         const apiKeyField = document.querySelector('.api-key');
         const apiUrlField = document.querySelector('.api_url');
 
-        // Initial check for empty fields
-        if (!apiKeyField.value.trim() && !apiUrlField.value.trim()) {
-            fetchDefaultBalance();
+        // Initial check
+        if (apiKeyField.value.trim()) {
+            let apiUrl = apiUrlField.value.trim();
+            if (!apiUrl) {
+                apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
+            }
+            fetchBalance(apiUrl, apiKeyField.value.trim());
         } else {
-            const apiKey = apiKeyField.value.trim();
-            const apiUrl = apiUrlField.value.trim();
-            fetchBalance(apiUrl, apiKey);
+            fetchDefaultBalance();
         }
 
-        // Event listeners to immediately fetch balance when API key or URL is changed
+        // Event listeners
         apiKeyField.addEventListener('input', function () {
             const apiKey = apiKeyField.value.trim();
-            const apiUrl = apiUrlField.value.trim();
-            if (apiKey && apiUrl) {
+            if (apiKey) {
+                let apiUrl = apiUrlField.value.trim();
+                if (!apiUrl) {
+                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
+                }
                 fetchBalance(apiUrl, apiKey);
-            } else if (!apiKey && !apiUrl) {
+            } else {
                 fetchDefaultBalance();
             }
         });
 
         apiUrlField.addEventListener('input', function () {
             const apiKey = apiKeyField.value.trim();
-            const apiUrl = apiUrlField.value.trim();
-            if (apiKey && apiUrl) {
+            if (apiKey) {
+                let apiUrl = apiUrlField.value.trim();
+                if (!apiUrl) {
+                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty, but in this case apiUrl is not empty because it's triggered by apiUrlField input event. So no need to check again.
+                        apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
+                } else {
+                    apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
+                }
                 fetchBalance(apiUrl, apiKey);
-            } else if (!apiKey && !apiUrl) {
+            } else {
                 fetchDefaultBalance();
             }
         });
@@ -816,7 +847,7 @@ async function sendRequest(data) {
 // 检查api_url是否存在非空值
 if ($(".settings-common .api_url").val().trim()) {
     // 存储api_url值
-    datas.api_url = $(".settings-common .api_url").val().trim();
+    datas.api_url =cleanApiUrl($(".settings-common .api_url").val());
     // 检查api_url是否是正确的网址格式
     var apiUrlRegex = /^(http|https):\/\/[^ "]+$/;
     if (!apiUrlRegex.test(datas.api_url)) {
