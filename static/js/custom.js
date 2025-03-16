@@ -946,7 +946,7 @@ const modelStreamConfig = {
     "gpt-4o-mini": true, // 默认流式
     "o1": false,        // 非流式
     "o3": false,        // 非流式
-    "deepseek-r": false, // 非流式
+    "deepseek-r": false, // 非流式 (matches "deepseek-r" and "deepseek-r1" etc.)
     "claude-3-7-sonnet-20250219-thinking": false, // 非流式
     "claude-3-7-sonnet-thinking": false, // 非流式
     "claude-3-7-sonnet-thinking-20250219": false, // 非流式
@@ -954,7 +954,11 @@ const modelStreamConfig = {
 
 // 定义不需要展示流式输出选项的模型 (例如图片生成，tts等)
 const noStreamModels = [
-    "dall-e", "cogview", "moderation", "embedding", "tts-1"
+    "dall-e-", // Matches "dall-e-2", "dall-e-3" etc.
+    "cogview-", // Matches "cogview-3" etc.
+    "moderation",
+    "embedding",
+    "tts-1"
 ];
 
 // 发送请求获得响应
@@ -1156,7 +1160,7 @@ if (!response.ok) {
     return;
 }
 
-if (model.includes("dall-e") || model.includes("cogview")) { // use includes here as well
+if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
         addImageMessage(responseData.data[0].url);
@@ -1288,15 +1292,15 @@ if (getStreamSettingForModel(data.model)) { // Only stream output if enabled, us
 
   }
 
-// Function to get stream setting for a given model
+// Function to get stream setting for a given model, using includes logic
 function getStreamSettingForModel(modelName) {
     const modelLower = modelName.toLowerCase();
-    for (const modelKey in modelStreamConfig) {
-        if (modelLower.includes(modelKey)) {
-            return modelStreamConfig[modelKey];
+    for (const modelKeyword in modelStreamConfig) {
+        if (modelLower.includes(modelKeyword)) {
+            return modelStreamConfig[modelKeyword];
         }
     }
-    return getCookie('streamOutput') !== 'false'; // Default to cookie setting if not configured
+    return getCookie('streamOutput') !== 'false'; // Default to cookie setting if not configured or no match found
 }
 
 
@@ -1336,8 +1340,8 @@ let imageSrc = document.getElementById('imagePreview').src;
   data.max_tokens = parseInt($(".settings-common .max-tokens").val());
 
     const selectedModel = data.model.toLowerCase();
-    if (selectedModel.includes("dall-e") || selectedModel.includes("cogview") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) { // Use includes here as well
-        data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
+    if (noStreamModels.some(keyword => selectedModel.includes(keyword))) {
+        data.prompts = [{"role": "user", "content": message}]; // For no-stream models, only send the last message
     } else {
         // 判读是否已开启连续对话
         if(localStorage.getItem('continuousDialogue') == 'true'){
@@ -1360,7 +1364,7 @@ let imageSrc = document.getElementById('imagePreview').src;
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
-      if(resFlag && !(selectedModel.includes("dall-e") || selectedModel.includes("cogview") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation // Use includes here as well
+      if(resFlag && !noStreamModels.some(keyword => selectedModel.includes(keyword)) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
         messages.push({"role": "assistant", "content": res});
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
@@ -1609,10 +1613,10 @@ function checkAndSetContinuousDialogue(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
-    const hadKl = previousModel.toLowerCase().includes("kling");
+    const hasSora = previousModel.toLowerCase().includes("sora");
+    const hasSuno = previousModel.toLowerCase().includes("suno");
+    const hasKo = previousModel.toLowerCase().includes("kolors");
+    const hasKl = previousModel.toLowerCase().includes("kling");
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
     if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hasSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
@@ -1643,17 +1647,15 @@ function checkAndSetContinuousDialogue(modelName) {
             const streamOutputSettingRow = $('.settings-common').has('#streamOutput'); // Select the row containing streamOutput checkbox
             const streamOutputCheckbox = $('#streamOutput');
 
-            const isNoStreamModel = noStreamModels.some(modelKeyword => selectedModelLower.includes(modelKeyword));
-
-            if (isNoStreamModel) {
-                streamOutputSettingRow.hide(); // Hide stream output setting for models including keywords from noStreamModels
+            if (noStreamModels.some(keyword => selectedModelLower.includes(keyword))) {
+                streamOutputSettingRow.hide(); // Hide stream output setting for models like dall-e, tts-1
             } else {
                 streamOutputSettingRow.show(); // Show for other models
-                if (modelStreamConfig.hasOwnProperty(selectedModelLower)) {
-                    streamOutputCheckbox.prop('checked', modelStreamConfig[selectedModelLower]); // Set checkbox based on model config
-                    setCookie('streamOutput', modelStreamConfig[selectedModelLower].toString(), 30); // Update cookie to reflect model specific setting
+                if (getStreamSettingForModel(selectedModel)) { // if model is in modelStreamConfig and set to false (non-stream)
+                    streamOutputCheckbox.prop('checked', getStreamSettingForModel(selectedModel)); // Set checkbox based on model config
+                    setCookie('streamOutput', String(getStreamSettingForModel(selectedModel)), 30); // Update cookie to reflect model specific setting
                 } else {
-                    // For models not in modelStreamConfig, default to cookie or true if cookie not set.
+                    // For models not in modelStreamConfig or set to true (stream), default to cookie or true if cookie not set.
                     const cookieStreamSetting = getCookie('streamOutput');
                     streamOutputCheckbox.prop('checked', cookieStreamSetting !== 'false'); // Respect cookie if set, otherwise default to true (stream)
                 }
