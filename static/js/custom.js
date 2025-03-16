@@ -973,16 +973,10 @@ let requestBody = {
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    // stream parameter is conditionally added below
+    "stream": getCookie('streamOutput') !== 'false' // 从 Cookie 获取流式输出设置
 };
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
-const isStreamModel = !(model.includes("dall-e") || model.includes("dall-3") || model.includes("cogview-3") || model.includes("moderation") || model.includes("embedding") || model.includes("tts-1"));
-
-if (isStreamModel) {
-    requestBody.stream = getCookie('streamOutput') !== 'false'; // Add stream parameter only for chat models, based on cookie setting
-}
-
 
 if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002")) {
     apiUrl = datas.api_url + "/v1/completions";
@@ -993,11 +987,8 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         "temperature": data.temperature,
         "top_p": 1,
         "n": 1,
-         // stream parameter is conditionally added below
+        "stream": getCookie('streamOutput') !== 'false'
     };
-     if (isStreamModel) {
-        requestBody.stream = getCookie('streamOutput') !== 'false'; // Add stream parameter only for chat models, based on cookie setting
-    }
 } else if (data.image_base64 && data.image_base64.trim() !== '') {
     apiUrl = datas.api_url + "/v1/chat/completions";
    requestBody = {
@@ -1018,11 +1009,8 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-     // stream parameter is conditionally added below
+    "stream": getCookie('streamOutput') !== 'false'
     };
-    if (isStreamModel) {
-        requestBody.stream = getCookie('streamOutput') !== 'false'; // Add stream parameter only for chat models, based on cookie setting
-    }
 } else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     apiUrl = datas.api_url + "/v1/images/generations";
     let size = "1024x1024";
@@ -1138,6 +1126,15 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
+// Conditionally set stream parameter based on model
+const isSpecialModel = model.includes("dall-e") || model.includes("cogview-3") || model.includes("moderation") || model.includes("embedding") || model.includes("tts-1");
+if (isSpecialModel) {
+    delete requestBody.stream; // Remove stream parameter for these models
+} else {
+    requestBody.stream = getCookie('streamOutput') !== 'false'; // Keep stream parameter for other models based on settings
+}
+
+
 const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
@@ -1205,7 +1202,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (isStreamModel && getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式,  only for chat models
+if (getCookie('streamOutput') !== 'false' && !isSpecialModel) { // 从 Cookie 获取流式输出设置, 默认流式, 并且排除特殊模型
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1259,7 +1256,7 @@ if (isStreamModel && getCookie('streamOutput') !== 'false') { // 从 Cookie 获�
         }
     }
     return str;
-} else { // 非流式输出处理 or non-chat models
+} else { // 非流式输出处理 或者 特殊模型强制非流式
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
@@ -1628,12 +1625,12 @@ function updateModelSettings(modelName) {
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
     const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hasKo = previousModel.toLowerCase().includes("kolors");
-    const hasKl = previousModel.toLowerCase().includes("kling");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
@@ -1657,16 +1654,6 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(this).find("option:selected").data('description'));
-             const isHideStreamSettingModel = selectedModel.toLowerCase().includes("dall-e") ||
-                                      selectedModel.toLowerCase().includes("cogview") ||
-                                      selectedModel.toLowerCase().includes("moderation") ||
-                                      selectedModel.toLowerCase().includes("embedding") ||
-                                      selectedModel.toLowerCase().includes("tts-1");
-            if (isHideStreamSettingModel) {
-                streamOutputSetting.hide(); // 隐藏设置行
-            } else {
-                 streamOutputSetting.show(); // 显示设置行
-            }
         });
 
 // 删除对话
@@ -1804,7 +1791,7 @@ $(".delete a").click(function(){
         $(this).text('复制失败');
       }
 
-      // 从文档中删除临时的 textarea 元素 
+      // 从文档中删除临时的 textarea 元素
       document.body.removeChild(textArea);
 
       setTimeout(() => {
@@ -1813,15 +1800,4 @@ $(".delete a").click(function(){
     });
   }
 
-  // 禁用右键菜单
-  document.addEventListener('contextmenu',function(e){
-    e.preventDefault();  // 阻止默认事件
-  });
-
-  // 禁止键盘F12键
-  document.addEventListener('keydown',function(e){
-    if(e.key == 'F12'){
-        e.preventDefault(); // 如果按下键F12,阻止事件
-    }
-  });
 });
