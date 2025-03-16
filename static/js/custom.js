@@ -973,10 +973,26 @@ let requestBody = {
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false' // 从 Cookie 获取流式输出设置
+    // stream parameter will be added conditionally below
 };
 
-const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
+const model = data.model.toLowerCase();
+const isModelForcedNonStream = model.includes("o1") && !model.includes("all") ||
+                                model.includes("o3") && !model.includes("all") ||
+                                model.includes("deepseek-r") ||
+                                model.includes("claude-3-7-sonnet-20250219-thinking") ||
+                                model.includes("claude-3-7-sonnet-thinking") ||
+                                model.includes("claude-3-7-sonnet-thinking-20250219");
+
+
+if (getCookie('streamOutput') !== 'false' && !model.includes("dall-e") && !model.includes("cogview") && !model.includes("moderation") && !model.includes("embedding") && !model.includes("tts-1") && !isModelForcedNonStream) { // Add condition here
+    requestBody.stream = true; // Include stream parameter if not for specified models and cookie is true
+} else if (isModelForcedNonStream) {
+    requestBody.stream = false; // Force stream to false for specific models
+} else {
+    requestBody.stream = false; // Otherwise, default to non-stream if it's one of the special models or cookie is false
+}
+
 
 if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002")) {
     apiUrl = datas.api_url + "/v1/completions";
@@ -987,7 +1003,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         "temperature": data.temperature,
         "top_p": 1,
         "n": 1,
-        "stream": getCookie('streamOutput') !== 'false'
+        stream: requestBody.stream // Carry over the stream setting
     };
 } else if (data.image_base64 && data.image_base64.trim() !== '') {
     apiUrl = datas.api_url + "/v1/chat/completions";
@@ -1009,7 +1025,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    stream: requestBody.stream // Carry over the stream setting
     };
 } else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     apiUrl = datas.api_url + "/v1/images/generations";
@@ -1070,7 +1086,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // 强制非流式
+    stream: false // 强制非流式
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
@@ -1082,7 +1098,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // 强制非流式
+    stream: false // 强制非流式
     };
 }
         if (data.model.includes("deepseek-r") ) {
@@ -1092,7 +1108,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    stream: false // 强制非流式
     };
 }
     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
@@ -1102,7 +1118,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    stream: false // 强制非流式
     };
 }
     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
@@ -1112,7 +1128,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    stream: false // 强制非流式
     };
 }
 if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
@@ -1122,7 +1138,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    stream: false // 强制非流式
     };
 }
 
@@ -1193,7 +1209,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (getCookie('streamOutput') !== 'false' && !(model.includes("dall-e") || model.includes("cogview-3") || model.includes("moderation") || model.includes("embedding") || model.includes("tts-1"))) { // 从 Cookie 获取流式输出设置, 默认流式 并且排除特定模型
+if (getCookie('streamOutput') !== 'false' && !model.includes("dall-e") && !model.includes("cogview") && !model.includes("moderation") && !model.includes("embedding") && !model.includes("tts-1") && !isModelForcedNonStream) { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1528,10 +1544,14 @@ function isMobile() {
     } else {
       localStorage.setItem('continuousDialogue', false);
     }
-
+// 删除输入框中的消息
+function deleteInputMessage() {
+  chatInput.val('');
+}
   });
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
+var streamOutputSetting = $('#streamOutputSetting'); // 获取模型输出方式设置行 - Declare here to ensure scope
 
 // 检测模型并更新设置
 function updateModelSettings(modelName) {
@@ -1547,6 +1567,7 @@ function updateModelSettings(modelName) {
                                       modelName.toLowerCase().includes("moderation") ||
                                       modelName.toLowerCase().includes("embedding") ||
                                       modelName.toLowerCase().includes("tts-1");
+
 
     var streamOutputCheckbox = document.getElementById('streamOutput');
 
@@ -1564,6 +1585,7 @@ function updateModelSettings(modelName) {
             setCookie('streamOutput', 'true', 30);
         }
     }
+
 
     // 检测是否含有"tts"或"dall"并设置连续对话状态 - 保持原有的连续对话逻辑
     const hasTTS = modelName.toLowerCase().includes("tts");
@@ -1618,18 +1640,12 @@ function updateModelSettings(modelName) {
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hasMj || hasSD || hasFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
     // 更新上一个模型名称为当前模型
     localStorage.setItem('previousModel', modelName);
-
-    if (isHideStreamSettingModel) {
-        streamOutputSetting.hide();
-    } else {
-        streamOutputSetting.show();
-    }
 }
 
 
@@ -1639,8 +1655,6 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(".settings-common .model option:selected").data('description'));
-        } else { // Initialize visibility on page load if no model is selected in local storage
-            updateModelSettings($(".settings-common .model").val()); // Use the default selected model
         }
 
         // 监听model选择的变化
@@ -1650,6 +1664,18 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(this).find("option:selected").data('description'));
+
+            // --- Add this section to hide/show stream setting ---
+            const modelLower = selectedModel.toLowerCase();
+            const hideStreamSetting = modelLower.includes("tts") || modelLower.includes("embedding") || modelLower.includes("dall-e") || modelLower.includes("cogview") || modelLower.includes("moderation");
+
+            if (hideStreamSetting) {
+                streamOutputSetting.hide();
+            } else {
+                streamOutputSetting.show();
+            }
+            // --- End of added section ---
+
         });
 
 // 删除对话
