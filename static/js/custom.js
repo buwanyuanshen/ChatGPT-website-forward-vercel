@@ -1126,12 +1126,13 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
+const isStreamSettingHiddenModel = model.includes("tts") || model.includes("embedding") || model.includes("dall-e") || model.includes("cogview") || model.includes("moderation");
+
 // Conditionally set stream parameter based on model
-const isSpecialModel = model.includes("dall-e") || model.includes("cogview-3") || model.includes("moderation") || model.includes("embedding") || model.includes("tts-1");
-if (isSpecialModel) {
-    delete requestBody.stream; // Remove stream parameter for these models
+if (!isStreamSettingHiddenModel) {
+    requestBody.stream = getCookie('streamOutput') !== 'false'; // 从 Cookie 获取流式输出设置
 } else {
-    requestBody.stream = getCookie('streamOutput') !== 'false'; // Keep stream parameter for other models based on settings
+    delete requestBody.stream; // Ensure stream is not included in request for these models
 }
 
 
@@ -1202,7 +1203,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (getCookie('streamOutput') !== 'false' && !isSpecialModel) { // 从 Cookie 获取流式输出设置, 默认流式, 并且排除特殊模型
+if (getCookie('streamOutput') !== 'false' && !isStreamSettingHiddenModel) { // 从 Cookie 获取流式输出设置, 默认流式, 排除隐藏模型
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1256,7 +1257,7 @@ if (getCookie('streamOutput') !== 'false' && !isSpecialModel) { // 从 Cookie �
         }
     }
     return str;
-} else { // 非流式输出处理 或者 特殊模型强制非流式
+} else { // 非流式输出处理 或者 是隐藏模型
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
