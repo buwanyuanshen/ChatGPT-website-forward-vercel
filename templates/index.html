@@ -379,8 +379,11 @@
     <input type="range" min="100" max="2000000" step="100" value="3000" class="form-control ipt-common max-tokens" id="maxTokens">
     <input type="number" min="100" max="2000000" step="100" value="3000" class="form-control ipt-common max-tokens-input" id="maxTokens-input">
 </div>
-
                                     <div class="settings-common">
+                                        <span><i class="fa fa-hourglass-half fa-lg" aria-hidden="true"></i>  连续对话消息上限</span>
+                                        <input type="number" class="form-control ipt-common max-dialogue-messages" id="maxDialogueMessages" min="10" placeholder="默认: 150">
+                                    </div>
+					<div class="settings-common">
                                         <span><i class="fa fa-exchange-alt fa-lg" aria-hidden="true"></i>  模型输出方式为流式</span>
                                         <div class="chck-btn">
                                             <input id="streamOutput" type="checkbox" checked>
@@ -388,10 +391,6 @@
                                                 <div class="check-handler"></div>
                                             </label>
                                         </div>
-                                    </div>
-                                    <div class="settings-common">
-                                        <span><i class="fa fa-hourglass-half fa-lg" aria-hidden="true"></i>  连续对话消息上限</span>
-                                        <input type="number" class="form-control ipt-common max-dialogue-messages" id="maxDialogueMessages" min="10" placeholder="默认: 150">
                                     </div>
                                     <div class="settings-common">
                                         <span><i class="fa fa-floppy-o fa-lg" aria-hidden="true"></i>  记录对话内容，刷新不会消失</span>
