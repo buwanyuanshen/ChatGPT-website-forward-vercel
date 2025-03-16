@@ -968,7 +968,6 @@ if (data.model.includes("dall-e")) {
         "input": data.prompts[0].content,
         "model": data.model,
     };
-    responseFormat = 'text'; // Treat embedding as text response for now, adjust if needed
 } else if (data.model.includes("tts-1")) {
     apiUrl = datas.api_url + "/v1/audio/speech";
     responseFormat = 'audio';
@@ -1190,7 +1189,7 @@ if (responseFormat === 'stream') {
         addFailMessage(`Error during TTS: ${error.message}`);
         resFlag = false;
     }
-} else if (responseFormat === 'text') { // For embedding and potentially other text-based non-streaming responses
+} else if (responseFormat === 'embedding') { // For embedding and potentially other text-based non-streaming responses
     try {
         const response = await ajaxRequest;
         if (!response.ok) {
@@ -1198,9 +1197,9 @@ if (responseFormat === 'stream') {
             return;
         }
         const responseData = await response.json();
-        // For embedding, you might want to do something different with responseData.data[0].embedding
-        // For now, just display a success message or handle as needed.
-        addResponseMessage("Embedding generated successfully (embedding data not displayed in chat)."); // Or display embedding data if appropriate
+        const embeddingData = responseData.data[0].embedding;
+        const embeddingString = "<p><strong>Embedding Data:</strong></p><pre><code>" + JSON.stringify(embeddingData, null, 2) + "</code></pre>"; // Format embedding array as JSON for display
+        addResponseMessage(embeddingString);
         resFlag = true;
         return responseData; // Or return embedding data if needed
     } catch (error) {
