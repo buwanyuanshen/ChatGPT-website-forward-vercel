@@ -1,3 +1,4 @@
+// js:
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
 
@@ -946,8 +947,15 @@ let requestBody = {
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": true
+    "stream": true // Default to streaming
 };
+
+// Check the stream output setting from cookie
+const streamOutputSetting = getCookie('streamOutput');
+let useStreaming = true; // Default to true
+if (streamOutputSetting === 'false') {
+    useStreaming = false;
+}
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
@@ -960,7 +968,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         "temperature": data.temperature,
         "top_p": 1,
         "n": 1,
-        "stream": true
+        "stream": useStreaming // Apply streaming setting
     };
 } else if (data.image_base64 && data.image_base64.trim() !== '') {
     apiUrl = datas.api_url + "/v1/chat/completions";
@@ -982,7 +990,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": true
+    "stream": useStreaming // Apply streaming setting
     };
 } else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     apiUrl = datas.api_url + "/v1/images/generations";
@@ -1043,7 +1051,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false
+    "stream": false // Fixed to false, overriding user preference for 'o1'
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
@@ -1055,7 +1063,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false
+    "stream": false // Fixed to false, overriding user preference for 'o3'
     };
 }
         if (data.model.includes("deepseek-r") ) {
@@ -1065,7 +1073,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false
+    "stream": false // Fixed to false, overriding user preference for 'deepseek-r'
     };
 }
     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
@@ -1075,7 +1083,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false
+    "stream": false // Fixed to false, overriding user preference for 'claude-3-7-sonnet-20250219-thinking'
     };
 }
     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
@@ -1085,7 +1093,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false
+    "stream": false // Fixed to false, overriding user preference for 'claude-3-7-sonnet-thinking'
     };
 }
 if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
@@ -1095,7 +1103,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false
+    "stream": false // Fixed to false, overriding user preference for 'claude-3-7-sonnet-thinking-20250219'
     };
 }
 
@@ -1241,8 +1249,10 @@ let imageSrc = document.getElementById('imagePreview').src;
     // 将用户消息保存到数组
     messages.push({"role": "user", "content": message})
 
+    // Get dialogue limit from cookie or use default 150
+    let dialogueLimit = parseInt(getCookie('dialogueLimit'), 10) || 150;
 
-    if(messages.length>150){
+    if(messages.length> dialogueLimit){
       addFailMessage("此次对话长度过长，请点击下方删除按钮清除对话内容！");
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
@@ -1479,6 +1489,48 @@ function deleteInputMessage() {
   chatInput.val('');
 }
   });
+
+    // Stream Output Setting
+    var streamOutput = localStorage.getItem('streamOutput');
+    if(streamOutput == null){
+        streamOutput = "true"; // Default to true (streaming enabled)
+        localStorage.setItem('streamOutput', streamOutput);
+    }
+    if(streamOutput == "true"){
+        $("#chck-3").prop("checked", true);
+    } else {
+        $("#chck-3").prop("checked", false);
+    }
+
+    $('#chck-3').click(function() {
+        if ($(this).prop('checked')) {
+            localStorage.setItem('streamOutput', true);
+        } else {
+            localStorage.setItem('streamOutput', false);
+        }
+    });
+
+    // Dialogue Limit Setting
+    var dialogueLimit = localStorage.getItem('dialogueLimit');
+    if(dialogueLimit == null){
+        dialogueLimit = "150"; // Default to 150
+        localStorage.setItem('dialogueLimit', dialogueLimit);
+    }
+    $(".settings-common .dialogue-limit-input").val(dialogueLimit);
+
+
+    $(".settings-common .dialogue-limit-input").blur(function() {
+        const dialogueLimit = $(this).val();
+        if(dialogueLimit.length!=0 && !isNaN(dialogueLimit) && parseInt(dialogueLimit) > 0){
+            localStorage.setItem('dialogueLimit', dialogueLimit);
+        } else {
+            localStorage.setItem('dialogueLimit', "150"); // Revert to default if invalid input
+            $(".settings-common .dialogue-limit-input").val("150");
+            alert("请输入有效的对话上限 (正整数).");
+        }
+    });
+
+
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
 
