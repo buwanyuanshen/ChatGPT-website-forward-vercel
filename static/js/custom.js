@@ -632,7 +632,7 @@ function addEmbeddingMessage(embeddingResult) {
     lastResponseElement.empty();
     // Display the embedding result as a JSON string in a <pre> block for readability
     const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
-    lastResponseElement.append(`<div class="message-text"><p>Embedding 结果:</p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
 
     // 绑定复制按钮点击事件
