@@ -15,7 +15,7 @@
 <body>
 	<div id="balanceInfo" style="position: absolute;top: 3px;left: 3px;background-color: #f0f0f5;padding: 10px;border: 1px solid #ccc;z-index: 1000; border-radius: 8px; width: auto;">
     <div id="totalBalance" class="balance-total">总额: 加载中</div>
-    <div id="usedBalance" class="balance-used">已用: 加载中</div>
+    <div id="usedBalance" class="balance-used">已用: 加加载中</div>
     <div id="remainingBalance" class="balance-remaining">剩余: 加载中</div>
 </div>
 
@@ -380,7 +380,19 @@
     <input type="number" min="100" max="2000000" step="100" value="3000" class="form-control ipt-common max-tokens-input" id="maxTokens-input">
 </div>
 
-
+                                    <div class="settings-common">
+                                        <span><i class="fa fa-exchange-alt fa-lg" aria-hidden="true"></i>  模型输出方式为流式</span>
+                                        <div class="chck-btn">
+                                            <input id="streamOutput" type="checkbox" checked>
+                                            <label for="streamOutput" class="check-trail">
+                                                <div class="check-handler"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-common">
+                                        <span><i class="fa fa-hourglass-half fa-lg" aria-hidden="true"></i>  连续对话消息上限</span>
+                                        <input type="number" class="form-control ipt-common max-dialogue-messages" id="maxDialogueMessages" min="10" placeholder="默认: 150">
+                                    </div>
                                     <div class="settings-common">
                                         <span><i class="fa fa-floppy-o fa-lg" aria-hidden="true"></i>  记录对话内容，刷新不会消失</span>
                                         <div class="chck-btn">
@@ -398,19 +410,6 @@
                                                 <div class="check-handler"></div>
                                             </label>
                                         </div>
-                                    </div>
-                                    <div class="settings-common">
-                                        <span><i class="fa fa-stream fa-lg" aria-hidden="true"></i>  流式输出</span>
-                                        <div class="chck-btn">
-                                            <input id="chck-3" type="checkbox">
-                                            <label for="chck-3" class="check-trail">
-                                                <div class="check-handler"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="settings-common">
-                                        <span><i class="fa fa-comments-o fa-lg" aria-hidden="true"></i>  对话轮数上限</span>
-                                        <input type="number" class="form-control ipt-common dialogue-limit-input" value="150">
                                     </div>
 					<div class="settings-common">
     <span><i class="fa fa-eye fa-lg" aria-hidden="true"></i>  显示余额信息</span>
