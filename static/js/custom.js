@@ -398,6 +398,8 @@ $(document).ready(function () {
     function updateTitle() {
         $(".title h2").text($(".settings-common .model option:selected").data('description'));
     }
+    initializeDataDescription();
+    updateTitle();
 });
 
 
@@ -576,24 +578,16 @@ $(document).ready(function() {
     return div.innerHTML;
   }
 
-// 添加失败信息到窗口
-function addFailMessage(message) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    lastResponseElement.append('<p class="error">' + message + '</p>');
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    messages.pop() // 失败就让用户输入信息从数组删除
-}
-
 // 添加图片消息到窗口
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 80%; max-height: 80%;" alt="DALL-E Image"></div>`+ '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 80%; max-height: 80%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-        // 绑定查看按钮事件
+
+    // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
-      window.open(imageUrl, '_blank');
+        window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
@@ -601,45 +595,60 @@ function addImageMessage(imageUrl) {
     });
 }
 
-// 添加 moderation 结果消息到窗口
+// 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    let moderationText = "<p><strong>Moderation Results:</strong></p><ul>";
+    let formattedResult = "<p>审查结果:</p><ul>";
     moderationResult.forEach(result => {
-        moderationText += `<li>Harmful: ${result["有害标记"] ? 'Yes' : 'No'}</li>`;
-        moderationText += "<li>Categories:<ul>";
+        formattedResult += `<li>有害标记: ${result["有害标记"] ? '是' : '否'}</li>`;
+        formattedResult += "<li>违规类别:<ul>";
         for (const category in result["违规类别"]) {
-            moderationText += `<li>${category}: ${result["违规类别"][category] ? 'Yes' : 'No'}</li>`;
+            formattedResult += `<li>${category}: ${result["违规类别"][category] ? '是' : '否'}</li>`;
         }
-        moderationText += "</ul></li>";
-        moderationText += "<li>Category Scores:<ul>";
+        formattedResult += "</ul></li>";
+        formattedResult += "<li>违规类别分数:<ul>";
         for (const score in result["违规类别分数(越大置信度越高)"]) {
-            moderationText += `<li>${score}: ${result["违规类别分数(越大置信度越高)"][score].toFixed(4)}</li>`;
+            formattedResult += `<li>${score}: ${result["违规类别分数(越大置信度越高)"][score].toFixed(4)}</li>`;
         }
-        moderationText += "</ul></li>";
+        formattedResult += "</ul></li>";
     });
-    moderationText += "</ul>";
-    lastResponseElement.append(`<div class="message-text">${moderationText}</div>`+ '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    formattedResult += "</ul>";
+    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-        // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
-        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+    // 绑定复制按钮点击事件
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim());
+    });
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').click(function() {
+        $(this).closest('.message-bubble').remove();
     });
 }
 
-// 添加音频消息到窗口
-function addAudioMessage(base64Audio) {
+// 添加 Embedding 结果消息到窗口 (这里简化为输出到控制台，可以根据需要修改)
+function addEmbeddingMessage(embeddingResult) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + base64Audio + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">Embedding 结果已返回，请查看控制台 (F12)</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-        // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
-        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+    console.log("Embedding Result:", embeddingResult); // 输出到控制台
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').click(function() {
+        $(this).closest('.message-bubble').remove();
     });
 }
-
+// 添加 TTS 结果消息到窗口
+function addTTSMessage(audioBase64) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').click(function() {
+        $(this).closest('.message-bubble').remove();
+    });
+}
 
 // 添加请求消息到窗口
 function addRequestMessage(message) {
@@ -808,6 +817,14 @@ $(document).on('click', '.copy-button', function() {
   }, 2000); // 设置延时时间为2秒
 });
 
+  // 添加失败信息到窗口
+  function addFailMessage(message) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    lastResponseElement.append('<p class="error">' + message + '</p>');
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    messages.pop() // 失败就让用户输入信息从数组删除
+  }
 
 let datas;
 
@@ -891,7 +908,6 @@ async function getApiKey() {
 }
 
 // 发送请求获得响应
-let ajaxRequest; // Declare ajaxRequest outside of sendRequest to control abort
 async function sendRequest(data) {
   await getConfig();
   const apiKey = await getApiKey();
@@ -915,70 +931,19 @@ if ($(".settings-common .api_url").val().trim()) {
 }
 
 let apiUrl = datas.api_url + "/v1/chat/completions";
-let requestBody;
-let responseFormat = 'stream'; // Default response format is stream for chat models
+let requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": data.temperature,
+    "top_p": 1,
+    "n": 1,
+    "stream": true
+};
 
-if (data.model.includes("dall-e")) {
-    apiUrl = datas.api_url + "/v1/images/generations";
-    responseFormat = 'image';
-    let size = "1024x1024";
-    let quality = "standard";
-    let style = "natural";
-    if (data.model.includes("dall-e-2")) {
-        size = data.model.includes("-m") ? "512x512" : (data.model.includes("-l") ? "1024x1024" : "256x256");
-    } else if (data.model.includes("dall-e-3")) {
-        if (data.model.includes("-w-hd")) size = "1792x1024";
-        else if (data.model.includes("-l-hd")) size = "1024x1792";
-        else if (data.model.includes("-hd")) size = "1024x1024";
-        else if (data.model.includes("-w-v")) size = "1792x1024";
-        else if (data.model.includes("-l-v")) size = "1024x1792";
-        else if (data.model.includes("-v")) style = "vivid";
-        else if (data.model.includes("-w-p")) {size = "1792x1024"; quality = "hd"; style = "vivid";}
-        else if (data.model.includes("-l-p")) {size = "1024x1792"; quality = "hd"; style = "vivid";}
-        else if (data.model.includes("-p")) {quality = "hd"; style = "vivid";}
+const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
-    }
-    requestBody = {
-        "prompt": data.prompts[0].content, // Assuming single prompt for image generation
-        "model": data.model,
-        "n": 1,
-        "size": size,
-        "quality": quality,
-        "style": style,
-    };
-} else if (data.model.includes("cogview")) {
-    apiUrl = datas.api_url + "/v1/images/generations";
-    responseFormat = 'image';
-    requestBody = {
-        "prompt": data.prompts[0].content,
-        "model": data.model,
-        "size": "1024x1024",
-    };
-} else if (data.model.includes("moderation")) {
-    apiUrl = datas.api_url + "/v1/moderations";
-    responseFormat = 'moderation';
-    requestBody = {
-        "input": data.prompts[0].content, // Moderation usually takes single input
-        "model": data.model,
-    };
-} else if (data.model.includes("embedding")) {
-    apiUrl = datas.api_url + "/v1/embeddings";
-    responseFormat = 'embedding';
-    requestBody = {
-        "input": data.prompts[0].content,
-        "model": data.model,
-    };
-} else if (data.model.includes("tts-1")) {
-    apiUrl = datas.api_url + "/v1/audio/speech";
-    responseFormat = 'audio';
-    requestBody = {
-        "input": data.prompts[0].content,
-        "model": data.model,
-        "voice": "alloy",
-    };
-    responseFormat = 'base64audio'; // Custom format to handle base64 audio in response processing
-
-} else if (data.model.includes("gpt-3.5-turbo-instruct") || data.model.includes("babbage-002") || data.model.includes("davinci-002")) {
+if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002")) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
         "prompt": data.prompts[0].content,
@@ -1011,60 +976,122 @@ if (data.model.includes("dall-e")) {
     "n": 1,
     "stream": true
     };
-} else if (data.model.includes("o1") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
+} else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
+    apiUrl = datas.api_url + "/v1/images/generations";
+    let size = "1024x1024";
+    let quality = "standard";
+    let style = "natural";
+
+    if (model.includes("256x256")) size = "256x256";
+    if (model.includes("512x512")) size = "512x512";
+    if (model.includes("1792x1024")) size = "1792x1024";
+    if (model.includes("1024x1792")) size = "1024x1792";
+    if (model.includes("-hd")) quality = "hd";
+    if (model.includes("-v") || model.includes("-p")) style = "vivid";
+
+
     requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": 1,
-    "top_p": 1,
-    "n": 1,
-    "stream": false
-    };
-} else if (data.model.includes("o3") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": 1,
-    "top_p": 1,
-    "n": 1,
-    "stream": false
-    };
-} else if (data.model.includes("deepseek-r") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false
-    };
-} else if (data.model.includes("claude-3-7-sonnet-20250219-thinking") || data.model.includes("claude-3-7-sonnet-thinking") || data.model.includes("claude-3-7-sonnet-thinking-20250219")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false
-    };
-} else { // Default to chat completion
-    requestBody = {
-        "messages": data.prompts,
+        "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
         "model": data.model,
-        "max_tokens": data.max_tokens,
-        "temperature": data.temperature,
-        "top_p": 1,
         "n": 1,
-        "stream": true
+        "size": size,
+        "quality": quality,
+        "style": style,
+    };
+    if (model.includes("cogview-3")) {
+        requestBody = {
+            "prompt": data.prompts[0].content,
+            "model": data.model,
+            "size": "1024x1024",
+        };
+    }
+
+} else if (model.includes("moderation")) {
+    apiUrl = datas.api_url + "/v1/moderations";
+    requestBody = {
+        "input": data.prompts[0].content, // Moderation uses the last message as input
+        "model": data.model,
+    };
+} else if (model.includes("embedding")) {
+    apiUrl = datas.api_url + "/v1/embeddings";
+    requestBody = {
+        "input": data.prompts[0].content, // Embedding uses the last message as input
+        "model": data.model,
+    };
+} else if (model.includes("tts-1")) {
+    apiUrl = datas.api_url + "/v1/audio/speech";
+    requestBody = {
+        "input": data.prompts[0].content, // TTS uses the last message as input
+        "model": data.model,
+        "voice": "alloy",
+    };
+}
+    if (data.model.includes("o1") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": false
+    };
+}
+    if (data.model.includes("o3") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": false
+    };
+}
+        if (data.model.includes("deepseek-r") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+}
+    if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+}
+    if (data.model.includes("claude-3-7-sonnet-thinking") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+}
+if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
     };
 }
 
-
-ajaxRequest = fetch(apiUrl, { // Assign fetch to ajaxRequest
+const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
@@ -1073,142 +1100,118 @@ ajaxRequest = fetch(apiUrl, { // Assign fetch to ajaxRequest
     body: JSON.stringify(requestBody)
 });
 
-if (responseFormat === 'stream') {
-    const response = await ajaxRequest; // Wait for the fetch promise to resolve
-    if (!response.ok) {
-        addFailMessage(`HTTP error! status: ${response.status}`);
-        return;
-    }
-    const reader = response.body.getReader();
-    let res = '';
-    let str;
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-            break;
-        }
-        str = '';
-        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        const lines = res.trim().split(/[\n]+(?=\{)/);
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let jsonObj;
-            try {
-                jsonObj = JSON.parse(line);
-            } catch (e) {
-                break;
-            }
-    if (jsonObj.choices) {
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-            const content = jsonObj.choices[0].delta.content;
+if (!response.ok) {
+    const errorData = await response.json();
+    addFailMessage(`请求失败，状态码: ${response.status}, 错误信息: ${errorData.error ? errorData.error.message : response.statusText}`);
+    return;
+}
 
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-            str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-            const message = jsonObj.choices[0].message;
-            const reasoningContent = message.reasoning_content;
-            const content = message.content;
-
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        }
-                addResponseMessage(str);
-                resFlag = true;
-            } else {
-                if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                    resFlag = false;
-                }
-            }
-        }
-    }
-    return str;
-
-} else if (responseFormat === 'image') {
-    try {
-        const response = await ajaxRequest;
-        if (!response.ok) {
-            const errorData = await response.json(); // Try to parse error response as JSON
-            let errorMessage = `Image generation failed! status: ${response.status}`;
-            if (errorData && errorData.error && errorData.error.message) {
-                errorMessage += ` - ${errorData.error.message}`; // Append error message if available
-            }
-            addFailMessage(errorMessage);
-            return;
-        }
-        const responseData = await response.json();
-        const imageUrl = responseData.data[0].url;
-        addImageMessage(imageUrl);
+if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
+    const responseData = await response.json();
+    if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
+        addImageMessage(responseData.data[0].url);
         resFlag = true;
-        return imageUrl;
-    } catch (error) {
-        addFailMessage(`Error generating image: ${error.message}`);
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("图片生成失败，返回数据格式不正确");
         resFlag = false;
     }
-} else if (responseFormat === 'moderation') {
-    try {
-        const response = await ajaxRequest;
-        if (!response.ok) {
-            addFailMessage(`Moderation check failed! status: ${response.status}`);
-            return;
-        }
-        const responseData = await response.json();
+    return; // For image generation, we handle response differently and return early
+} else if (model.includes("moderation")) {
+    const responseData = await response.json();
+    if (responseData.results) {
         addModerationMessage(responseData.results);
         resFlag = true;
-        return responseData.results;
-    } catch (error) {
-        addFailMessage(`Error checking moderation: ${error.message}`);
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("内容审查失败，返回数据格式不正确");
         resFlag = false;
     }
-} else if (responseFormat === 'base64audio') {
-    try {
-        const response = await ajaxRequest;
-        if (!response.ok) {
-            addFailMessage(`TTS failed! status: ${response.status}`);
-            return;
-        }
-        const audioBlob = await response.blob();
-        const reader = new FileReader();
-        reader.onload = function() {
-            const base64Audio = reader.result.split(',')[1]; // Extract base64 data
-            addAudioMessage(base64Audio);
-        };
-        reader.readAsDataURL(audioBlob);
+    return; // For moderation, handle response and return
+} else if (model.includes("embedding")) {
+    const responseData = await response.json();
+    if (responseData.data && responseData.data.length > 0 && responseData.data[0].embedding) {
+        addEmbeddingMessage(responseData.data[0].embedding);
         resFlag = true;
-        return audioBlob; // Or return base64Audio if you need it later
-    } catch (error) {
-        addFailMessage(`Error during TTS: ${error.message}`);
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("Embedding 获取失败，返回数据格式不正确");
         resFlag = false;
     }
-} else if (responseFormat === 'embedding') { // For embedding and potentially other text-based non-streaming responses
-    try {
-        const response = await ajaxRequest;
-        if (!response.ok) {
-            addFailMessage(`Request failed! status: ${response.status}`);
-            return;
+    return; // For embedding, handle response and return
+} else if (model.includes("tts-1")) {
+    const audioBlob = await response.blob();
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        const base64Audio = reader.result.split(',')[1];
+        addTTSMessage(base64Audio);
+    };
+    reader.readAsDataURL(audioBlob);
+    resFlag = true;
+    return; // For TTS, handle response and return
+}
+
+
+const reader = response.body.getReader();
+let res = '';
+let str;
+while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+        break;
+    }
+    str = '';
+    res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+    const lines = res.trim().split(/[\n]+(?=\{)/);
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        let jsonObj;
+        try {
+            jsonObj = JSON.parse(line);
+        } catch (e) {
+            break;
         }
-        const responseData = await response.json();
-        const embeddingData = responseData.data[0].embedding;
-        const embeddingString = "<p><strong>Embedding Data:</strong></p><pre><code>" + JSON.stringify(embeddingData, null, 2) + "</code></pre>"; // Format embedding array as JSON for display
-        addResponseMessage(embeddingString);
-        resFlag = true;
-        return responseData; // Or return embedding data if needed
-    } catch (error) {
-        addFailMessage(`Error processing request: ${error.message}`);
-        resFlag = false;
+if (jsonObj.choices) {
+    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+        const content = jsonObj.choices[0].delta.content;
+
+        if (reasoningContent && reasoningContent.trim() !== "") {
+            str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+        } else if (content && content.trim() !== "") {
+            str += content;
+        }
+    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+        str += jsonObj.choices[0].text;
+    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+        const message = jsonObj.choices[0].message;
+        const reasoningContent = message.reasoning_content;
+        const content = message.content;
+
+        if (reasoningContent && reasoningContent.trim() !== "") {
+            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+        } else if (content && content.trim() !== "") {
+            str += content;
+        }
+    }
+            addResponseMessage(str);
+            resFlag = true;
+        } else {
+            if (jsonObj.error) {
+                addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                resFlag = false;
+            }
+        }
     }
 }
-return null;
-}
+return str;
+  }
 
 
   // 处理用户输入
@@ -1243,17 +1246,24 @@ let imageSrc = document.getElementById('imagePreview').src;
   data.model = $(".settings-common .model").val();
   data.temperature = parseFloat($(".settings-common .temperature").val());
   data.max_tokens = parseInt($(".settings-common .max-tokens").val());
-    // 判读是否已开启连续对话
-    if(localStorage.getItem('continuousDialogue') == 'true'){
-        // 控制上下文，对话长度超过4轮，取最新的3轮,即数组最后7条数据
-      data.prompts = messages.slice();  // 拷贝一份全局messages赋值给data.prompts,然后对data.prompts处理
-      if (data.prompts.length > 8) {
-        data.prompts.splice(0, data.prompts.length - 7);
-      }
-    }else{
-      data.prompts = messages.slice();
-      data.prompts.splice(0, data.prompts.length - 1); // 未开启连续对话，取最后一条
+
+    const selectedModel = data.model.toLowerCase();
+    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) {
+        data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
+    } else {
+        // 判读是否已开启连续对话
+        if(localStorage.getItem('continuousDialogue') == 'true'){
+            // 控制上下文，对话长度超过4轮，取最新的3轮,即数组最后7条数据
+          data.prompts = messages.slice();  // 拷贝一份全局messages赋值给data.prompts,然后对data.prompts处理
+          if (data.prompts.length > 8) {
+            data.prompts.splice(0, data.prompts.length - 7);
+          }
+        }else{
+          data.prompts = messages.slice();
+          data.prompts.splice(0, data.prompts.length - 1); // 未开启连续对话，取最后一条
+        }
     }
+
 
     sendRequest(data).then((res) => {
       chatInput.val('');
@@ -1262,13 +1272,11 @@ let imageSrc = document.getElementById('imagePreview').src;
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
-      if(resFlag){
-        if (!data.model.includes("dall-e") && !data.model.includes("cogview") && !data.model.includes("moderation") && !data.model.includes("embedding") && !data.model.includes("tts-1")){ // Only push to messages for chat models
-            messages.push({"role": "assistant", "content": res});
-            // 判断是否本地存储历史会话
-            if(localStorage.getItem('archiveSession')=="true"){
-              localStorage.setItem("session",JSON.stringify(messages));
-            }
+      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
+        messages.push({"role": "assistant", "content": res});
+        // 判断是否本地存储历史会话
+        if(localStorage.getItem('archiveSession')=="true"){
+          localStorage.setItem("session",JSON.stringify(messages));
         }
       }
       // 添加复制
@@ -1474,7 +1482,7 @@ function checkAndSetContinuousDialogue(modelName) {
     const hasCompletion3 = modelName.toLowerCase().includes("davinci-002");
     const hasTextem = modelName.toLowerCase().includes("embedding");
     const hasTextmo = modelName.toLowerCase().includes("moderation");
-    const hasDALL = modelName.toLowerCase().includes("dall");
+    const hasDALL = modelName.toLowerCase().includes("dall-e"); // Modified to match "dall-e" prefix
     const hasCog = modelName.toLowerCase().includes("cogview");
     const hasVs = modelName.toLowerCase().includes("glm-4v");
     const hasVi = modelName.toLowerCase().includes("vision");
@@ -1487,6 +1495,7 @@ function checkAndSetContinuousDialogue(modelName) {
     const hasKo = modelName.toLowerCase().includes("kolors");
     const hasKl = modelName.toLowerCase().includes("kling");
 
+
     const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
     // 设置连续对话状态
@@ -1494,12 +1503,12 @@ function checkAndSetContinuousDialogue(modelName) {
     localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
 
     // 设置是否禁用checkbox
-    $("#chck-2").prop("disabled", hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
+    $("#chck-2").prop("disabled", hasTTS || hasDALL  || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
     // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
     const hadTTS = previousModel.toLowerCase().includes("tts");
-    const hadDALL = previousModel.toLowerCase().includes("dall");
+    const hadDALL = previousModel.toLowerCase().includes("dall-e"); // Modified to match "dall-e" prefix
     const hadCog = previousModel.toLowerCase().includes("cogview");
     const hadCompletion1 = previousModel.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hadCompletion2 = previousModel.toLowerCase().includes("babbage-002");
@@ -1517,8 +1526,8 @@ function checkAndSetContinuousDialogue(modelName) {
     const hadKo = previousModel.toLowerCase().includes("kolors");
     const hadKl = previousModel.toLowerCase().includes("kling");
 
-    // 如果从包含tts或dall或cogview的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl ) && !(hasTTS || hasDALL || hadCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo|| hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
