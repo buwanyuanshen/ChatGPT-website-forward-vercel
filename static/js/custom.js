@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - 99);
             let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
 
             let usageResponse = await fetch(usageUrl, { headers });
             if (!usageResponse.ok) {
@@ -884,7 +884,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -954,7 +954,7 @@ const modelStreamConfig = {
 
 // 定义不需要展示流式输出选项的模型 (例如图片生成，tts等)
 const noStreamModels = [
-    "dall-e-2", "dall-e-3", "cogview-3", "moderation", "embedding", "tts-1"
+    "dall-e", "cogview", "moderation", "embedding", "tts-1"
 ];
 
 // 发送请求获得响应
@@ -1156,7 +1156,7 @@ if (!response.ok) {
     return;
 }
 
-if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
+if (model.includes("dall-e") || model.includes("cogview")) { // use includes here as well
     const responseData = await response.json();
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
         addImageMessage(responseData.data[0].url);
@@ -1291,11 +1291,12 @@ if (getStreamSettingForModel(data.model)) { // Only stream output if enabled, us
 // Function to get stream setting for a given model
 function getStreamSettingForModel(modelName) {
     const modelLower = modelName.toLowerCase();
-    if (modelLower in modelStreamConfig) {
-        return modelStreamConfig[modelLower]; // Return model-specific setting from config
-    } else {
-        return getCookie('streamOutput') !== 'false'; // Default to cookie setting if not configured
+    for (const modelKey in modelStreamConfig) {
+        if (modelLower.includes(modelKey)) {
+            return modelStreamConfig[modelKey];
+        }
     }
+    return getCookie('streamOutput') !== 'false'; // Default to cookie setting if not configured
 }
 
 
@@ -1335,7 +1336,7 @@ let imageSrc = document.getElementById('imagePreview').src;
   data.max_tokens = parseInt($(".settings-common .max-tokens").val());
 
     const selectedModel = data.model.toLowerCase();
-    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) {
+    if (selectedModel.includes("dall-e") || selectedModel.includes("cogview") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) { // Use includes here as well
         data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
     } else {
         // 判读是否已开启连续对话
@@ -1359,7 +1360,7 @@ let imageSrc = document.getElementById('imagePreview').src;
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
-      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
+      if(resFlag && !(selectedModel.includes("dall-e") || selectedModel.includes("cogview") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation // Use includes here as well
         messages.push({"role": "assistant", "content": res});
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
@@ -1614,7 +1615,7 @@ function checkAndSetContinuousDialogue(modelName) {
     const hadKl = previousModel.toLowerCase().includes("kling");
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hasSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
@@ -1642,8 +1643,10 @@ function checkAndSetContinuousDialogue(modelName) {
             const streamOutputSettingRow = $('.settings-common').has('#streamOutput'); // Select the row containing streamOutput checkbox
             const streamOutputCheckbox = $('#streamOutput');
 
-            if (noStreamModels.includes(selectedModelLower)) {
-                streamOutputSettingRow.hide(); // Hide stream output setting for models like dall-e, tts-1
+            const isNoStreamModel = noStreamModels.some(modelKeyword => selectedModelLower.includes(modelKeyword));
+
+            if (isNoStreamModel) {
+                streamOutputSettingRow.hide(); // Hide stream output setting for models including keywords from noStreamModels
             } else {
                 streamOutputSettingRow.show(); // Show for other models
                 if (modelStreamConfig.hasOwnProperty(selectedModelLower)) {
