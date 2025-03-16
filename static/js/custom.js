@@ -752,9 +752,9 @@ function addResponseMessage(message) {
     escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
   } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
     if (message.includes('`')) {
-      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是markdown格式
+      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown 格式
     } else {
-      escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+      escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是 markdown 格式，都用 escapeHtml 处理后再转换，防止非 markdown 格式 html 紊乱页面
     }
   }
 
@@ -972,7 +972,7 @@ let requestBody = {
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false' // 默认使用网页设置，如果网页设置未更改则使用cookie，cookie 没有则默认为true
+    "stream": getCookie('streamOutput') !== 'false' // 默认流式，网页设置优先
 };
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
@@ -1069,7 +1069,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // 强制非流式
+    "stream": false // JS设置非流式
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
@@ -1081,7 +1081,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // 强制非流式
+    "stream": false // JS设置非流式
     };
 }
         if (data.model.includes("deepseek-r") ) {
@@ -1091,7 +1091,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    "stream": false // JS设置非流式
     };
 }
     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
@@ -1101,7 +1101,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    "stream": false // JS设置非流式
     };
 }
     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
@@ -1111,7 +1111,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    "stream": false // JS设置非流式
     };
 }
 if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
@@ -1121,7 +1121,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // 强制非流式
+    "stream": false // JS设置非流式
     };
 }
 
@@ -1192,7 +1192,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (getCookie('streamOutput') !== 'false') { // Only stream output if enabled, using cookie setting as default if not set in page
+if (getCookie('streamOutput') !== 'false') { // Check cookie for default stream behavior, fallback to stream if no cookie or cookie is true
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1246,7 +1246,7 @@ if (getCookie('streamOutput') !== 'false') { // Only stream output if enabled, u
         }
     }
     return str;
-} else { // Handle non-stream output if explicitly set to false in settings or cookie
+} else { // Handle non-stream output if cookie is set to false
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
@@ -1535,7 +1535,7 @@ function deleteInputMessage() {
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
 
-// 检测是否含有"tts"或"dall"并设置连续对话状态 和 输出模式
+// 检测是否含有"tts"或"dall"并设置连续对话状态
 function checkAndSetContinuousDialogue(modelName) {
     const hasTTS = modelName.toLowerCase().includes("tts");
     const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
@@ -1556,31 +1556,20 @@ function checkAndSetContinuousDialogue(modelName) {
     const hasKo = modelName.toLowerCase().includes("kolors");
     const hasKl = modelName.toLowerCase().includes("kling");
 
+    const isImageModel = hasDALL || hasCog || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl;
+    const isTextModel = hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo;
+    const isTTSModel = hasTTS;
+    const isVisionModel = hasVs || hasVi;
+
+
     const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
     // 设置连续对话状态
     $("#chck-2").prop("checked", isContinuousDialogueEnabled);
     localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
+
+    // 设置是否禁用连续对话checkbox
     $("#chck-2").prop("disabled", hasTTS || hasDALL  || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
-
-    const isModelWithForcedNonStream = modelName.toLowerCase().includes("o1") || modelName.toLowerCase().includes("o3") || modelName.toLowerCase().includes("deepseek-r") || modelName.toLowerCase().includes("claude-3");
-    const streamOutputSettingRow = $("#streamOutputSetting");
-    const streamOutputCheckbox = $("#streamOutput");
-
-    if (hasTTS || hasDALL || hasCog || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl) {
-        streamOutputSettingRow.hide(); // 隐藏输出模式设置
-    } else {
-        streamOutputSettingRow.show(); // 显示输出模式设置
-        if (isModelWithForcedNonStream) {
-            streamOutputCheckbox.prop("checked", false); // For models with forced non-stream output, uncheck the checkbox
-            setCookie('streamOutput', 'false', 30); // Update cookie to reflect forced setting
-        } else {
-            // For other models, use cookie value as default or true if no cookie is set
-            const streamOutputCookie = getCookie('streamOutput');
-            streamOutputCheckbox.prop("checked", streamOutputCookie !== 'false');
-        }
-    }
-
 
     // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
@@ -1610,6 +1599,28 @@ function checkAndSetContinuousDialogue(modelName) {
 
     // 更新上一个模型名称为当前模型
     localStorage.setItem('previousModel', modelName);
+
+    const streamOutputSettingRow = $('.settings-common').has('#streamOutput');
+    if (isImageModel || isTTSModel || isTextModel || isVisionModel) {
+        streamOutputSettingRow.hide(); // Hide for image, tts, text, vision models
+    } else {
+        streamOutputSettingRow.show(); // Show for other models
+
+        const streamOutputCheckbox = document.getElementById('streamOutput');
+        const streamOutputCookie = getCookie('streamOutput');
+
+        if (modelName.toLowerCase().includes("o1") || modelName.toLowerCase().includes("o3") || modelName.toLowerCase().includes("deepseek-r") || modelName.toLowerCase().includes("claude-3")) {
+            streamOutputCheckbox.checked = false; // Set to non-stream for o1, o3, deepseek-r, claude-3 models
+            setCookie('streamOutput', 'false', 30); // Update cookie to reflect JS setting
+        } else if (streamOutputCookie === null ) { // If no cookie is set, default to stream (checked) for unspecified models
+             streamOutputCheckbox.checked = true;
+             setCookie('streamOutput', 'true', 30); // Ensure cookie is set to true for default stream
+        } else if (streamOutputCookie === 'false') { // If cookie was previously set to false, keep it false unless model needs stream true as default
+            streamOutputCheckbox.checked = false;
+        } else { // if cookie is 'true' or other value, keep checkbox checked
+            streamOutputCheckbox.checked = true;
+        }
+    }
 }
 
 
