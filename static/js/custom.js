@@ -752,7 +752,7 @@ function addResponseMessage(message) {
     escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
   } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
     if (message.includes('`')) {
-      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是markdown格式
+      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown 格式
     } else {
       escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
     }
@@ -941,6 +941,22 @@ async function getApiKey() {
   }
 }
 
+// 定义模型和流式输出配置
+const modelStreamConfig = {
+    "gpt-4o-mini": true, // 默认流式
+    "o1": false,        // 非流式
+    "o3": false,        // 非流式
+    "deepseek-r": false, // 非流式
+    "claude-3-7-sonnet-20250219-thinking": false, // 非流式
+    "claude-3-7-sonnet-thinking": false, // 非流式
+    "claude-3-7-sonnet-thinking-20250219": false, // 非流式
+};
+
+// 定义不需要展示流式输出选项的模型 (例如图片生成，tts等)
+const noStreamModels = [
+    "dall-e-2", "dall-e-3", "cogview-3", "moderation", "embedding", "tts-1"
+];
+
 // 发送请求获得响应
 async function sendRequest(data) {
   await getConfig();
@@ -972,7 +988,7 @@ let requestBody = {
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false' // 控制是否流式输出，默认为true
+    "stream": getStreamSettingForModel(data.model) // 使用函数获取模型对应的流式设置
 };
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
@@ -986,7 +1002,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         "temperature": data.temperature,
         "top_p": 1,
         "n": 1,
-        "stream": getCookie('streamOutput') !== 'false'
+        "stream": getStreamSettingForModel(data.model)
     };
 } else if (data.image_base64 && data.image_base64.trim() !== '') {
     apiUrl = datas.api_url + "/v1/chat/completions";
@@ -1008,7 +1024,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    "stream": getStreamSettingForModel(data.model)
     };
 } else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     apiUrl = datas.api_url + "/v1/images/generations";
@@ -1069,7 +1085,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    "stream": getStreamSettingForModel(data.model)
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
@@ -1081,7 +1097,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    "stream": getStreamSettingForModel(data.model)
     };
 }
         if (data.model.includes("deepseek-r") ) {
@@ -1091,7 +1107,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    "stream": getStreamSettingForModel(data.model)
     };
 }
     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
@@ -1101,7 +1117,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    "stream": getStreamSettingForModel(data.model)
     };
 }
     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
@@ -1111,7 +1127,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    "stream": getStreamSettingForModel(data.model)
     };
 }
 if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
@@ -1121,7 +1137,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
+    "stream": getStreamSettingForModel(data.model)
     };
 }
 
@@ -1192,7 +1208,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (getCookie('streamOutput') !== 'false') { // Only stream output if enabled
+if (getStreamSettingForModel(data.model)) { // Only stream output if enabled, using function
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1271,6 +1287,16 @@ if (getCookie('streamOutput') !== 'false') { // Only stream output if enabled
 
 
   }
+
+// Function to get stream setting for a given model
+function getStreamSettingForModel(modelName) {
+    const modelLower = modelName.toLowerCase();
+    if (modelLower in modelStreamConfig) {
+        return modelStreamConfig[modelLower]; // Return model-specific setting from config
+    } else {
+        return getCookie('streamOutput') !== 'false'; // Default to cookie setting if not configured
+    }
+}
 
 
   // 处理用户输入
@@ -1588,7 +1614,7 @@ function checkAndSetContinuousDialogue(modelName) {
     const hadKl = previousModel.toLowerCase().includes("kling");
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
@@ -1610,6 +1636,26 @@ function checkAndSetContinuousDialogue(modelName) {
             const selectedModel = $(this).val();
             localStorage.setItem('selectedModel', selectedModel);
             checkAndSetContinuousDialogue(selectedModel);
+
+            // Model Stream Setting Logic on Model Change
+            const selectedModelLower = selectedModel.toLowerCase();
+            const streamOutputSettingRow = $('.settings-common').has('#streamOutput'); // Select the row containing streamOutput checkbox
+            const streamOutputCheckbox = $('#streamOutput');
+
+            if (noStreamModels.includes(selectedModelLower)) {
+                streamOutputSettingRow.hide(); // Hide stream output setting for models like dall-e, tts-1
+            } else {
+                streamOutputSettingRow.show(); // Show for other models
+                if (modelStreamConfig.hasOwnProperty(selectedModelLower)) {
+                    streamOutputCheckbox.prop('checked', modelStreamConfig[selectedModelLower]); // Set checkbox based on model config
+                    setCookie('streamOutput', modelStreamConfig[selectedModelLower].toString(), 30); // Update cookie to reflect model specific setting
+                } else {
+                    // For models not in modelStreamConfig, default to cookie or true if cookie not set.
+                    const cookieStreamSetting = getCookie('streamOutput');
+                    streamOutputCheckbox.prop('checked', cookieStreamSetting !== 'false'); // Respect cookie if set, otherwise default to true (stream)
+                }
+            }
+
             // Update the title to use the selected option's data-description
             $(".title h2").text($(this).find("option:selected").data('description'));
         });
