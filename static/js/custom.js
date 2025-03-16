@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - 99);
             let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
 
             let usageResponse = await fetch(usageUrl, { headers });
             if (!usageResponse.ok) {
@@ -752,7 +752,7 @@ function addResponseMessage(message) {
     escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
   } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
     if (message.includes('`')) {
-      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown 格式
+      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是markdown格式
     } else {
       escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
     }
@@ -884,7 +884,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -941,26 +941,6 @@ async function getApiKey() {
   }
 }
 
-// 定义模型和流式输出配置
-const modelStreamConfig = {
-    "gpt-4o-mini": true, // 默认流式
-    "o1": false,        // 非流式
-    "o3": false,        // 非流式
-    "deepseek-r": false, // 非流式 (matches "deepseek-r" and "deepseek-r1" etc.)
-    "claude-3-7-sonnet-20250219-thinking": false, // 非流式
-    "claude-3-7-sonnet-thinking": false, // 非流式
-    "claude-3-7-sonnet-thinking-20250219": false, // 非流式
-};
-
-// 定义不需要展示流式输出选项的模型 (例如图片生成，tts等)
-const noStreamModels = [
-    "dall-e-", // Matches "dall-e-2", "dall-e-3" etc.
-    "cogview-", // Matches "cogview-3" etc.
-    "moderation",
-    "embedding",
-    "tts-1"
-];
-
 // 发送请求获得响应
 async function sendRequest(data) {
   await getConfig();
@@ -992,7 +972,7 @@ let requestBody = {
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model) // 使用函数获取模型对应的流式设置
+    "stream": getCookie('streamOutput') !== 'false' // 默认使用网页设置，如果网页设置未更改则使用cookie，cookie 没有则默认为true
 };
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
@@ -1006,7 +986,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         "temperature": data.temperature,
         "top_p": 1,
         "n": 1,
-        "stream": getStreamSettingForModel(data.model)
+        "stream": getCookie('streamOutput') !== 'false'
     };
 } else if (data.image_base64 && data.image_base64.trim() !== '') {
     apiUrl = datas.api_url + "/v1/chat/completions";
@@ -1028,7 +1008,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model)
+    "stream": getCookie('streamOutput') !== 'false'
     };
 } else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     apiUrl = datas.api_url + "/v1/images/generations";
@@ -1089,7 +1069,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model)
+    "stream": false // 强制非流式
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
@@ -1101,7 +1081,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model)
+    "stream": false // 强制非流式
     };
 }
         if (data.model.includes("deepseek-r") ) {
@@ -1111,7 +1091,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model)
+    "stream": false // 强制非流式
     };
 }
     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
@@ -1121,7 +1101,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model)
+    "stream": false // 强制非流式
     };
 }
     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
@@ -1131,7 +1111,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model)
+    "stream": false // 强制非流式
     };
 }
 if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
@@ -1141,7 +1121,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": getStreamSettingForModel(data.model)
+    "stream": false // 强制非流式
     };
 }
 
@@ -1212,7 +1192,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (getStreamSettingForModel(data.model)) { // Only stream output if enabled, using function
+if (getCookie('streamOutput') !== 'false') { // Only stream output if enabled, using cookie setting as default if not set in page
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1266,7 +1246,7 @@ if (getStreamSettingForModel(data.model)) { // Only stream output if enabled, us
         }
     }
     return str;
-} else { // Handle non-stream output
+} else { // Handle non-stream output if explicitly set to false in settings or cookie
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
@@ -1291,17 +1271,6 @@ if (getStreamSettingForModel(data.model)) { // Only stream output if enabled, us
 
 
   }
-
-// Function to get stream setting for a given model, using includes logic
-function getStreamSettingForModel(modelName) {
-    const modelLower = modelName.toLowerCase();
-    for (const modelKeyword in modelStreamConfig) {
-        if (modelLower.includes(modelKeyword)) {
-            return modelStreamConfig[modelKeyword];
-        }
-    }
-    return getCookie('streamOutput') !== 'false'; // Default to cookie setting if not configured or no match found
-}
 
 
   // 处理用户输入
@@ -1340,8 +1309,8 @@ let imageSrc = document.getElementById('imagePreview').src;
   data.max_tokens = parseInt($(".settings-common .max-tokens").val());
 
     const selectedModel = data.model.toLowerCase();
-    if (noStreamModels.some(keyword => selectedModel.includes(keyword))) {
-        data.prompts = [{"role": "user", "content": message}]; // For no-stream models, only send the last message
+    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) {
+        data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
     } else {
         // 判读是否已开启连续对话
         if(localStorage.getItem('continuousDialogue') == 'true'){
@@ -1364,7 +1333,7 @@ let imageSrc = document.getElementById('imagePreview').src;
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
-      if(resFlag && !noStreamModels.some(keyword => selectedModel.includes(keyword)) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
+      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
         messages.push({"role": "assistant", "content": res});
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
@@ -1566,7 +1535,7 @@ function deleteInputMessage() {
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
 
-// 检测是否含有"tts"或"dall"并设置连续对话状态
+// 检测是否含有"tts"或"dall"并设置连续对话状态 和 输出模式
 function checkAndSetContinuousDialogue(modelName) {
     const hasTTS = modelName.toLowerCase().includes("tts");
     const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
@@ -1587,15 +1556,31 @@ function checkAndSetContinuousDialogue(modelName) {
     const hasKo = modelName.toLowerCase().includes("kolors");
     const hasKl = modelName.toLowerCase().includes("kling");
 
-
     const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
     // 设置连续对话状态
     $("#chck-2").prop("checked", isContinuousDialogueEnabled);
     localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
-
-    // 设置是否禁用checkbox
     $("#chck-2").prop("disabled", hasTTS || hasDALL  || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
+
+    const isModelWithForcedNonStream = modelName.toLowerCase().includes("o1") || modelName.toLowerCase().includes("o3") || modelName.toLowerCase().includes("deepseek-r") || modelName.toLowerCase().includes("claude-3");
+    const streamOutputSettingRow = $("#streamOutputSetting");
+    const streamOutputCheckbox = $("#streamOutput");
+
+    if (hasTTS || hasDALL || hasCog || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl) {
+        streamOutputSettingRow.hide(); // 隐藏输出模式设置
+    } else {
+        streamOutputSettingRow.show(); // 显示输出模式设置
+        if (isModelWithForcedNonStream) {
+            streamOutputCheckbox.prop("checked", false); // For models with forced non-stream output, uncheck the checkbox
+            setCookie('streamOutput', 'false', 30); // Update cookie to reflect forced setting
+        } else {
+            // For other models, use cookie value as default or true if no cookie is set
+            const streamOutputCookie = getCookie('streamOutput');
+            streamOutputCheckbox.prop("checked", streamOutputCookie !== 'false');
+        }
+    }
+
 
     // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
@@ -1613,13 +1598,13 @@ function checkAndSetContinuousDialogue(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hasSora = previousModel.toLowerCase().includes("sora");
-    const hasSuno = previousModel.toLowerCase().includes("suno");
-    const hasKo = previousModel.toLowerCase().includes("kolors");
-    const hasKl = previousModel.toLowerCase().includes("kling");
+    const hadSora = previousModel.toLowerCase().includes("sora");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadKl = previousModel.toLowerCase().includes("kling");
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hasSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
@@ -1641,26 +1626,6 @@ function checkAndSetContinuousDialogue(modelName) {
             const selectedModel = $(this).val();
             localStorage.setItem('selectedModel', selectedModel);
             checkAndSetContinuousDialogue(selectedModel);
-
-            // Model Stream Setting Logic on Model Change
-            const selectedModelLower = selectedModel.toLowerCase();
-            const streamOutputSettingRow = $('.settings-common').has('#streamOutput'); // Select the row containing streamOutput checkbox
-            const streamOutputCheckbox = $('#streamOutput');
-
-            if (noStreamModels.some(keyword => selectedModelLower.includes(keyword))) {
-                streamOutputSettingRow.hide(); // Hide stream output setting for models like dall-e, tts-1
-            } else {
-                streamOutputSettingRow.show(); // Show for other models
-                if (getStreamSettingForModel(selectedModel)) { // if model is in modelStreamConfig and set to false (non-stream)
-                    streamOutputCheckbox.prop('checked', getStreamSettingForModel(selectedModel)); // Set checkbox based on model config
-                    setCookie('streamOutput', String(getStreamSettingForModel(selectedModel)), 30); // Update cookie to reflect model specific setting
-                } else {
-                    // For models not in modelStreamConfig or set to true (stream), default to cookie or true if cookie not set.
-                    const cookieStreamSetting = getCookie('streamOutput');
-                    streamOutputCheckbox.prop('checked', cookieStreamSetting !== 'false'); // Respect cookie if set, otherwise default to true (stream)
-                }
-            }
-
             // Update the title to use the selected option's data-description
             $(".title h2").text($(this).find("option:selected").data('description'));
         });
