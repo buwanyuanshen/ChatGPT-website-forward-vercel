@@ -1,4 +1,3 @@
-// js:
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
 
@@ -133,6 +132,32 @@ document.addEventListener('DOMContentLoaded', function() {
             balanceInfo.style.display = 'none';
             setCookie('balanceVisibility', 'hidden', 30); // 保存30天
         }
+    });
+
+    // 模型输出方式是否流式
+    var streamOutputCheckbox = document.getElementById('streamOutput');
+    var streamOutput = getCookie('streamOutput');
+    if (streamOutput === 'false') {
+        streamOutputCheckbox.checked = false;
+    } else {
+        streamOutputCheckbox.checked = true; // default true or cookie is not set
+    }
+
+    streamOutputCheckbox.addEventListener('change', function() {
+        setCookie('streamOutput', this.checked ? 'true' : 'false', 30);
+    });
+
+    // 连续对话消息上限
+    var maxDialogueMessagesInput = document.getElementById('maxDialogueMessages');
+    var maxDialogueMessages = getCookie('maxDialogueMessages');
+    if (maxDialogueMessages) {
+        maxDialogueMessagesInput.value = maxDialogueMessages;
+    } else {
+        maxDialogueMessagesInput.value = 150; // Default value if no cookie is set, aligning with original js comment
+    }
+
+    maxDialogueMessagesInput.addEventListener('change', function() {
+        setCookie('maxDialogueMessages', this.value, 30);
     });
 });
 
@@ -947,15 +972,8 @@ let requestBody = {
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": true // Default to streaming
+    "stream": getCookie('streamOutput') !== 'false' // 控制是否流式输出，默认为true
 };
-
-// Check the stream output setting from cookie
-const streamOutputSetting = getCookie('streamOutput');
-let useStreaming = true; // Default to true
-if (streamOutputSetting === 'false') {
-    useStreaming = false;
-}
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
@@ -968,7 +986,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         "temperature": data.temperature,
         "top_p": 1,
         "n": 1,
-        "stream": useStreaming // Apply streaming setting
+        "stream": getCookie('streamOutput') !== 'false'
     };
 } else if (data.image_base64 && data.image_base64.trim() !== '') {
     apiUrl = datas.api_url + "/v1/chat/completions";
@@ -990,7 +1008,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": data.temperature,
     "top_p": 1,
     "n": 1,
-    "stream": useStreaming // Apply streaming setting
+    "stream": getCookie('streamOutput') !== 'false'
     };
 } else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     apiUrl = datas.api_url + "/v1/images/generations";
@@ -1051,7 +1069,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // Fixed to false, overriding user preference for 'o1'
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
@@ -1063,7 +1081,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // Fixed to false, overriding user preference for 'o3'
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
         if (data.model.includes("deepseek-r") ) {
@@ -1073,7 +1091,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // Fixed to false, overriding user preference for 'deepseek-r'
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
@@ -1083,7 +1101,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // Fixed to false, overriding user preference for 'claude-3-7-sonnet-20250219-thinking'
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
@@ -1093,7 +1111,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // Fixed to false, overriding user preference for 'claude-3-7-sonnet-thinking'
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
 if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
@@ -1103,7 +1121,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     "model": data.model,
     "max_tokens": data.max_tokens,
     "n": 1,
-    "stream": false // Fixed to false, overriding user preference for 'claude-3-7-sonnet-thinking-20250219'
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
 
@@ -1174,59 +1192,84 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-const reader = response.body.getReader();
-let res = '';
-let str;
-while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-        break;
-    }
-    str = '';
-    res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-    const lines = res.trim().split(/[\n]+(?=\{)/);
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        let jsonObj;
-        try {
-            jsonObj = JSON.parse(line);
-        } catch (e) {
+if (getCookie('streamOutput') !== 'false') { // Only stream output if enabled
+    const reader = response.body.getReader();
+    let res = '';
+    let str;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
             break;
         }
-if (jsonObj.choices) {
-    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-        const content = jsonObj.choices[0].delta.content;
+        str = '';
+        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const lines = res.trim().split(/[\n]+(?=\{)/);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+            } catch (e) {
+                break;
+            }
+    if (jsonObj.choices) {
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "") {
-            str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-        } else if (content && content.trim() !== "") {
-            str += content;
-        }
-    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-        str += jsonObj.choices[0].text;
-    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-        const message = jsonObj.choices[0].message;
-        const reasoningContent = message.reasoning_content;
-        const content = message.content;
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "") {
-            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-        } else if (content && content.trim() !== "") {
-            str += content;
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
         }
-    }
-            addResponseMessage(str);
-            resFlag = true;
-        } else {
-            if (jsonObj.error) {
-                addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                resFlag = false;
+                addResponseMessage(str);
+                resFlag = true;
+            } else {
+                if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                    resFlag = false;
+                }
             }
         }
     }
+    return str;
+} else { // Handle non-stream output
+    const responseData = await response.json();
+    if (responseData.choices && responseData.choices.length > 0) {
+        let content = '';
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
+            content = responseData.choices[0].message.content;
+        } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
+            content = responseData.choices[0].text;
+        }
+        addResponseMessage(content);
+        resFlag = true;
+        return content;
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+        return null;
+    } else {
+        addFailMessage("Unexpected response format.");
+        resFlag = false;
+        return null;
+    }
 }
-return str;
+
+
   }
 
 
@@ -1249,10 +1292,10 @@ let imageSrc = document.getElementById('imagePreview').src;
     // 将用户消息保存到数组
     messages.push({"role": "user", "content": message})
 
-    // Get dialogue limit from cookie or use default 150
-    let dialogueLimit = parseInt(getCookie('dialogueLimit'), 10) || 150;
+    // 获取连续对话消息上限，默认值 150
+    let maxMessages = parseInt(getCookie('maxDialogueMessages')) || 150;
 
-    if(messages.length> dialogueLimit){
+    if(messages.length> maxMessages){
       addFailMessage("此次对话长度过长，请点击下方删除按钮清除对话内容！");
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
@@ -1489,48 +1532,6 @@ function deleteInputMessage() {
   chatInput.val('');
 }
   });
-
-    // Stream Output Setting
-    var streamOutput = localStorage.getItem('streamOutput');
-    if(streamOutput == null){
-        streamOutput = "true"; // Default to true (streaming enabled)
-        localStorage.setItem('streamOutput', streamOutput);
-    }
-    if(streamOutput == "true"){
-        $("#chck-3").prop("checked", true);
-    } else {
-        $("#chck-3").prop("checked", false);
-    }
-
-    $('#chck-3').click(function() {
-        if ($(this).prop('checked')) {
-            localStorage.setItem('streamOutput', true);
-        } else {
-            localStorage.setItem('streamOutput', false);
-        }
-    });
-
-    // Dialogue Limit Setting
-    var dialogueLimit = localStorage.getItem('dialogueLimit');
-    if(dialogueLimit == null){
-        dialogueLimit = "150"; // Default to 150
-        localStorage.setItem('dialogueLimit', dialogueLimit);
-    }
-    $(".settings-common .dialogue-limit-input").val(dialogueLimit);
-
-
-    $(".settings-common .dialogue-limit-input").blur(function() {
-        const dialogueLimit = $(this).val();
-        if(dialogueLimit.length!=0 && !isNaN(dialogueLimit) && parseInt(dialogueLimit) > 0){
-            localStorage.setItem('dialogueLimit', dialogueLimit);
-        } else {
-            localStorage.setItem('dialogueLimit', "150"); // Revert to default if invalid input
-            $(".settings-common .dialogue-limit-input").val("150");
-            alert("请输入有效的对话上限 (正整数).");
-        }
-    });
-
-
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
 
