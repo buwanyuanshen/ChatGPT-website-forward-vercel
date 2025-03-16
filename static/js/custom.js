@@ -306,7 +306,7 @@ $(document).ready(function () {
             localStorage.setItem('continuousDialogue', false);
         }
     });
-    
+
 // 读取本地存储中的模型列表，并初始化模型选择下拉框
     var savedModels = localStorage.getItem('customModels');
     if (savedModels) {
@@ -575,7 +575,72 @@ $(document).ready(function() {
     div.appendChild(text);
     return div.innerHTML;
   }
-  
+
+// 添加失败信息到窗口
+function addFailMessage(message) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    lastResponseElement.append('<p class="error">' + message + '</p>');
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    messages.pop() // 失败就让用户输入信息从数组删除
+}
+
+// 添加图片消息到窗口
+function addImageMessage(imageUrl) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 80%; max-height: 80%;" alt="DALL-E Image"></div>`+ '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+        // 绑定查看按钮事件
+    lastResponseElement.find('.view-button').on('click', function() {
+      window.open(imageUrl, '_blank');
+    });
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').on('click', function() {
+        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+    });
+}
+
+// 添加 moderation 结果消息到窗口
+function addModerationMessage(moderationResult) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    let moderationText = "<p><strong>Moderation Results:</strong></p><ul>";
+    moderationResult.forEach(result => {
+        moderationText += `<li>Harmful: ${result["有害标记"] ? 'Yes' : 'No'}</li>`;
+        moderationText += "<li>Categories:<ul>";
+        for (const category in result["违规类别"]) {
+            moderationText += `<li>${category}: ${result["违规类别"][category] ? 'Yes' : 'No'}</li>`;
+        }
+        moderationText += "</ul></li>";
+        moderationText += "<li>Category Scores:<ul>";
+        for (const score in result["违规类别分数(越大置信度越高)"]) {
+            moderationText += `<li>${score}: ${result["违规类别分数(越大置信度越高)"][score].toFixed(4)}</li>`;
+        }
+        moderationText += "</ul></li>";
+    });
+    moderationText += "</ul>";
+    lastResponseElement.append(`<div class="message-text">${moderationText}</div>`+ '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+        // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').on('click', function() {
+        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+    });
+}
+
+// 添加音频消息到窗口
+function addAudioMessage(base64Audio) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + base64Audio + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+        // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').on('click', function() {
+        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+    });
+}
+
+
 // 添加请求消息到窗口
 function addRequestMessage(message) {
   $(".answer .tips").css({"display":"none"});    // 打赏卡隐藏
@@ -596,7 +661,7 @@ function addRequestMessage(message) {
     // 绑定发送按钮点击事件
   requestMessageElement.find('.send-button').click(function() {
   });
-  
+
   // 绑定编辑按钮点击事件
   requestMessageElement.find('.edit-button').click(function() {
     editMessage(message);
@@ -613,11 +678,11 @@ function editMessage(message) {
   // 清除该条请求消息和回复消息
   $('.message-bubble').last().prev().remove();
   $('.message-bubble').last().remove();
-  
+
   // 将请求消息粘贴到用户输入框
   chatInput.val(message);
 }
-  
+
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
   let lastResponseElement = $(".message-bubble .response").last();
@@ -743,15 +808,7 @@ $(document).on('click', '.copy-button', function() {
   }, 2000); // 设置延时时间为2秒
 });
 
-  // 添加失败信息到窗口
-  function addFailMessage(message) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    lastResponseElement.append('<p class="error">' + message + '</p>');
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    messages.pop() // 失败就让用户输入信息从数组删除
-  }
-  
+
 let datas;
 
 // 解码 Base64 编码的 API 密钥
@@ -804,7 +861,7 @@ async function getApiKey() {
         method: "POST",
         body: new URLSearchParams({ password }),
       });
-      
+
       if (response.status === 403) {
         const errorData = await response.json();
         addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
@@ -834,6 +891,7 @@ async function getApiKey() {
 }
 
 // 发送请求获得响应
+let ajaxRequest; // Declare ajaxRequest outside of sendRequest to control abort
 async function sendRequest(data) {
   await getConfig();
   const apiKey = await getApiKey();
@@ -843,7 +901,7 @@ async function sendRequest(data) {
     console.error("Config data or API key is missing.");
     return;
   }
-    
+
 // 检查api_url是否存在非空值
 if ($(".settings-common .api_url").val().trim()) {
     // 存储api_url值
@@ -857,17 +915,71 @@ if ($(".settings-common .api_url").val().trim()) {
 }
 
 let apiUrl = datas.api_url + "/v1/chat/completions";
-let requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": data.temperature,
-    "top_p": 1,
-    "n": 1,
-    "stream": true
-};
+let requestBody;
+let responseFormat = 'stream'; // Default response format is stream for chat models
 
-if (data.model.includes("gpt-3.5-turbo-instruct") || data.model.includes("babbage-002") || data.model.includes("davinci-002")) {
+if (data.model.includes("dall-e")) {
+    apiUrl = datas.api_url + "/v1/images/generations";
+    responseFormat = 'image';
+    let size = "1024x1024";
+    let quality = "standard";
+    let style = "natural";
+    if (data.model.includes("dall-e-2")) {
+        size = data.model.includes("-m") ? "512x512" : (data.model.includes("-l") ? "1024x1024" : "256x256");
+    } else if (data.model.includes("dall-e-3")) {
+        if (data.model.includes("-w-hd")) size = "1792x1024";
+        else if (data.model.includes("-l-hd")) size = "1024x1792";
+        else if (data.model.includes("-hd")) size = "1024x1024";
+        else if (data.model.includes("-w-v")) size = "1792x1024";
+        else if (data.model.includes("-l-v")) size = "1024x1792";
+        else if (data.model.includes("-v")) style = "vivid";
+        else if (data.model.includes("-w-p")) {size = "1792x1024"; quality = "hd"; style = "vivid";}
+        else if (data.model.includes("-l-p")) {size = "1024x1792"; quality = "hd"; style = "vivid";}
+        else if (data.model.includes("-p")) {quality = "hd"; style = "vivid";}
+
+    }
+    requestBody = {
+        "prompt": data.prompts[0].content, // Assuming single prompt for image generation
+        "model": data.model,
+        "n": 1,
+        "size": size,
+        "quality": quality,
+        "style": style,
+    };
+} else if (data.model.includes("cogview")) {
+    apiUrl = datas.api_url + "/v1/images/generations";
+    responseFormat = 'image';
+    requestBody = {
+        "prompt": data.prompts[0].content,
+        "model": data.model,
+        "size": "1024x1024",
+    };
+} else if (data.model.includes("moderation")) {
+    apiUrl = datas.api_url + "/v1/moderations";
+    responseFormat = 'moderation';
+    requestBody = {
+        "input": data.prompts[0].content, // Moderation usually takes single input
+        "model": data.model,
+    };
+} else if (data.model.includes("embedding")) {
+    apiUrl = datas.api_url + "/v1/embeddings";
+    responseFormat = 'embedding';
+    requestBody = {
+        "input": data.prompts[0].content,
+        "model": data.model,
+    };
+    responseFormat = 'text'; // Treat embedding as text response for now, adjust if needed
+} else if (data.model.includes("tts-1")) {
+    apiUrl = datas.api_url + "/v1/audio/speech";
+    responseFormat = 'audio';
+    requestBody = {
+        "input": data.prompts[0].content,
+        "model": data.model,
+        "voice": "alloy",
+    };
+    responseFormat = 'base64audio'; // Custom format to handle base64 audio in response processing
+
+} else if (data.model.includes("gpt-3.5-turbo-instruct") || data.model.includes("babbage-002") || data.model.includes("davinci-002")) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
         "prompt": data.prompts[0].content,
@@ -878,9 +990,7 @@ if (data.model.includes("gpt-3.5-turbo-instruct") || data.model.includes("babbag
         "n": 1,
         "stream": true
     };
-}
-
-if (data.image_base64 && data.image_base64.trim() !== '') {
+} else if (data.image_base64 && data.image_base64.trim() !== '') {
     apiUrl = datas.api_url + "/v1/chat/completions";
    requestBody = {
     "messages": [
@@ -902,83 +1012,60 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "n": 1,
     "stream": true
     };
+} else if (data.model.includes("o1") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": false
+    };
+} else if (data.model.includes("o3") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": false
+    };
+} else if (data.model.includes("deepseek-r") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+} else if (data.model.includes("claude-3-7-sonnet-20250219-thinking") || data.model.includes("claude-3-7-sonnet-thinking") || data.model.includes("claude-3-7-sonnet-thinking-20250219")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+} else { // Default to chat completion
+    requestBody = {
+        "messages": data.prompts,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": true
+    };
 }
 
-    if (data.model.includes("o1") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": 1,
-    "top_p": 1,
-    "n": 1,
-    "stream": false
-    };
-}
-    if (data.model.includes("o3") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": 1,
-    "top_p": 1,
-    "n": 1,
-    "stream": false
-    };
-}
-        if (data.model.includes("deepseek-r") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false
-    };
-}
-            if (data.model.includes("-image-generation") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false
-    };
-}
-    if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false
-    };
-}
-    if (data.model.includes("claude-3-7-sonnet-thinking") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false
-    };
-}
-if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false
-    };
-}
-const response = await fetch(apiUrl, {
+
+ajaxRequest = fetch(apiUrl, { // Assign fetch to ajaxRequest
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
@@ -987,61 +1074,143 @@ const response = await fetch(apiUrl, {
     body: JSON.stringify(requestBody)
 });
 
-const reader = response.body.getReader();
-let res = '';
-let str;
-while (true) {
-    const { done, value } = await reader.read();
-    if (done) {
-        break;
+if (responseFormat === 'stream') {
+    const response = await ajaxRequest; // Wait for the fetch promise to resolve
+    if (!response.ok) {
+        addFailMessage(`HTTP error! status: ${response.status}`);
+        return;
     }
-    str = '';
-    res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-    const lines = res.trim().split(/[\n]+(?=\{)/);
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        let jsonObj;
-        try {
-            jsonObj = JSON.parse(line);
-        } catch (e) {
+    const reader = response.body.getReader();
+    let res = '';
+    let str;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
             break;
         }
-if (jsonObj.choices) {
-    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-        const content = jsonObj.choices[0].delta.content;
+        str = '';
+        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const lines = res.trim().split(/[\n]+(?=\{)/);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+            } catch (e) {
+                break;
+            }
+    if (jsonObj.choices) {
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "") {
-            str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-        } else if (content && content.trim() !== "") {
-            str += content;
-        }
-    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-        str += jsonObj.choices[0].text;
-    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-        const message = jsonObj.choices[0].message;
-        const reasoningContent = message.reasoning_content;
-        const content = message.content;
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
 
-        if (reasoningContent && reasoningContent.trim() !== "") {
-            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-        } else if (content && content.trim() !== "") {
-            str += content;
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
         }
-    }
-            addResponseMessage(str);
-            resFlag = true;
-        } else {
-            if (jsonObj.error) {
-                addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                resFlag = false;
+                addResponseMessage(str);
+                resFlag = true;
+            } else {
+                if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                    resFlag = false;
+                }
             }
         }
     }
+    return str;
+
+} else if (responseFormat === 'image') {
+    try {
+        const response = await ajaxRequest;
+        if (!response.ok) {
+            const errorData = await response.json(); // Try to parse error response as JSON
+            let errorMessage = `Image generation failed! status: ${response.status}`;
+            if (errorData && errorData.error && errorData.error.message) {
+                errorMessage += ` - ${errorData.error.message}`; // Append error message if available
+            }
+            addFailMessage(errorMessage);
+            return;
+        }
+        const responseData = await response.json();
+        const imageUrl = responseData.data[0].url;
+        addImageMessage(imageUrl);
+        resFlag = true;
+        return imageUrl;
+    } catch (error) {
+        addFailMessage(`Error generating image: ${error.message}`);
+        resFlag = false;
+    }
+} else if (responseFormat === 'moderation') {
+    try {
+        const response = await ajaxRequest;
+        if (!response.ok) {
+            addFailMessage(`Moderation check failed! status: ${response.status}`);
+            return;
+        }
+        const responseData = await response.json();
+        addModerationMessage(responseData.results);
+        resFlag = true;
+        return responseData.results;
+    } catch (error) {
+        addFailMessage(`Error checking moderation: ${error.message}`);
+        resFlag = false;
+    }
+} else if (responseFormat === 'base64audio') {
+    try {
+        const response = await ajaxRequest;
+        if (!response.ok) {
+            addFailMessage(`TTS failed! status: ${response.status}`);
+            return;
+        }
+        const audioBlob = await response.blob();
+        const reader = new FileReader();
+        reader.onload = function() {
+            const base64Audio = reader.result.split(',')[1]; // Extract base64 data
+            addAudioMessage(base64Audio);
+        };
+        reader.readAsDataURL(audioBlob);
+        resFlag = true;
+        return audioBlob; // Or return base64Audio if you need it later
+    } catch (error) {
+        addFailMessage(`Error during TTS: ${error.message}`);
+        resFlag = false;
+    }
+} else if (responseFormat === 'text') { // For embedding and potentially other text-based non-streaming responses
+    try {
+        const response = await ajaxRequest;
+        if (!response.ok) {
+            addFailMessage(`Request failed! status: ${response.status}`);
+            return;
+        }
+        const responseData = await response.json();
+        // For embedding, you might want to do something different with responseData.data[0].embedding
+        // For now, just display a success message or handle as needed.
+        addResponseMessage("Embedding generated successfully (embedding data not displayed in chat)."); // Or display embedding data if appropriate
+        resFlag = true;
+        return responseData; // Or return embedding data if needed
+    } catch (error) {
+        addFailMessage(`Error processing request: ${error.message}`);
+        resFlag = false;
+    }
 }
-return str;
-  }
-    
+return null;
+}
+
 
   // 处理用户输入
   chatBtn.click(function() {
@@ -1070,7 +1239,7 @@ let imageSrc = document.getElementById('imagePreview').src;
       chatBtn.attr('disabled',false) // 让按钮可点击
       return ;
     }
- 
+
  // 获取所选的模型
   data.model = $(".settings-common .model").val();
   data.temperature = parseFloat($(".settings-common .temperature").val());
@@ -1086,25 +1255,27 @@ let imageSrc = document.getElementById('imagePreview').src;
       data.prompts = messages.slice();
       data.prompts.splice(0, data.prompts.length - 1); // 未开启连续对话，取最后一条
     }
-      
+
     sendRequest(data).then((res) => {
       chatInput.val('');
       // 收到回复，让按钮可点击
       chatBtn.attr('disabled',false)
       // 重新绑定键盘事件
-      chatInput.on("keydown",handleEnter); 
+      chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
       if(resFlag){
-        messages.push({"role": "assistant", "content": res});
-        // 判断是否本地存储历史会话
-        if(localStorage.getItem('archiveSession')=="true"){
-          localStorage.setItem("session",JSON.stringify(messages));
+        if (!data.model.includes("dall-e") && !data.model.includes("cogview") && !data.model.includes("moderation") && !data.model.includes("embedding") && !data.model.includes("tts-1")){ // Only push to messages for chat models
+            messages.push({"role": "assistant", "content": res});
+            // 判断是否本地存储历史会话
+            if(localStorage.getItem('archiveSession')=="true"){
+              localStorage.setItem("session",JSON.stringify(messages));
+            }
         }
       }
       // 添加复制
       copy();
     });
-  });  
+  });
 // 停止并隐藏
 $('.stop a').click(function() {
   if (ajaxRequest) {
@@ -1139,13 +1310,13 @@ function isMobile() {
   // 设置栏宽度自适应
   let width = $('.function .others').width();
   $('.function .settings .dropdown-menu').css('width', width);
-  
+
   $(window).resize(function() {
     width = $('.function .others').width();
     $('.function .settings .dropdown-menu').css('width', width);
   });
 
-  
+
   // 主题
   function setBgColor(theme){
     $(':root').attr('bg-theme', theme);
@@ -1153,7 +1324,7 @@ function isMobile() {
     // 定位在文档外的元素也同步主题色
     $('.settings-common').css('background-color', 'var(--bg-color)');
   }
-  
+
   let theme = localStorage.getItem('theme');
   // 如果之前选择了主题，则将其应用到网站中
   if (theme) {
@@ -1180,7 +1351,7 @@ function isMobile() {
   }
 
   // password输入框事件
-  $(".settings-common .password").blur(function() { 
+  $(".settings-common .password").blur(function() {
     const password = $(this).val();
     if(password.length!=0){
       localStorage.setItem('password', password);
@@ -1196,7 +1367,7 @@ function isMobile() {
   }
 
   // apiKey输入框事件
-  $(".settings-common .api-key").blur(function() { 
+  $(".settings-common .api-key").blur(function() {
     const apiKey = $(this).val();
     if(apiKey.length!=0){
       localStorage.setItem('apiKey', apiKey);
@@ -1212,7 +1383,7 @@ function isMobile() {
   }
 
   // apiUrl输入框事件
-  $(".settings-common .api_url").blur(function() { 
+  $(".settings-common .api_url").blur(function() {
     const api_url = $(this).val();
     if(api_url.length!=0){
       localStorage.setItem('api_url', api_url);
@@ -1229,7 +1400,7 @@ function isMobile() {
     archiveSession = "true";
     localStorage.setItem('archiveSession', archiveSession);
   }
-  
+
   if(archiveSession == "true"){
     $("#chck-1").prop("checked", true);
   }else{
@@ -1249,7 +1420,7 @@ function isMobile() {
       localStorage.removeItem("session");
     }
   });
-  
+
   // 加载历史保存会话
   if(archiveSession == "true"){
     const messagesList = JSON.parse(localStorage.getItem("session"));
@@ -1275,7 +1446,7 @@ function isMobile() {
     continuousDialogue = "true";
     localStorage.setItem('continuousDialogue', continuousDialogue);
   }
-  
+
   if(continuousDialogue == "true"){
     $("#chck-2").prop("checked", true);
   }else{
@@ -1305,6 +1476,7 @@ function checkAndSetContinuousDialogue(modelName) {
     const hasTextem = modelName.toLowerCase().includes("embedding");
     const hasTextmo = modelName.toLowerCase().includes("moderation");
     const hasDALL = modelName.toLowerCase().includes("dall");
+    const hasCog = modelName.toLowerCase().includes("cogview");
     const hasVs = modelName.toLowerCase().includes("glm-4v");
     const hasVi = modelName.toLowerCase().includes("vision");
     const hasMj = modelName.toLowerCase().includes("midjourney");
@@ -1313,22 +1485,23 @@ function checkAndSetContinuousDialogue(modelName) {
     const hasVd = modelName.toLowerCase().includes("video");
     const hasSora = modelName.toLowerCase().includes("sora");
     const hasSuno = modelName.toLowerCase().includes("suno");
-    const hasCog = modelName.toLowerCase().includes("cogview");
     const hasKo = modelName.toLowerCase().includes("kolors");
     const hasKl = modelName.toLowerCase().includes("kling");
-    const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasCog || hasKo || hasKl);
+
+    const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
     // 设置连续对话状态
     $("#chck-2").prop("checked", isContinuousDialogueEnabled);
     localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
 
     // 设置是否禁用checkbox
-    $("#chck-2").prop("disabled", hasTTS || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasCog || hasKo || hasKl);
+    $("#chck-2").prop("disabled", hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
     // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
     const hadTTS = previousModel.toLowerCase().includes("tts");
     const hadDALL = previousModel.toLowerCase().includes("dall");
+    const hadCog = previousModel.toLowerCase().includes("cogview");
     const hadCompletion1 = previousModel.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hadCompletion2 = previousModel.toLowerCase().includes("babbage-002");
     const hadCompletion3= previousModel.toLowerCase().includes("davinci-002");
@@ -1342,12 +1515,11 @@ function checkAndSetContinuousDialogue(modelName) {
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
     const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadCog = previousModel.toLowerCase().includes("cogview");
     const hadKo = previousModel.toLowerCase().includes("kolors");
     const hadKl = previousModel.toLowerCase().includes("kling");
 
-    // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadCog || hadKo || hadKl ) && !(hasTTS || hasDALL || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo|| hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasCog || hasKo || hasKl)) {
+    // 如果从包含tts或dall或cogview的模型切换到不包含这些的模型，清除对话
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl ) && !(hasTTS || hasDALL || hadCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo|| hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
@@ -1394,18 +1566,18 @@ $(".delete a").click(function(){
   }
 
   // temperature输入框事件
-  $(".settings-common .temperature-input").change(function() { 
+  $(".settings-common .temperature-input").change(function() {
     const temperature = $(this).val();
     localStorage.setItem('temperature', temperature);
   })
 
   // temperature滑条事件
-  $(".settings-common .temperature").change(function() { 
+  $(".settings-common .temperature").change(function() {
     const temperature = $(this).val();
     localStorage.setItem('temperature', temperature);
      })
 
-// 读取max_tokens 
+// 读取max_tokens
   const max_tokens  = localStorage.getItem('max_tokens ');
   if (max_tokens) {
     $(".settings-common .max-tokens-input").val(max_tokens );
@@ -1413,13 +1585,13 @@ $(".delete a").click(function(){
   }
 
   // max_tokens 输入框事件
-  $(".settings-common .max-tokens-input").change(function() { 
+  $(".settings-common .max-tokens-input").change(function() {
     const max_tokens  = $(this).val();
     localStorage.setItem('max_tokens ', max_tokens );
       })
 
   // max_tokens 滑条事件
-  $(".settings-common .max-tokens").change(function() { 
+  $(".settings-common .max-tokens").change(function() {
     const max_tokens  = $(this).val();
     localStorage.setItem('max_tokens ', max_tokens );
       })
@@ -1489,7 +1661,7 @@ $(".delete a").click(function(){
         $(this).find('.copy-btn').hide();
       }
     );
-  
+
     $('pre').on('click', '.copy-btn', function() {
       let text = $(this).siblings('code').text();
       // 创建一个临时的 textarea 元素
