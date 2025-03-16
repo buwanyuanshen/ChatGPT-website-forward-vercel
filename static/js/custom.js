@@ -938,6 +938,16 @@ if (data.image_base64 && data.image_base64.trim() !== '') {
     "stream": false
     };
 }
+            if (data.model.includes("-image-generation") ) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "n": 1,
+    "stream": false
+    };
+}
     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
