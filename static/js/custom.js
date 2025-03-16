@@ -1126,16 +1126,6 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
-const isStreamSettingHiddenModel = model.includes("tts") || model.includes("embedding") || model.includes("dall-e") || model.includes("cogview") || model.includes("moderation");
-
-// Conditionally set stream parameter based on model
-if (!isStreamSettingHiddenModel) {
-    requestBody.stream = getCookie('streamOutput') !== 'false'; // 从 Cookie 获取流式输出设置
-} else {
-    delete requestBody.stream; // Ensure stream is not included in request for these models
-}
-
-
 const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
@@ -1203,7 +1193,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (getCookie('streamOutput') !== 'false' && !isStreamSettingHiddenModel) { // 从 Cookie 获取流式输出设置, 默认流式, 排除隐藏模型
+if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1257,7 +1247,7 @@ if (getCookie('streamOutput') !== 'false' && !isStreamSettingHiddenModel) { // �
         }
     }
     return str;
-} else { // 非流式输出处理 或者 是隐藏模型
+} else { // 非流式输出处理
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
