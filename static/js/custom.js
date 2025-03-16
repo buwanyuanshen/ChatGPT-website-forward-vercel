@@ -1538,8 +1538,8 @@ const selectedModel = localStorage.getItem('selectedModel');
 
 // 检测模型并更新设置
 function updateModelSettings(modelName) {
-    const isNonStreamModel = modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all") ||
-                               modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all") ||
+    const isNonStreamModel = (modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all")) ||
+                               (modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all")) ||
                                modelName.toLowerCase().includes("deepseek-r") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-20250219-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking") ||
@@ -1553,13 +1553,17 @@ function updateModelSettings(modelName) {
 
     var streamOutputCheckbox = document.getElementById('streamOutput');
 
+
     if (isNonStreamModel) {
         streamOutputCheckbox.checked = false;
         setCookie('streamOutput', 'false', 30);
         streamOutputSetting.show(); // 确保设置行显示
     } else if (isHideStreamSettingModel) {
         streamOutputSetting.hide(); // 隐藏设置行
-    } else {
+        streamOutputCheckbox.checked = false; // Also set the checkbox to false for these models
+        setCookie('streamOutput', 'false', 30); // and set the cookie to false
+    }
+     else {
         streamOutputSetting.show(); // 确保设置行显示
         // 如果之前是非流式，切换到流式
         if (getCookie('streamOutput') === 'false') {
@@ -1567,6 +1571,7 @@ function updateModelSettings(modelName) {
             setCookie('streamOutput', 'true', 30);
         }
     }
+
 
     // 检测是否含有"tts"或"dall"并设置连续对话状态 - 保持原有的连续对话逻辑
     const hasTTS = modelName.toLowerCase().includes("tts");
