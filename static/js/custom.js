@@ -1193,7 +1193,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 }
 
 
-if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
+if (getCookie('streamOutput') !== 'false' && !(model.includes("dall-e") || model.includes("cogview-3") || model.includes("moderation") || model.includes("embedding") || model.includes("tts-1"))) { // 从 Cookie 获取流式输出设置, 默认流式 并且排除特定模型
     const reader = response.body.getReader();
     let res = '';
     let str;
@@ -1528,18 +1528,15 @@ function isMobile() {
     } else {
       localStorage.setItem('continuousDialogue', false);
     }
-// 删除输入框中的消息
-function deleteInputMessage() {
-  chatInput.val('');
-}
+
   });
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
 
 // 检测模型并更新设置
 function updateModelSettings(modelName) {
-    const isNonStreamModel = (modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all")) ||
-                               (modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all")) ||
+    const isNonStreamModel = modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all") ||
+                               modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all") ||
                                modelName.toLowerCase().includes("deepseek-r") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-20250219-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking") ||
@@ -1553,17 +1550,13 @@ function updateModelSettings(modelName) {
 
     var streamOutputCheckbox = document.getElementById('streamOutput');
 
-
     if (isNonStreamModel) {
         streamOutputCheckbox.checked = false;
         setCookie('streamOutput', 'false', 30);
         streamOutputSetting.show(); // 确保设置行显示
     } else if (isHideStreamSettingModel) {
         streamOutputSetting.hide(); // 隐藏设置行
-        streamOutputCheckbox.checked = false; // Also set the checkbox to false for these models
-        setCookie('streamOutput', 'false', 30); // and set the cookie to false
-    }
-     else {
+    } else {
         streamOutputSetting.show(); // 确保设置行显示
         // 如果之前是非流式，切换到流式
         if (getCookie('streamOutput') === 'false') {
@@ -1571,7 +1564,6 @@ function updateModelSettings(modelName) {
             setCookie('streamOutput', 'true', 30);
         }
     }
-
 
     // 检测是否含有"tts"或"dall"并设置连续对话状态 - 保持原有的连续对话逻辑
     const hasTTS = modelName.toLowerCase().includes("tts");
@@ -1626,12 +1618,18 @@ function updateModelSettings(modelName) {
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hasMj || hasSD || hasFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
     // 更新上一个模型名称为当前模型
     localStorage.setItem('previousModel', modelName);
+
+    if (isHideStreamSettingModel) {
+        streamOutputSetting.hide();
+    } else {
+        streamOutputSetting.show();
+    }
 }
 
 
@@ -1641,6 +1639,8 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(".settings-common .model option:selected").data('description'));
+        } else { // Initialize visibility on page load if no model is selected in local storage
+            updateModelSettings($(".settings-common .model").val()); // Use the default selected model
         }
 
         // 监听model选择的变化
