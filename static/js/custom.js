@@ -626,18 +626,26 @@ function addModerationMessage(moderationResult) {
     });
 }
 
-// 添加 Embedding 结果消息到窗口 (这里简化为输出到控制台，可以根据需要修改)
+// 添加 Embedding 结果消息到窗口
 function addEmbeddingMessage(embeddingResult) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append('<div class="message-text">Embedding 结果已返回，请查看控制台 (F12)</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    // Display the embedding result as a JSON string in a <pre> block for readability
+    const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
+    lastResponseElement.append(`<div class="message-text"><p>Embedding 结果:</p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    console.log("Embedding Result:", embeddingResult); // 输出到控制台
+
+    // 绑定复制按钮点击事件
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim()); // Copy the text content of the message
+    });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
     });
 }
+
+
 // 添加 TTS 结果消息到窗口
 function addTTSMessage(audioBase64) {
     let lastResponseElement = $(".message-bubble .response").last();
