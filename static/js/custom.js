@@ -828,7 +828,25 @@ function addResponseMessage(message) {
     lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
   }
 
-  chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+  // **新增代码：判断是否之前滚动到底部**
+  const isScrolledToBottom = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+
+  // 绑定按钮事件
+  lastResponseElement.find('.view-button').on('click', function() {
+    window.open($(this).siblings('.message-text').find('img').attr('src'), '_blank');
+  });
+  lastResponseElement.find('.copy-button').click(function() {
+    copyMessage($(this).prev().text().trim());
+  });
+  lastResponseElement.find('.delete-message-btn').click(function() {
+    $(this).closest('.message-bubble').remove();
+  });
+
+  // **新增代码：只有在之前滚动到底部时才滚动到底部**
+  if (isScrolledToBottom) {
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+  }
+}
 
 
 // 绑定查看按钮事件
@@ -1651,11 +1669,11 @@ function updateModelSettings(modelName) {
     const hadMj = previousModel.toLowerCase().includes("midjourney");
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
-    const hadVd = modelName.toLowerCase().includes("video");
-    const hadSora = modelName.toLowerCase().includes("sora");
-    const hadSuno = modelName.toLowerCase().includes("suno");
-    const hadKo = modelName.toLowerCase().includes("kolors");
-    const hadKl = modelName.toLowerCase().includes("kling");
+    const hadVd = previousModel.toLowerCase().includes("video");
+    const hadSora = previousModel.toLowerCase().includes("sora");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
