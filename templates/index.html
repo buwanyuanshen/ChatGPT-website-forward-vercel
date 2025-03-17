@@ -380,6 +380,17 @@
     <input type="range" min="100" max="2000000" step="100" value="3000" class="form-control ipt-common max-tokens" id="maxTokens">
     <input type="number" min="100" max="2000000" step="100" value="3000" class="form-control ipt-common max-tokens-input" id="maxTokens-input">
 </div>
+					                                    <div class="settings-common">
+                                        <span><i class="fa fa-route fa-lg" aria-hidden="true"></i>模型请求路径选择</span>
+                                        <select class="form-control ipt-common api-path" id="apiPathSelect">
+                                            <option value="/v1/chat/completions" selected>/v1/chat/completions</option>
+                                            <option value="/v1/completions">/v1/completions</option>
+                                            <option value="/v1/images/generations">/v1/images/generations</option>
+                                            <option value="/v1/moderations">/v1/moderations</option>
+                                            <option value="/v1/embeddings">/v1/embeddings</option>
+                                            <option value="/v1/audio/speech">/v1/audio/speech</option>
+                                        </select>
+                                    </div>
                                     <div class="settings-common">
                                         <span><i class="fa fa-hourglass-half fa-lg" aria-hidden="true"></i>连续对话消息上限</span>
                                         <input type="number" class="form-control ipt-common max-dialogue-messages" id="maxDialogueMessages" min="10" placeholder="默认: 150">
@@ -420,17 +431,6 @@
         </label>
     </div>
 </div>
-                                    <div class="settings-common">
-                                        <span><i class="fa fa-route fa-lg" aria-hidden="true"></i>  请求路径</span>
-                                        <select class="form-control ipt-common api-path" id="apiPathSelect">
-                                            <option value="/v1/chat/completions" selected>/v1/chat/completions</option>
-                                            <option value="/v1/completions">/v1/completions</option>
-                                            <option value="/v1/images/generations">/v1/images/generations</option>
-                                            <option value="/v1/moderations">/v1/moderations</option>
-                                            <option value="/v1/embeddings">/v1/embeddings</option>
-                                            <option value="/v1/audio/speech">/v1/audio/speech</option>
-                                        </select>
-                                    </div>
                                 </div>
                             </div>
                         </div>
