@@ -3,7 +3,7 @@
 }
 
 .model-search-input {
-    position: absolute; /* 绝对定位使其覆盖在下拉框上方 */
+    position: relative; /* 绝对定位使其覆盖在下拉框上方 */
     top: 0;
     left: 18%;
     width: 50%; 
