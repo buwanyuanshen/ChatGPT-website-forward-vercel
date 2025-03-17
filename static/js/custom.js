@@ -1,6 +1,5 @@
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
-const searchInput = document.querySelector('.model-search-input');
 
 if (selectElement) {
     // 遍历 select 元素下的所有 option 元素
@@ -10,20 +9,6 @@ if (selectElement) {
         option.textContent = option.value; // 设置 textContent 为 value
     });
 }
-
-searchInput.addEventListener('input', function() {
-    const searchTerm = searchInput.value.toLowerCase();
-    Array.from(selectElement.options).forEach(option => {
-        const modelName = (option.getAttribute('data-description') || option.textContent).toLowerCase();
-        if (modelName.includes(searchTerm)) {
-            option.style.display = 'block';
-        } else {
-            option.style.display = 'none';
-        }
-    });
-});
-
-
 function resetImageUpload() {
     imageUpload.value = '';
     base64Image = '';
@@ -498,9 +483,10 @@ chatInput.addEventListener('keydown', function (event) {
         chatInput.style.height = '32px';
         iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
     }
-    // 搜索模型时阻止在搜索框内换行
-    if (event.target === searchInput && event.key === 'Enter') {
-        event.preventDefault();
+    // For mobile enter to send
+    else if (!event.ctrlKey && event.keyCode === 13) {
+        chatBtn.click();
+        event.preventDefault(); // Prevent line break in textarea
     }
 });
 
@@ -590,6 +576,25 @@ $(document).ready(function() {
   var chatWindow = $('#chatWindow');
   var streamOutputSetting = $('#streamOutputSetting'); // 获取模型输出方式设置行
   const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
+
+  // Model Search Functionality
+  const modelSearchInput = $('#modelSearchInput');
+  const modelSelectDropdown = $('.model');
+  const modelOptions = modelSelectDropdown.find('option');
+
+  modelSearchInput.on('input', function() {
+      const searchTerm = modelSearchInput.val().toLowerCase();
+      modelOptions.each(function() {
+          const option = $(this);
+          const modelDescription = option.data('description').toLowerCase();
+          if (modelDescription.includes(searchTerm)) {
+              option.show();
+          } else {
+              option.hide();
+          }
+      });
+  });
+
 
   // 存储对话信息,实现连续对话
   var messages = [];
@@ -905,7 +910,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1654,14 +1659,14 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hasSora = modelName.toLowerCase().includes("sora");
-    const hasSuno = modelName.toLowerCase().includes("suno");
-    const hasKo = modelName.toLowerCase().includes("kolors");
-    const hasKl = modelName.toLowerCase().includes("kling");
+    const hadSora = previousModel.toLowerCase().includes("sora");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hasKo = previousModel.toLowerCase().includes("kolors");
+    const hasKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hasSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
