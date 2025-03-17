@@ -632,7 +632,7 @@ $(document).ready(function() {
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 80%; max-height: 80%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
 
     // 绑定查看按钮事件
