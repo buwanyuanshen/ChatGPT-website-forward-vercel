@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,7 +12,6 @@
     <link rel="stylesheet" href="../static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <title>Free Chat(前端)</title>
-   
 </head>
 <body>
 	<div id="balanceInfo" style="position: absolute;top: 3px;left: 3px;background-color: #f0f0f5;padding: 10px;border: 1px solid #ccc;z-index: 1000; border-radius: 8px; width: auto;">
@@ -77,9 +77,11 @@
                                         <input type="text" class="form-control ipt-common api_url" placeholder="示例:https://xx.com">
                                     </div>
 
-                                    <div class="settings-common model-select-wrapper">
+                                    <div class="settings-common">
                                         <span><i class="fa fa-brain fa-lg" aria-hidden="true"></i>  OpenAI Models</span>
-                                        <input type="text" class="form-control model-search-box" placeholder="搜索模型...">
+                                        <div class="model-search-container">
+                                            <input type="text" class="model-search-input" placeholder="搜索模型...">
+                                        </div>
 					<select class="form-control ipt-common model">
 					    					     <option value="gpt-4o-mini">gpt-4o-mini（OpenAI，128k）</option>
                                             <option value="gpt-4o-mini-2024-07-18">gpt-4o-mini-2024-07-18（OpenAI，128k）</option>
