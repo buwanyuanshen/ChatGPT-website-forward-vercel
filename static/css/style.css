@@ -5,14 +5,14 @@
 .model-search-input {
     position: absolute; /* 绝对定位使其覆盖在下拉框上方 */
     top: 0;
-    left: 0;
-    width: 50%; /* 设置宽度为下拉框的一半 */
-    height: calc(100% - 2px); /* 稍微调整高度以匹配下拉框 */
+    left: 18%;
+    width: 50%; 
+    height: 34px; /* 稍微调整高度以匹配下拉框 */
     padding: 5px;
     border: none;
     background-color: transparent; /* 背景透明 */
     color: inherit; /* 继承父元素的颜色 */
-    z-index: 10; /* 确保搜索框在下拉框之上 */
+    z-index: 0; /* 确保搜索框在下拉框之上 */
     outline: none; /* 移除默认的focus outline */
 }
  .model-select {
@@ -747,13 +747,13 @@ input[type="checkbox"]:checked + .check-trail .check-handler::before {
      
     }
 
-    .temperature, .max-tokens {
+    .temperature, .max-tokens,.model-select {
         flex: 1.5;
         margin-left: 10px; /* 间隙大小 */
         margin-right: 5px; /* 间隙大小 */
     }
 
-    .temperature-input, .max-tokens-input {
+    .temperature-input, .max-tokens-input,.model-search-input {
         flex: 1;
     }
 
