@@ -457,7 +457,7 @@ pre{
   padding: 0 15px;
   width: 100%;
   position: absolute;
-  bottom: 0px;
+  bottom: 20px;
 }
 .answer .others{
   display: flex;
