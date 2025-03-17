@@ -1,31 +1,6 @@
-$(document).ready(function() {
-    // 获取模型选择框和搜索框元素
-    const modelSelect = $('.settings-common .model');
-    const modelSearchBox = $('.model-search-box');
-
-    // 监听搜索框的输入事件
-    modelSearchBox.on('input', function() {
-        const searchTerm = $(this).val().toLowerCase(); // 获取搜索词并转换为小写
-
-        // 遍历模型选择框的每一个选项
-        modelSelect.find('option').each(function() {
-            const optionText = $(this).text().toLowerCase(); // 获取选项文本并转换为小写
-            // 如果选项文本包含搜索词，则显示选项，否则隐藏
-            if (optionText.includes(searchTerm)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    });
-
-    // 初始化显示所有模型选项
-    modelSelect.find('option').show();
-});
-
-
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
+const searchInput = document.querySelector('.model-search-input');
 
 if (selectElement) {
     // 遍历 select 元素下的所有 option 元素
@@ -35,6 +10,20 @@ if (selectElement) {
         option.textContent = option.value; // 设置 textContent 为 value
     });
 }
+
+searchInput.addEventListener('input', function() {
+    const searchTerm = searchInput.value.toLowerCase();
+    Array.from(selectElement.options).forEach(option => {
+        const modelName = (option.getAttribute('data-description') || option.textContent).toLowerCase();
+        if (modelName.includes(searchTerm)) {
+            option.style.display = 'block';
+        } else {
+            option.style.display = 'none';
+        }
+    });
+});
+
+
 function resetImageUpload() {
     imageUpload.value = '';
     base64Image = '';
@@ -509,6 +498,10 @@ chatInput.addEventListener('keydown', function (event) {
         chatInput.style.height = '32px';
         iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
     }
+    // 搜索模型时阻止在搜索框内换行
+    if (event.target === searchInput && event.key === 'Enter') {
+        event.preventDefault();
+    }
 });
 
 
@@ -912,7 +905,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1661,10 +1654,10 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hasSora = previousModel.toLowerCase().includes("sora");
-    const hasSuno = previousModel.toLowerCase().includes("suno");
-    const hasKo = previousModel.toLowerCase().includes("kolors");
-    const hasKl = previousModel.toLowerCase().includes("kling");
+    const hasSora = modelName.toLowerCase().includes("sora");
+    const hasSuno = modelName.toLowerCase().includes("suno");
+    const hasKo = modelName.toLowerCase().includes("kolors");
+    const hasKl = modelName.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
@@ -1829,7 +1822,7 @@ $(".delete a").click(function(){
         $(this).text('复制失败');
       }
 
-      // 从文档中删除临时的 textarea 元素 
+      // 从文档中删除临时的 textarea 元素
       document.body.removeChild(textArea);
 
       setTimeout(() => {
