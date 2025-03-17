@@ -5,7 +5,7 @@
 .model-search-input {
     position: relative; /* 绝对定位使其覆盖在下拉框上方 */
     top: 0;
-    left: 18%;
+    left: 1%;
     width: 50%; 
     height: 34px; /* 稍微调整高度以匹配下拉框 */
     padding: 5px;
