@@ -1,17 +1,11 @@
-  .model-search-container {
-            position: relative; /* 设置相对定位，以便搜索框可以相对于它定位 */
-            margin-bottom: 5px; /* 与模型选择框的间距 */
-        }
-
-        .model-search-input {
-            width: 100%; /* 宽度撑满容器 */
-            padding: 8px; /* 增加内边距 */
-            border: 1px solid #ccc; /* 边框样式 */
-            border-radius: 4px; /* 圆角 */
-            box-sizing: border-box; /* 包含内边距和边框在内的宽度 */
-            background-color: rgba(255, 255, 255, 0.8); /* 半透明背景 */
-            backdrop-filter: blur(5px); /* 毛玻璃效果，如果浏览器支持 */
-        }
+.model-search-input {
+    width: calc(100% - 20px); /* Adjust width as needed, consider padding */
+    padding: 8px;
+    margin: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* To include padding and border in the element's total width and height */
+}
 .left {
     display: flex;
     align-items: center;
