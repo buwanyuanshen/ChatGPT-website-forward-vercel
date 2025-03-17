@@ -1,1866 +1,540 @@
-// 找到 select 元素
-const selectElement = document.querySelector('.form-control.ipt-common.model');
-const searchInput = document.querySelector('.model-search-input');
-
-if (selectElement) {
-    // 遍历 select 元素下的所有 option 元素
-    Array.from(selectElement.options).forEach(option => {
-        const originalText = option.textContent; // 保存原始文本
-        option.setAttribute('data-description', originalText); // 设置 data-description
-        option.textContent = option.value; // 设置 textContent 为 value
-    });
-}
-
-searchInput.addEventListener('input', function() {
-    const searchTerm = searchInput.value.toLowerCase();
-    Array.from(selectElement.options).forEach(option => {
-        const description = option.getAttribute('data-description').toLowerCase();
-        if (description.includes(searchTerm)) {
-            option.style.display = 'block'; // 或者 option.hidden = false;
-        } else {
-            option.style.display = 'none'; // 或者 option.hidden = true;
-        }
-    });
-});
-
-function resetImageUpload() {
-    imageUpload.value = '';
-    base64Image = '';
-    imagePreviewContainer.style.display = 'none';
-    imagePreview.src = '';
-    // 可选：触发 change 事件以更新状态
-    var event = new Event('change', { bubbles: true });
-    imageUpload.dispatchEvent(event);
-}
-
-    var base64Image = "";
-    var imageUpload = document.getElementById('imageUpload');
-    var imagePreviewContainer = document.getElementById('imagePreviewContainer');
-    var closeButton = document.getElementById('closeButton');
-
-    imageUpload.addEventListener('change', function(event) {
-        var file = event.target.files[0];
-        if (file) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                base64Image = e.target.result.split(',')[1];
-                imagePreviewContainer.style.display = 'block';
-                document.getElementById('imagePreview').src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        } else {
-            base64Image = '';
-            imagePreviewContainer.style.display = 'none';
-            document.getElementById('imagePreview').src = '';
-        }
-    });
-
-    closeButton.addEventListener('click', function() {
-        imageUpload.value = '';
-        base64Image = '';
-        imagePreviewContainer.style.display = 'none';
-        document.getElementById('imagePreview').src = '';
-
-        var event = new Event('change', { bubbles: true });
-        imageUpload.dispatchEvent(event);
-    });
-function checkModelAndShowUpload() {
-    var modelSelect = document.querySelector('.model');
-    var selectedModel = modelSelect.value.toLowerCase();
-    var uploadArea = document.getElementById('uploadArea');
-
-    if (
-        selectedModel.includes("gpt-4") ||
-        selectedModel.includes("glm-4v") ||
-        selectedModel.includes("claude-3") ||
-        selectedModel.includes("gemini-1.5") ||
-        selectedModel.includes("gemini-2.0") ||
-        selectedModel.includes("gemini-exp") ||
-        selectedModel.includes("learnlm-1.5-pro-experimental") ||
-        selectedModel.includes("vision") ||
-        selectedModel.includes("o1") ||
-        selectedModel.includes("o3")
-
-    ) {
-        uploadArea.style.display = 'block';
-    } else {
-        uploadArea.style.display = 'none';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    var modelSelect = document.querySelector('.model');
-    modelSelect.addEventListener('change', checkModelAndShowUpload);
-
-    // 初始化时检查一次
-    checkModelAndShowUpload();
-});
-
-
-
-
-// Helper functions to set and get cookies
-function setCookie(name, value, days) {
-    var expires = "";
-    if (days) {
-        var date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));  // Calculate expiration time
-        expires = "; expires=" + date.toUTCString();  // Convert to UTC string
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/";  // Set cookie
-}
-
-function getCookie(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i].trim();  // Use trim() to clean up any extra spaces
-        if (c.indexOf(nameEQ) === 0) {
-            return c.substring(nameEQ.length, c.length);  // Return the cookie value
-        }
-    }
-    return null;  // If cookie is not found, return null
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // 余额显示/隐藏功能
-    var toggleBalance = document.getElementById('toggleBalance');
-    var balanceInfo = document.getElementById('balanceInfo');
-
-    // 读取Cookie并设置初始状态
-    var balanceVisibility = getCookie('balanceVisibility');
-    if (balanceVisibility === 'hidden') {
-        toggleBalance.checked = false;
-        balanceInfo.style.display = 'none';
-    } else {
-        toggleBalance.checked = true;
-        balanceInfo.style.display = 'block';
-    }
-
-    // 监听开关变化
-    toggleBalance.addEventListener('change', function() {
-        if (this.checked) {
-            balanceInfo.style.display = 'block';
-            setCookie('balanceVisibility', 'visible', 30); // 保存30天
-        } else {
-            balanceInfo.style.display = 'none';
-            setCookie('balanceVisibility', 'hidden', 30); // 保存30天
-        }
-    });
-
-    // 模型输出方式是否流式
-    var streamOutputCheckbox = document.getElementById('streamOutput');
-    var streamOutput = getCookie('streamOutput');
-    if (streamOutput === 'false') {
-        streamOutputCheckbox.checked = false;
-    } else {
-        streamOutputCheckbox.checked = true; // default true or cookie is not set
-    }
-
-    streamOutputCheckbox.addEventListener('change', function() {
-        setCookie('streamOutput', this.checked ? 'true' : 'false', 30);
-    });
-
-    // 连续对话消息上限
-    var maxDialogueMessagesInput = document.getElementById('maxDialogueMessages');
-    var maxDialogueMessages = getCookie('maxDialogueMessages');
-    if (maxDialogueMessages) {
-        maxDialogueMessagesInput.value = maxDialogueMessages;
-    } else {
-        maxDialogueMessagesInput.value = 150; // Default value if no cookie is set, aligning with original js comment
-    }
-
-    maxDialogueMessagesInput.addEventListener('change', function() {
-        setCookie('maxDialogueMessages', this.value, 30);
-    });
-});
-
-
-    // Helper function to clean up API URL
-    function cleanApiUrl(apiUrl) {
-        if (!apiUrl) {
-            return apiUrl;
-        }
-        let cleanedUrl = apiUrl.trim();
-        cleanedUrl = cleanedUrl.replace(/\s/g, ''); // Remove spaces
-        cleanedUrl = cleanedUrl.replace(/\/+$/, ''); // Remove trailing slashes
-        cleanedUrl = cleanedUrl.replace(/\/v1(\/chat\/completions)?$/i, ''); // Remove /v1 or /v1/chat/completions at the end
-        return cleanedUrl;
-    }
-
-
-    async function fetchBalance(apiUrl, apiKey) {
-        const headers = new Headers({
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        });
-
-        try {
-            // Clean the apiUrl before using it
-            const cleanedApiUrl = cleanApiUrl(apiUrl);
-
-            // Get the total balance (quota)
-            let subscriptionResponse = await fetch(`${cleanedApiUrl}/v1/dashboard/billing/subscription`, { headers });
-            if (!subscriptionResponse.ok) {
-                throw new Error('Failed to fetch subscription data');
-            }
-            let subscriptionData = await subscriptionResponse.json();
-            let total = subscriptionData.hard_limit_usd;
-
-            // Get the usage information
-            let startDate = new Date();
-            startDate.setDate(startDate.getDate() - 99);
-            let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
-
-            let usageResponse = await fetch(usageUrl, { headers });
-            if (!usageResponse.ok) {
-                throw new Error('Failed to fetch usage data');
-            }
-            let usageData = await usageResponse.json();
-            let totalUsage = usageData.total_usage / 100;
-
-            let remaining = total - totalUsage;
-
-            // Update the balance display
-            document.getElementById('totalBalance').innerText = `总额: ${total.toFixed(4)} $`;
-            document.getElementById('usedBalance').innerText = `已用: ${totalUsage.toFixed(4)} $`;
-            document.getElementById('remainingBalance').innerText = `剩余: ${remaining.toFixed(4)} $`;
-
-        } catch (error) {
-            console.error('Error fetching balance:', error);
-            document.getElementById('totalBalance').innerText = '总额: 加载失败';
-            document.getElementById('usedBalance').innerText = '已用: 加载失败';
-            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
-        }
-    }
-
-    // Function to fetch default balance from the backend
-    let defaultApiUrl = ''; // Variable to store default apiUrl from backend
-    async function fetchDefaultBalance() {
-        try {
-            let response = await fetch('/default_balance');
-            if (!response.ok) {
-                throw new Error('Failed to fetch default balance data');
-            }
-            let data = await response.json();
-            if (data.error) {
-                throw new Error(data.error.message);
-            }
-
-            // Store default apiUrl
-            defaultApiUrl = data.url; // Assuming the backend returns url in data
-
-            // Update the balance display with default balance
-            document.getElementById('totalBalance').innerText = `总额: ${data.total_balance.toFixed(4)} $`;
-            document.getElementById('usedBalance').innerText = `已用: ${data.used_balance.toFixed(4)} $`;
-            document.getElementById('remainingBalance').innerText = `剩余: ${data.remaining_balance.toFixed(4)} $`;
-
-        } catch (error) {
-            console.error('Error fetching default balance:', error);
-            document.getElementById('totalBalance').innerText = '总额: 加载失败';
-            document.getElementById('usedBalance').innerText = '已用: 加载失败';
-            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
-        }
-    }
-
-    // Function to initialize the listeners
-    function initListeners() {
-        const apiKeyField = document.querySelector('.api-key');
-        const apiUrlField = document.querySelector('.api_url');
-
-        // Initial check
-        if (apiKeyField.value.trim()) {
-            let apiUrl = apiUrlField.value.trim();
-            if (!apiUrl) {
-                apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
-            }
-            fetchBalance(apiUrl, apiKeyField.value.trim());
-        } else {
-            fetchDefaultBalance();
-        }
-
-        // Event listeners
-        apiKeyField.addEventListener('input', function () {
-            const apiKey = apiKeyField.value.trim();
-            if (apiKey) {
-                let apiUrl = apiUrlField.value.trim();
-                if (!apiUrl) {
-                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
-                }
-                fetchBalance(apiUrl, apiKey);
-            } else {
-                fetchDefaultBalance();
-            }
-        });
-
-        apiUrlField.addEventListener('input', function () {
-            const apiKey = apiKeyField.value.trim();
-            if (apiKey) {
-                let apiUrl = apiUrlField.value.trim();
-                if (!apiUrl) {
-                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty, but in this case apiUrl is not empty because it's triggered by apiUrlField input event. So no need to check again.
-                        apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
-                } else {
-                    apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
-                }
-                fetchBalance(apiUrl, apiKey);
-            } else {
-                fetchDefaultBalance();
-            }
-        });
-    }
-
-    // Ensure DOM is fully loaded before adding event listeners
-    document.addEventListener('DOMContentLoaded', function () {
-        initListeners();
-    });
-
-
-$(document).ready(function () {
-        // Function to detect links
-    function containsLink(input) {
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return urlRegex.test(input);
-    }
-
-    // Existing input event listener for dynamic resizing
-    chatInput.addEventListener('input', function () {
-        // Save the current scroll height
-        var currentScrollHeight = chatInput.scrollHeight;
-
-        // Adjust the height of the input box
-        chatInput.style.height = 'auto';
-        chatInput.style.height = (Math.min(maxHeight, chatInput.scrollHeight)) + 'px';
-
-        // Set the height of the outer container
-        iptContainer.style.height = (Math.min(maxHeight, chatInput.scrollHeight) + 20) + 'px';
-
-        // Restore the scroll height to prevent flickering
-        chatInput.scrollTop = currentScrollHeight;
-
-        // Check if the input contains a link
-        if (containsLink(chatInput.value)) {
-            // Disable continuous dialogue
-            $("#chck-2").prop("checked", false);
-            localStorage.setItem('continuousDialogue', false);
-        }
-    });
-
-// 读取本地存储中的模型列表，并初始化模型选择下拉框
-    var savedModels = localStorage.getItem('customModels');
-    if (savedModels) {
-        $(".model").html(savedModels);
-    }
-
-    // 监听添加自定义模型按钮点击事件
-    $(".add-custom-model").on("click", function () {
-        // 获取用户输入的自定义模型名称
-        var customModelName = $(".custom-model").val().trim();
-
-        // 确保模型名称非空
-        if (customModelName !== "") {
-            // 检查是否已存在相同模型
-            if ($(".model option[value='" + customModelName + "']").length === 0) {
-                // 创建新的 option 元素
-                var newOption = $('<option>', {
-                    value: customModelName,
-                    text: customModelName, // 设置 textContent 为 value
-                    'data-description': customModelName //设置data-description为value
-                });
-                // 添加自定义模型到模型选择下拉框
-                $(".model").prepend(newOption); // Prepend to add to the beginning
-
-                // 设置新添加的模型为选中项
-                $(".model").val(customModelName);
-
-                // 保存模型列表到本地存储
-                saveModelsToLocalStorage();
-
-                // 清空输入框
-                $(".custom-model").val("");
-
-                // 添加后立即更新标题
-                updateTitle(); // Call updateTitle here
-
-            } else {
-                alert("该模型已存在！");
-            }
-        } else {
-            alert("请输入有效的模型名称！");
-        }
-    });
-
-    // 监听删除自定义模型按钮点击事件
-    $(".delete-custom-model").on("click", function () {
-        // 获取用户输入的自定义模型名称
-        var customModelName = $(".custom-model").val().trim();
-
-        // 确保模型名称非空
-        if (customModelName !== "") {
-            // 检查是否存在相同模型
-            var optionToRemove = $(".model option[value='" + customModelName + "']");
-            if (optionToRemove.length > 0) {
-                // 删除相同模型
-                optionToRemove.remove();
-
-                // 保存模型列表到本地存储
-                saveModelsToLocalStorage();
-
-                // 清空输入框
-                $(".custom-model").val("");
-            } else {
-                alert("未找到要删除的模型！");
-            }
-        } else {
-            alert("请输入有效的模型名称！");
-        }
-    });
-
-    // 将模型列表保存到本地存储
-    function saveModelsToLocalStorage() {
-        var modelsHtml = $(".model").html();
-        localStorage.setItem('customModels', modelsHtml);
-    }
-
-    // 初始化 data-description 属性
-    function initializeDataDescription() {
-        $(".model option").each(function() {
-            if (!$(this).attr('data-description')) { // Only initialize if it doesn't exist
-                const originalText = $(this).text();
-                $(this).attr('data-description', originalText);
-                $(this).text($(this).val());
-            }
-
-        });
-    }
-
-    function updateTitle() {
-        $(".title h2").text($(".settings-common .model option:selected").data('description'));
-    }
-    initializeDataDescription();
-    updateTitle();
-});
-
-
-// 获取输入框元素和外部容器
-var chatInput = document.getElementById('chatInput');
-var iptContainer = document.querySelector('.ipt');
-
-// 设置输入框的最大高度为250px
-var maxHeight = 250;
-
-// 获取发送按钮元素
-var chatBtn = document.getElementById('chatBtn');
-
-// 获取删除按钮元素
-var deleteBtn = document.getElementById('deleteBtn');
-
-// 监听输入框内容变化
-chatInput.addEventListener('input', function () {
-    // 保存当前输入框的滚动高度
-    var currentScrollHeight = chatInput.scrollHeight;
-
-    // 使输入框高度自动适应内容
-    chatInput.style.height = 'auto';
-    chatInput.style.height = (Math.min(maxHeight, chatInput.scrollHeight)) + 'px';
-
-    // 计算输入框的新高度
-    var newHeight = Math.min(maxHeight, chatInput.scrollHeight);
-
-    // 设置外部容器的高度
-    iptContainer.style.height = (newHeight + 20) + 'px'; // 增加20px的额外空间
-
-    // 恢复滚动高度，避免闪烁
-    chatInput.scrollTop = currentScrollHeight;
-});
-
-// 监听发送按钮点击事件
-chatBtn.addEventListener('click', function () {
-    // 设置输入框的初始高度
-    chatInput.style.height = '32px';
-    iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
-});
-
-// 监听删除按钮点击事件
-deleteBtn.addEventListener('click', function () {
-    // 设置输入框的初始高度
-    chatInput.style.height = '32px';
-    iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
-});
-
-// 监听键盘按下事件
-chatInput.addEventListener('keydown', function (event) {
-    // 判断同时按下Ctrl键和Enter键
-    if (event.ctrlKey && event.keyCode === 13) {
-        // 设置输入框的初始高度
-        chatInput.style.height = '32px';
-        iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
-    }
-    // 如果是手机端，直接按下Enter键发送
-    else if (isMobile() && event.keyCode == 13) {
-        chatBtn.click();
-        event.preventDefault();  //避免回车换行
-    }
-});
-
-
-// 监听 temperature 变化
-$('.settings-common .temperature').on('input', function() {
-    const temperatureValue = $(this).val();
-    $('.settings-common .temperature-display').text(temperatureValue);
-    $('.settings-common .temperature-input').val(temperatureValue);
-});
-
-// 监听 temperature 输入框变化
-$('.settings-common .temperature-input').on('input', function() {
-    let temperatureValue = $(this).val();
-    const minTemperature = parseFloat($('.settings-common .temperature-input').attr('min'));
-    const maxTemperature = parseFloat($('.settings-common .temperature-input').attr('max'));
-
-    // 限制最多只能输入两个数字
-    const regex = /^(\d{0,2}(\.\d{0,1})?)?$/;
-    if (!regex.test(temperatureValue)) {
-    temperatureValue = parseFloat(temperatureValue).toFixed(1);
-        $(this).val(temperatureValue);
-    } else {
-        // 处理以0开头后面直接跟数字的情况，如01
-        if (temperatureValue.startsWith('0') && temperatureValue.length > 1 && temperatureValue[1] !== '.') {
-            temperatureValue = parseFloat(temperatureValue); // 将字符串转换为数字
-            $(this).val(temperatureValue); // 更新输入框的值
-        }
-        // 将字符串转换为数字
-        temperatureValue = parseFloat(temperatureValue);
-        if (isNaN(temperatureValue) || temperatureValue < minTemperature) {
-            temperatureValue = minTemperature;
-            $(this).val(minTemperature);
-        } else if (temperatureValue > maxTemperature) {
-            temperatureValue = maxTemperature;
-            $(this).val(maxTemperature);
-        }
-    }
-    $('.settings-common .temperature-display').text(temperatureValue);
-    $('.settings-common .temperature').val(temperatureValue);
-});
-
-
-// 监听 max_tokens 变化
-$('.settings-common .max-tokens').on('input', function() {
-    const maxTokensValue = $(this).val();
-    $('.settings-common .max-tokens-display').text(maxTokensValue);
-    $('.settings-common .max-tokens-input').val(maxTokensValue);
-});
-
-// 监听 max_tokens 输入框键盘按下事件
-$('.settings-common .max-tokens-input').on('keypress', function(event) {
-const maxTokensValue = $(this).val();
-    // 获取按下的键码
-    const keyCode = event.which || event.keyCode;
-    // 获取当前输入框的值
-    const inputValue = $(this).val();
-    // 如果按下的键是小数点，并且当前输入框的值已经包含小数点，则阻止默认行为
-    if (keyCode === 46 ) {
-        event.preventDefault();
-    }
-});
-
-// 监听 max_tokens 输入框变化
-$('.settings-common .max-tokens-input').on('input', function() {
-    let maxTokensValue = parseInt($(this).val());
-    const minTokens = parseInt($('.settings-common .max-tokens-input').attr('min'));
-    const maxTokens = parseInt($('.settings-common .max-tokens-input').attr('max'));
-
-    if (isNaN(maxTokensValue) || maxTokensValue < minTokens) {
-        maxTokensValue = minTokens;
-        $(this).val(minTokens);
-    } else if (maxTokensValue > maxTokens) {
-        maxTokensValue = maxTokens;
-        $(this).val(maxTokens);
-    }
-
-    $('.settings-common .max-tokens-display').text(maxTokensValue);
-    $('.settings-common .max-tokens').val(maxTokensValue);
-});
-
-
-// 功能
-$(document).ready(function() {
-  var chatBtn = $('#chatBtn');
-  var chatInput = $('#chatInput');
-  var chatWindow = $('#chatWindow');
-  var streamOutputSetting = $('#streamOutputSetting'); // 获取模型输出方式设置行
-  const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
-    const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
-    const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
-
-
-  // 存储对话信息,实现连续对话
-  var messages = [];
-
-  // 检查返回的信息是否是正确信息
-  var resFlag = true
-
-  // 创建自定义渲染器
-  const renderer = new marked.Renderer();
-
-  // 重写list方法
-  renderer.list = function(body, ordered, start) {
-    const type = ordered ? 'ol' : 'ul';
-    const startAttr = (ordered && start) ? ` start="${start}"` : '';
-    return `<${type}${startAttr}>\n${body}</${type}>\n`;
-  };
-
-  // 设置marked选项
-  marked.setOptions({
-    renderer: renderer,
-    highlight: function (code, language) {
-      const validLanguage = hljs.getLanguage(language) ? language : 'javascript';
-      return hljs.highlight(code, { language: validLanguage }).value;
-    }
-  });
-
-
-  // 转义html代码(对应字符转移为html实体)，防止在浏览器渲染
-  function escapeHtml(html) {
-    let text = document.createTextNode(html);
-    let div = document.createElement('div');
-    div.appendChild(text);
-    return div.innerHTML;
-  }
-
-// 添加图片消息到窗口
-function addImageMessage(imageUrl) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-
-    // 绑定查看按钮事件
-    lastResponseElement.find('.view-button').on('click', function() {
-        window.open(imageUrl, '_blank');
-    });
-    // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
-        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
-    });
-}
-
-// 添加审查结果消息到窗口
-function addModerationMessage(moderationResult) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    let formattedResult = "<p>审查结果:</p><ul>";
-    moderationResult.forEach(result => {
-        formattedResult += `<li>有害标记: ${result["有害标记"] ? '是' : '否'}</li>`;
-        formattedResult += "<li>违规类别:<ul>";
-        for (const category in result["违规类别"]) {
-            formattedResult += `<li>${category}: ${result["违规类别"][category] ? '是' : '否'}</li>`;
-        }
-        formattedResult += "</ul></li>";
-        formattedResult += "<li>违规类别分数:<ul>";
-        for (const score in result["违规类别分数(越大置信度越高)"]) {
-            formattedResult += `<li>${score}: ${result["违规类别分数(越大置信度越高)"][score].toFixed(4)}</li>`;
-        }
-        formattedResult += "</ul></li>";
-    });
-    formattedResult += "</ul>";
-    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    // 绑定复制按钮点击事件
-    lastResponseElement.find('.copy-button').click(function() {
-        copyMessage($(this).prev().text().trim());
-    });
-    // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-    });
-}
-
-// 添加 Embedding 结果消息到窗口
-function addEmbeddingMessage(embeddingResult) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    // Display the embedding result as a JSON string in a <pre> block for readability
-    const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
-    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-
-    // 绑定复制按钮点击事件
-    lastResponseElement.find('.copy-button').click(function() {
-        copyMessage($(this).prev().text().trim()); // Copy the text content of the message
-    });
-    // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-    });
-}
-
-
-// 添加 TTS 结果消息到窗口
-function addTTSMessage(audioBase64) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-    });
-}
-
-// 添加请求消息到窗口
-function addRequestMessage(message) {
-  $(".answer .tips").css({"display":"none"});    // 打赏卡隐藏
-  chatInput.val('');
-  let escapedMessage = escapeHtml(message);  // 对请求message进行转义，防止输入的是html而被浏览器渲染
-  let requestMessageElement = $('<div class="message-bubble"><span class="chat-icon request-icon"></span><div class="message-text request"><p>' + escapedMessage + '</p><button class="copy-button"><i class="far fa-copy"></i></button><button class="edit-button"><i class="fas fa-edit"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button></div></div>');
-
-  chatWindow.append(requestMessageElement);
-
-  // 添加复制按钮点击事件
-  requestMessageElement.find('.copy-button').click(function() {
-    copyMessage($(this)); // 调用复制消息函数
-  });
-
-  let responseMessageElement = $('<div class="message-bubble"><span class="chat-icon response-icon"></span><div class="message-text response"><span class="loading-icon"><i class="fa fa-spinner fa-pulse fa-2x"></i></span></div></div>');
-  chatWindow.append(responseMessageElement);
-  chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    // 绑定发送按钮点击事件
-  requestMessageElement.find('.send-button').click(function() {
-  });
-
-  // 绑定编辑按钮点击事件
-  requestMessageElement.find('.edit-button').click(function() {
-    editMessage(message);
-  });
-
-  // 添加删除按钮点击事件
-  requestMessageElement.find('.delete-message-btn').click(function() {
-    $(this).closest('.message-bubble').remove(); // 删除该条请求消息
-  });
-}
-
-// 编辑消息
-function editMessage(message) {
-  // 清除该条请求消息和回复消息
-  $('.message-bubble').last().prev().remove();
-  $('.message-bubble').last().remove();
-
-  // 将请求消息粘贴到用户输入框
-  chatInput.val(message);
-}
-
-// 添加响应消息到窗口，流式响应此方法会执行多次
-function addResponseMessage(message) {
-  let lastResponseElement = $(".message-bubble .response").last();
-  lastResponseElement.empty();
-
-  if ($(".answer .others .center").css("display") === "none") {
-    $(".answer .others .center").css("display", "flex");
-  }
-
-  let escapedMessage;
-
-  // 处理流式消息中的代码块
-  let codeMarkCount = 0;
-  let index = message.indexOf('```');
-
-  while (index !== -1) {
-    codeMarkCount++;
-    index = message.indexOf('```', index + 3);
-  }
-
-  if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-    escapedMessage = marked.parse(message + '\n\n```');
-  } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-    escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-  } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-    if (message.includes('`')) {
-      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-    } else {
-      escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
-    }
-  }
-
-  if (message.includes('Unexpected data format:')) {
-    // 从消息中提取 JSON 类似的字符串
-    const dataString = message.split('Unexpected data format: ')[1].trim();
-
-    // 将单引号替换为双引号，形成有效的 JSON
-    const jsonString = dataString.replace(/'/g, '"');
-
-    try {
-      const dataObject = JSON.parse(jsonString);
-      const urls = dataObject.data.map(item => item.url);
-
-      if (urls && urls.length > 0) {
-        let imagesHtml = '';
-        urls.forEach(url => {
-          imagesHtml += '<img src="' + url + '" style="max-width: 35%; max-height: 35%;" alt="messages"> ';
-        });
-        lastResponseElement.append('<div class="message-text">' + escapedMessage + imagesHtml + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-      }
-    } catch (error) {
-      console.error('JSON 解析错误:', error);
-      // 如果解析失败，回退到正则表达式方法
-    }
-  } else if (message.includes('https://')) {
-    // 使用改进的正则表达式方法作为回退
-    const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(png|jpg|jpeg|gif)(?:\?[^\s]*)?)/gi;  // 修复：匹配更复杂的URL，允许query parameters
-    const urls = message.match(urlRegex);
-
-    if (urls && urls.length > 0) {
-      let imagesHtml = '';
-      urls.forEach(url => {
-        imagesHtml += '<img src="' + url + '" style="max-width: 35%; max-height: 35%;" alt="messages"> ';
-      });
-      lastResponseElement.append('<div class="message-text">' + escapedMessage + imagesHtml + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    }
-  } else if (message.startsWith('"//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message.replace(/"/g, '');
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } else if (message.startsWith('//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message;
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } else {
-    lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  }
-
-  chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-
-
-// 绑定查看按钮事件
-$('.view-button').on('click', function() {
-  // Get the image URL
-  const imageUrl = $(this).siblings('.message-text').find('img').attr('src');
-
-  // Open the image in a new window or tab
-  window.open(imageUrl, '_blank');
-});
-
-
-  // 绑定复制按钮点击事件
-  let copyButton = lastResponseElement.find('.copy-button').last();
-  copyButton.click(function() {
-    let messageText = $(this).prev().html(); // 获取响应消息的内容（包括HTML标签）
-    copyMessage(messageText); // 调用复制消息函数，传入响应消息内容
-  });
-
-  // 绑定删除按钮点击事件
-  let deleteButton = lastResponseElement.find('.delete-message-btn').last();
-  deleteButton.click(function() {
-    $(this).closest('.message-bubble').remove(); // 删除该条响应消息
-  });
-}
-
-// 复制按钮点击事件
-$(document).on('click', '.copy-button', function() {
-  let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
-  // 创建一个临时文本框用于复制内容
-  let tempTextarea = $('<textarea>');
-  tempTextarea.val(messageText).css({position: 'absolute', left: '-9999px'}).appendTo('body').select();
-  document.execCommand('copy');
-  tempTextarea.remove();
-
-  // 将复制按钮显示为√
-  let checkMark = $('<i class="far fa-check-circle"></i>'); // 创建√图标元素
-  $(this).html(checkMark); // 替换按钮内容为√图标
-
-  // 延时一段时间后恢复原始复制按钮
-  let originalButton = $(this);
-  setTimeout(function() {
-    originalButton.html('<i class="far fa-copy"></i>'); // 恢复原始复制按钮内容
-  }, 2000); // 设置延时时间为2秒
-});
-
-  // 添加失败信息到窗口
-  function addFailMessage(message) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    lastResponseElement.append('<p class="error">' + message + '</p>');
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    messages.pop() // 失败就让用户输入信息从数组删除
-  }
-
-let datas;
-
-// 解码 Base64 编码的 API 密钥
-function decodeApiKey(encodedApiKey) {
-  return atob(encodedApiKey);
-}
-
-// 获取配置信息
-async function getConfig() {
-  try {
-    const response = await fetch("/config");
-    const data = await response.json();
-
-    if (data.api_url) {
-      datas = { "api_url": data.api_url };
-    } else {
-      datas = { "api_url": "" };
-    }
-  } catch (error) {
-    console.error("Error fetching config:", error);
-    // 处理错误情况
-  }
-}
-
-// 获取随机的 API 密钥
-function getRandomApiKey() {
-  const apiKeyInput = $(".settings-common .api-key").val().trim();
-  if (apiKeyInput) {
-    const apiKeys = apiKeyInput.split(',').map(key => key.trim());
-    return apiKeys[Math.floor(Math.random() * apiKeys.length)];
-  }
-  return null;
-}
-
-// 获取 API 密钥
-async function getApiKey() {
-  try {
-    let apiKey = getRandomApiKey();
-
-    if (!apiKey) {
-      const password = $(".settings-common .password").val();
-
-      if (!password) {
-        console.error("Please enter an API key or password.");
-        addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
-        return null;
-      }
-
-      const response = await fetch("/get_api_key", {
-        method: "POST",
-        body: new URLSearchParams({ password }),
-      });
-
-      if (response.status === 403) {
-        const errorData = await response.json();
-        addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
-        console.error("Error:", errorData.error);
-        return null;
-      }
-
-      const data = await response.json();
-
-      if (data.apiKey) {
-        // 解码 API 密钥
-        apiKey = decodeApiKey(data.apiKey);
-        return apiKey;
-      } else {
-        addFailMessage("请在设置填写好环境变量");
-        console.error("API key not found in response.");
-        return null;
-      }
-    } else {
-      return apiKey;
-    }
-  } catch (error) {
-    addFailMessage("出错了，请稍后再试！");
-    console.error("Error fetching API key:", error);
-    return null;
-  }
-}
-
-// 发送请求获得响应
-async function sendRequest(data) {
-  await getConfig();
-  const apiKey = await getApiKey();
-
-  if (!datas || !datas.api_url || !apiKey) {
-    addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
-    console.error("Config data or API key is missing.");
-    return;
-  }
-
-// 检查api_url是否存在非空值
-if ($(".settings-common .api_url").val().trim()) {
-    // 存储api_url值
-    datas.api_url =cleanApiUrl($(".settings-common .api_url").val());
-    // 检查api_url是否是正确的网址格式
-    var apiUrlRegex = /^(http|https):\/\/[^ "]+$/;
-    if (!apiUrlRegex.test(datas.api_url)) {
-        // 如果不是正确的网址格式，则返回错误消息
-        addFailMessage("请检查并输入正确的代理网址");
-    }
-}
-
-let apiUrl = datas.api_url + "/v1/chat/completions"; // Default path
-let requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": data.temperature,
-    "top_p": 1,
-    "n": 1,
-    "stream": getCookie('streamOutput') !== 'false' // 从 Cookie 获取流式输出设置
-};
-
-// Use selected API path if it's not the default one
-const selectedApiPath = apiPathSelect.val();
-if (selectedApiPath) {
-    apiUrl = datas.api_url + selectedApiPath;
-} else {
-    apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
-}
-
-
-const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
-
-if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
-    apiUrl = datas.api_url + "/v1/completions";
-    requestBody = {
-        "prompt": data.prompts[0].content,
-        "model": data.model,
-        "max_tokens": data.max_tokens,
-        "temperature": data.temperature,
-        "top_p": 1,
-        "n": 1,
-        "stream": getCookie('streamOutput') !== 'false'
-    };
-} else if (data.image_base64 && data.image_base64.trim() !== '' && (selectedApiPath === '/v1/chat/completions' || apiPathSelect.val() === null )) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-   requestBody = {
-    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": data.prompts[0].content},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": "data:image/jpeg;base64," + data.image_base64},
-                                },
-                            ],
-                        }
-                    ],
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": data.temperature,
-    "top_p": 1,
-    "n": 1,
-    "stream": getCookie('streamOutput') !== 'false'
-    };
-} else if ((selectedApiPath === '/v1/images/generations' || apiPathSelect.val() === null ) && (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3"))) {
-    apiUrl = datas.api_url + "/v1/images/generations";
-    let size = "1024x1024";
-    let quality = "standard";
-    let style = "natural";
-
-    if (model.includes("256x256")) size = "256x256";
-    if (model.includes("512x512")) size = "512x512";
-    if (model.includes("1792x1024")) size = "1792x1024";
-    if (model.includes("1024x1792")) size = "1024x1792";
-    if (model.includes("-hd")) quality = "hd";
-    if (model.includes("-v") || model.includes("-p")) style = "vivid";
-
-
-    requestBody = {
-        "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
-        "model": data.model,
-        "n": 1,
-        "size": size,
-        "quality": quality,
-        "style": style,
-    };
-    if (model.includes("cogview-3")) {
-        requestBody = {
-            "prompt": data.prompts[0].content,
-            "model": data.model,
-            "size": "1024x1024",
-        };
-    }
-
-} else if ((selectedApiPath === '/v1/moderations' || apiPathSelect.val() === null ) && model.includes("moderation")) {
-    apiUrl = datas.api_url + "/v1/moderations";
-    requestBody = {
-        "input": data.prompts[0].content, // Moderation uses the last message as input
-        "model": data.model,
-    };
-} else if ((selectedApiPath === '/v1/embeddings' || apiPathSelect.val() === null ) && model.includes("embedding")) {
-    apiUrl = datas.api_url + "/v1/embeddings";
-    requestBody = {
-        "input": data.prompts[0].content, // Embedding uses the last message as input
-        "model": data.model,
-    };
-} else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null ) && model.includes("tts-1")) {
-    apiUrl = datas.api_url + "/v1/audio/speech";
-    requestBody = {
-        "input": data.prompts[0].content, // TTS uses the last message as input
-        "model": data.model,
-        "voice": "alloy",
-    };
-} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-        "messages": data.prompts,
-        "model": data.model,
-        "max_tokens": data.max_tokens,
-        "temperature": data.temperature,
-        "top_p": 1,
-        "n": 1,
-        "stream": getCookie('streamOutput') !== 'false'
-    };
-}
-    if (data.model.includes("o1") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": 1,
-    "top_p": 1,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-    if (data.model.includes("o3") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": 1,
-    "top_p": 1,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-        if (data.model.includes("deepseek-r") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-    if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-    if (data.model.includes("claude-3-7-sonnet-thinking") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-
-const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-    },
-    body: JSON.stringify(requestBody)
-});
-
-if (!response.ok) {
-    const errorData = await response.json();
-    addFailMessage(`请求失败，状态码: ${response.status}, 错误信息: ${errorData.error ? errorData.error.message : response.statusText}`);
-    return;
-}
-
-if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
-    const responseData = await response.json();
-    if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
-        addImageMessage(responseData.data[0].url);
-        resFlag = true;
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-    } else {
-        addFailMessage("图片生成失败，返回数据格式不正确");
-        resFlag = false;
-    }
-    return; // For image generation, we handle response differently and return early
-} else if (model.includes("moderation")) {
-    const responseData = await response.json();
-    if (responseData.results) {
-        addModerationMessage(responseData.results);
-        resFlag = true;
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-    } else {
-        addFailMessage("内容审查失败，返回数据格式不正确");
-        resFlag = false;
-    }
-    return; // For moderation, handle response and return
-} else if (model.includes("embedding")) {
-    const responseData = await response.json();
-    if (responseData.data && responseData.data.length > 0 && responseData.data[0].embedding) {
-        addEmbeddingMessage(responseData.data[0].embedding);
-        resFlag = true;
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-    } else {
-        addFailMessage("Embedding 获取失败，返回数据格式不正确");
-        resFlag = false;
-    }
-    return; // For embedding, handle response and return
-} else if (model.includes("tts-1")) {
-    const audioBlob = await response.blob();
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        const base64Audio = reader.result.split(',')[1];
-        addTTSMessage(base64Audio);
-    };
-    reader.readAsDataURL(audioBlob);
-    resFlag = true;
-    return; // For TTS, handle response and return
-}
-
-
-if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
-    const reader = response.body.getReader();
-    let res = '';
-    let str;
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-            break;
-        }
-        str = '';
-        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        const lines = res.trim().split(/[\n]+(?=\{)/);
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let jsonObj;
-            try {
-                jsonObj = JSON.parse(line);
-            } catch (e) {
-                break;
-            }
-    if (jsonObj.choices) {
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-            const content = jsonObj.choices[0].delta.content;
-
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-            str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-            const message = jsonObj.choices[0].message;
-            const reasoningContent = message.reasoning_content;
-            const content = message.content;
-
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        }
-                addResponseMessage(str);
-                resFlag = true;
-            } else {
-                if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                    resFlag = false;
-                }
-            }
-        }
-    }
-    return str;
-} else { // 非流式输出处理
-    const responseData = await response.json();
-    if (responseData.choices && responseData.choices.length > 0) {
-        let content = '';
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
-            content = responseData.choices[0].message.content;
-        } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
-            content = responseData.choices[0].text;
-        }
-        addResponseMessage(content);
-        resFlag = true;
-        return content;
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-        return null;
-    } else {
-        addFailMessage("Unexpected response format.");
-        resFlag = false;
-        return null;
-    }
-}
-
-
-  }
-
-
-  // 处理用户输入
-  chatBtn.click(function() {
-    // 解绑键盘事件
-    chatInput.off("keydown",handleEnter);
-let data = {};
-console.log(base64Image);
-let imageSrc = document.getElementById('imagePreview').src;
-    data.image_base64 = imageSrc.split(',')[1];
-    let message = chatInput.val();
-    if (message.length == 0){
-      // 重新绑定键盘事件
-      chatInput.on("keydown",handleEnter);
-      return
-    }
-
-    addRequestMessage(message);
-    // 将用户消息保存到数组
-    messages.push({"role": "user", "content": message})
-
-    // 获取连续对话消息上限，默认值 150
-    let maxMessages = parseInt(getCookie('maxDialogueMessages')) || 150;
-
-    if(messages.length> maxMessages){
-      addFailMessage("此次对话长度过长，请点击下方删除按钮清除对话内容！");
-      // 重新绑定键盘事件
-      chatInput.on("keydown",handleEnter);
-      chatBtn.attr('disabled',false) // 让按钮可点击
-      return ;
-    }
-
- // 获取所选的模型
-  data.model = $(".settings-common .model").val();
-  data.temperature = parseFloat($(".settings-common .temperature").val());
-  data.max_tokens = parseInt($(".settings-common .max-tokens").val());
-
-    const selectedModel = data.model.toLowerCase();
-    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) {
-        data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
-    } else {
-        // 判读是否已开启连续对话
-        if(localStorage.getItem('continuousDialogue') == 'true'){
-            // 控制上下文，对话长度超过4轮，取最新的3轮,即数组最后7条数据
-          data.prompts = messages.slice();  // 拷贝一份全局messages赋值给data.prompts,然后对data.prompts处理
-          if (data.prompts.length > 8) {
-            data.prompts.splice(0, data.prompts.length - 7);
-          }
-        }else{
-          data.prompts = messages.slice();
-          data.prompts.splice(0, data.prompts.length - 1); // 未开启连续对话，取最后一条
-        }
-    }
-
-
-    sendRequest(data).then((res) => {
-      chatInput.val('');
-      // 收到回复，让按钮可点击
-      chatBtn.attr('disabled',false)
-      // 重新绑定键盘事件
-      chatInput.on("keydown",handleEnter);
-      // 判断是否是回复正确信息
-      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
-        messages.push({"role": "assistant", "content": res});
-        // 判断是否本地存储历史会话
-        if(localStorage.getItem('archiveSession')=="true"){
-          localStorage.setItem("session",JSON.stringify(messages));
-        }
-      }
-      // 添加复制
-      copy();
-    });
-  });
-// 停止并隐藏
-$('.stop a').click(function() {
-  if (ajaxRequest) {
-    ajaxRequest.abort();
-  }
-  // 隐藏具有类名为 "stop" 的父元素（假设你想隐藏整个父元素）
-  $(this).closest('.stop').hide();
-});
-// Enter键盘事件
-function handleEnter(e) {
-  // 如果是电脑端，判断同时按下Ctrl键和Enter键
-  if (!isMobile() && e.ctrlKey && e.keyCode == 13) {
-    chatBtn.click();
-    e.preventDefault();  //避免回车换行
-  }
-}
-
-// 绑定键盘事件
-chatInput.on("keydown", handleEnter);
-
-// 判断是否是移动端
-function isMobile() {
-  // 使用适当的移动设备检测逻辑，这里简单地检查是否小于某个屏幕宽度
-  return window.innerWidth <= 768; // 这里假设小于等于768像素的宽度是移动端
-}
-
-  // 设置栏宽度自适应
-  let width = $('.function .others').width();
-  $('.function .settings .dropdown-menu').css('width', width);
-
-  $(window).resize(function() {
-    width = $('.function .others').width();
-    $('.function .settings .dropdown-menu').css('width', width);
-  });
-
-
-  // 主题
-  function setBgColor(theme){
-    $(':root').attr('bg-theme', theme);
-    $('.settings-common .theme').val(theme);
-    // 定位在文档外的元素也同步主题色
-    $('.settings-common').css('background-color', 'var(--bg-color)');
-  }
-
-  let theme = localStorage.getItem('theme');
-  // 如果之前选择了主题，则将其应用到网站中
-  if (theme) {
-    setBgColor(theme);
-  }else{
-    localStorage.setItem('theme', "light"); //默认的主题
-    theme = localStorage.getItem('theme');
-    setBgColor(theme);
-  }
-
-  // 监听主题选择的变化
-  $('.settings-common .theme').change(function() {
-    const selectedTheme = $(this).val();
-    localStorage.setItem('theme', selectedTheme);
-    $(':root').attr('bg-theme', selectedTheme);
-    // 定位在文档外的元素也同步主题色
-    $('.settings-common').css('background-color', 'var(--bg-color)');
-  });
-
-  // password
-  const password = localStorage.getItem('password');
-  if (password) {
-    $(".settings-common .password").val(password);
-  }
-
-  // password输入框事件
-  $(".settings-common .password").blur(function() {
-    const password = $(this).val();
-    if(password.length!=0){
-      localStorage.setItem('password', password);
-    }else{
-      localStorage.removeItem('password');
-    }
-
-  })
-  // apiKey
-  const apiKey = localStorage.getItem('apiKey');
-  if (apiKey) {
-    $(".settings-common .api-key").val(apiKey);
-  }
-
-  // apiKey输入框事件
-  $(".settings-common .api-key").blur(function() {
-    const apiKey = $(this).val();
-    if(apiKey.length!=0){
-      localStorage.setItem('apiKey', apiKey);
-    }else{
-      localStorage.removeItem('apiKey');
-    }
-  })
-
- // 读取apiUrl
-  const api_url = localStorage.getItem('api_url');
-  if (api_url) {
-    $(".settings-common .api_url").val(api_url);
-  }
-
-  // apiUrl输入框事件
-  $(".settings-common .api_url").blur(function() {
-    const api_url = $(this).val();
-    if(api_url.length!=0){
-      localStorage.setItem('api_url', api_url);
-    }else{
-      localStorage.removeItem('api_url');
-    }
-  })
-
-  // 是否保存历史对话
-  var archiveSession = localStorage.getItem('archiveSession');
-
-  // 初始化archiveSession
-  if(archiveSession == null){
-    archiveSession = "true";
-    localStorage.setItem('archiveSession', archiveSession);
-  }
-
-  if(archiveSession == "true"){
-    $("#chck-1").prop("checked", true);
-  }else{
-    $("#chck-1").prop("checked", false);
-  }
-
-  $('#chck-1').click(function() {
-    if ($(this).prop('checked')) {
-      // 开启状态的操作
-      localStorage.setItem('archiveSession', true);
-      if(messages.length != 0){
-        localStorage.setItem("session",JSON.stringify(messages));
-      }
-    } else {
-      // 关闭状态的操作
-      localStorage.setItem('archiveSession', false);
-      localStorage.removeItem("session");
-    }
-  });
-
-  // 加载历史保存会话
-  if(archiveSession == "true"){
-    const messagesList = JSON.parse(localStorage.getItem("session"));
-    if(messagesList){
-      messages = messagesList;
-      $.each(messages, function(index, item) {
-        if (item.role === 'user') {
-          addRequestMessage(item.content)
-        } else if (item.role === 'assistant') {
-          addResponseMessage(item.content)
-        }
-      });
-      // 添加复制
-      copy();
-    }
-  }
-
-  // 是否连续对话
-  var continuousDialogue = localStorage.getItem('continuousDialogue');
-
-  // 初始化continuousDialogue
-  if(continuousDialogue == null){
-    continuousDialogue = "true";
-    localStorage.setItem('continuousDialogue', continuousDialogue);
-  }
-
-  if(continuousDialogue == "true"){
-    $("#chck-2").prop("checked", true);
-  }else{
-    $("#chck-2").prop("checked", false);
-  }
-
-  $('#chck-2').click(function() {
-    if ($(this).prop('checked')) {
-      localStorage.setItem('continuousDialogue', true);
-    } else {
-      localStorage.setItem('continuousDialogue', false);
-    }
-// 删除输入框中的消息
-function deleteInputMessage() {
-  chatInput.val('');
-}
-  });
-// 读取model配置
-const selectedModel = localStorage.getItem('selectedModel');
-
-// 检测模型并更新设置
-function updateModelSettings(modelName) {
-    const isNonStreamModel = modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all") ||
-                               modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all") ||
-                               modelName.toLowerCase().includes("deepseek-r") ||
-                               modelName.toLowerCase().includes("claude-3-7-sonnet-20250219-thinking") ||
-                               modelName.toLowerCase().includes("claude-3-7-sonnet-thinking") ||
-                               modelName.toLowerCase().includes("claude-3-7-sonnet-thinking-20250219");
-
-    const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
-                                      modelName.toLowerCase().includes("cogview") ||
-                                      modelName.toLowerCase().includes("moderation") ||
-                                      modelName.toLowerCase().includes("embedding") ||
-                                      modelName.toLowerCase().includes("tts-1");
-
-    var streamOutputCheckbox = document.getElementById('streamOutput');
-
-    if (isNonStreamModel) {
-        streamOutputCheckbox.checked = false;
-        setCookie('streamOutput', 'false', 30);
-        streamOutputSetting.show(); // 确保设置行显示
-    } else if (isHideStreamSettingModel) {
-        streamOutputSetting.hide(); // 隐藏设置行
-    } else {
-        streamOutputSetting.show(); // 确保设置行显示
-        // 如果之前是非流式，切换到流式
-        if (getCookie('streamOutput') === 'false') {
-            streamOutputCheckbox.checked = true;
-            setCookie('streamOutput', 'true', 30);
-        }
-    }
-
-    // 检测是否含有"tts"或"dall"并设置连续对话状态 - 保持原有的连续对话逻辑
-    const hasTTS = modelName.toLowerCase().includes("tts");
-    const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
-    const hasCompletion2 = modelName.toLowerCase().includes("babbage-002");
-    const hasCompletion3 = modelName.toLowerCase().includes("davinci-002");
-    const hasTextem = modelName.toLowerCase().includes("embedding");
-    const hasTextmo = modelName.toLowerCase().includes("moderation");
-    const hasDALL = modelName.toLowerCase().includes("dall-e");
-    const hasCog = modelName.toLowerCase().includes("cogview");
-    const hasVs = modelName.toLowerCase().includes("glm-4v");
-    const hasVi = modelName.toLowerCase().includes("vision");
-    const hasMj = modelName.toLowerCase().includes("midjourney");
-    const hasSD = modelName.toLowerCase().includes("stable");
-    const hasFlux = modelName.toLowerCase().includes("flux");
-    const hasVd = modelName.toLowerCase().includes("video");
-    const hasSora = modelName.toLowerCase().includes("sora");
-    const hasSuno = modelName.toLowerCase().includes("suno");
-    const hasKo = modelName.toLowerCase().includes("kolors");
-    const hasKl = modelName.toLowerCase().includes("kling");
-
-
-    const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
-
-    // 设置连续对话状态
-    $("#chck-2").prop("checked", isContinuousDialogueEnabled);
-    localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
-
-    // 设置是否禁用checkbox
-    $("#chck-2").prop("disabled", hasTTS || hasDALL  || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
-
-    // 获取上一个模型名称
-    const previousModel = localStorage.getItem('previousModel') || "";
-    const hadTTS = previousModel.toLowerCase().includes("tts");
-    const hadDALL = previousModel.toLowerCase().includes("dall-e");
-    const hadCog = previousModel.toLowerCase().includes("cogview");
-    const hadCompletion1 = previousModel.toLowerCase().includes("gpt-3.5-turbo-instruct");
-    const hadCompletion2 = previousModel.toLowerCase().includes("babbage-002");
-    const hadCompletion3= previousModel.toLowerCase().includes("davinci-002");
-    const hadTextem = previousModel.toLowerCase().includes("embedding");
-    const hadTextmo = previousModel.toLowerCase().includes("moderation");
-    const hadVs = previousModel.toLowerCase().includes("glm-4v");
-    const hadVi = previousModel.toLowerCase().includes("vision");
-    const hadMj = previousModel.toLowerCase().includes("midjourney");
-    const hadSD = previousModel.toLowerCase().includes("stable");
-    const hadFlux = previousModel.toLowerCase().includes("flux");
-    const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
-    const hadKl = previousModel.toLowerCase().includes("kling");
-
-
-    // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
-        clearConversation();
-    }
-
-    // 更新上一个模型名称为当前模型
-    localStorage.setItem('previousModel', modelName);
-
-    // --- Start of Path Auto-Switching Logic ---
-    let targetApiPath = null;
-    const lowerModelName = modelName.toLowerCase();
-
-    if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
-        targetApiPath = '/v1/completions';
-    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) {
-        targetApiPath = '/v1/images/generations';
-    } else if (lowerModelName.includes("moderation")) {
-        targetApiPath = '/v1/moderations';
-    } else if (lowerModelName.includes("embedding")) {
-        targetApiPath = '/v1/embeddings';
-    } else if (lowerModelName.includes("tts-1")) {
-        targetApiPath = '/v1/audio/speech';
-    } else {
-        targetApiPath = '/v1/chat/completions'; // Default path
-    }
-
-    if (targetApiPath) {
-        apiPathSelect.val(targetApiPath);
-        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
-    }
-    // --- End of Path Auto-Switching Logic ---
-}
-
-
-        // 初始加载时检测selectedModel
-        if (selectedModel) {
-            $(".settings-common .model").val(selectedModel);
-            updateModelSettings(selectedModel);
-            // Update the title to use the selected option's data-description
-            $(".title h2").text($(".settings-common .model option:selected").data('description'));
-        }
-
-        // 监听model选择的变化
-        $('.settings-common .model').change(function() {
-            const selectedModel = $(this).val();
-            localStorage.setItem('selectedModel', selectedModel);
-            updateModelSettings(selectedModel);
-            // Update the title to use the selected option's data-description
-            $(".title h2").text($(this).find("option:selected").data('description'));
-        });
-
-// 删除对话
-function clearConversation() {
-    chatWindow.empty();
-    deleteInputMessage();
-    $(".answer .tips").css({"display":"flex"});
-    messages = [];
-    localStorage.removeItem("session");
-}
-
-// 删除功能
-$(".delete a").click(function(){
-    clearConversation();
-});
-  // 读取temperature
-  const temperature = localStorage.getItem('temperature');
-  if (temperature) {
-    $(".settings-common .temperature-input").val(temperature);
-    $(".settings-common .temperature").val(temperature);
-  }
-
-  // temperature输入框事件
-  $(".settings-common .temperature-input").change(function() {
-    const temperature = $(this).val();
-    localStorage.setItem('temperature', temperature);
-  })
-
-  // temperature滑条事件
-  $(".settings-common .temperature").change(function() {
-    const temperature = $(this).val();
-    localStorage.setItem('temperature', temperature);
-     })
-
-// 读取max_tokens
-  const max_tokens  = localStorage.getItem('max_tokens ');
-  if (max_tokens) {
-    $(".settings-common .max-tokens-input").val(max_tokens );
-    $(".settings-common .max-tokens ").val(max_tokens );
-  }
-
-  // max_tokens 输入框事件
-  $(".settings-common .max-tokens-input").change(function() {
-    const max_tokens  = $(this).val();
-    localStorage.setItem('max_tokens ', max_tokens );
-      })
-
-  // max_tokens 滑条事件
-  $(".settings-common .max-tokens").change(function() {
-    const max_tokens  = $(this).val();
-    localStorage.setItem('max_tokens ', max_tokens );
-      })
-
-// 删除输入框中的消息
-function deleteInputMessage() {
-  chatInput.val('');
-}
-
-// 删除功能
-$(".delete a").click(function(){
-  chatWindow.empty();
-  deleteInputMessage();
-  $(".answer .tips").css({"display":"flex"});
-  messages = [];
-  localStorage.removeItem("session");
-});
-
-// 删除功能
-$(".delete a").click(function(){
-    clearConversation();
-});
-  // 截图功能
-  $(".screenshot a").click(function() {
-    // 创建副本元素
-    const clonedChatWindow = chatWindow.clone();
-    clonedChatWindow.css({
-      position: "absolute",
-      left: "-9999px",
-      overflow: "visible",
-      width: chatWindow.width(),
-      height: "auto"
-    });
-    $("body").append(clonedChatWindow);
-    // 截图
-    html2canvas(clonedChatWindow[0], {
-      allowTaint: false,
-      useCORS: true,
-      scrollY: 0,
-    }).then(function(canvas) {
-      // 将 canvas 转换成图片
-      const imgData = canvas.toDataURL('image/png');
-      // 创建下载链接
-      const link = document.createElement('a');
-      link.download = "screenshot_" + Math.floor(Date.now() / 1000) + ".png";
-      link.href = imgData;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      clonedChatWindow.remove();
-    });
-  });
-
-  // 复制代码功能
-  function copy(){
-    $('pre').each(function() {
-      let btn = $('<button class="copy-btn">复制</button>');
-      $(this).append(btn);
-      btn.hide();
-    });
-
-    $('pre').hover(
-      function() {
-        $(this).find('.copy-btn').show();
-      },
-      function() {
-        $(this).find('.copy-btn').hide();
-      }
-    );
-
-    $('pre').on('click', '.copy-btn', function() {
-      let text = $(this).siblings('code').text();
-      // 创建一个临时的 textarea 元素
-      let textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-
-      // 选择 textarea 中的文本
-      textArea.select();
-
-      // 执行复制命令
-      try {
-        document.execCommand('copy');
-        $(this).text('复制成功');
-      } catch (e) {
-        $(this).text('复制失败');
-      }
-
-      // 从文档中删除临时的 textarea 元素
-      document.body.removeChild(textArea);
-
-      setTimeout(() => {
-        $(this).text('复制');
-      }, 2000);
-    });
-  }
-    // 读取apiPath
-    const apiPath = localStorage.getItem('apiPath');
-    if (apiPath) {
-        apiPathSelect.val(apiPath);
-    }
-
-    // apiPath select event
-    apiPathSelect.change(function() {
-        const selectedApiPath = $(this).val();
-        localStorage.setItem('apiPath', selectedApiPath);
-    });
-});
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="images/x-icon" href="../static/images/favicon.ico">
+    <link rel="stylesheet" href="../static/font-awesome/css/font-awesome.min.css">
+    <link rel="stylesheet" href="../static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../static/css/github-dark-dimmed.min.css">
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <title>Free Chat(前端)</title>
+</head>
+<body>
+	<div id="balanceInfo" style="position: absolute;top: 3px;left: 3px;background-color: #f0f0f5;padding: 10px;border: 1px solid #ccc;z-index: 1000; border-radius: 8px; width: auto;">
+    <div id="totalBalance" class="balance-total">总额: 加载中</div>
+    <div id="usedBalance" class="balance-used">已用: 加加载中</div>
+    <div id="remainingBalance" class="balance-remaining">剩余: 加载中</div>
+</div>
+
+<div class="container">
+    <div class="row">
+        <div class="box col-xs-12">
+            <div class="title">
+                <h2 class="text-center"><span style="margin-right: 10px;"><i class="fa fa-optin-monster fa-lg" aria-hidden="true"></i></span>Free Chat(前端)</h2>
+            </div>
+            <div class="answer">
+                <div class="tips">
+
+<h4 class="text-center">欢迎！购买APIKEY请前往<a href="https://api.gpt6.icu" target="_blank">https://api.gpt6.icu</a>更多功能请点击下方设置按钮</h4>
+                    <img src="../static/images/reward.png">
+                </div>
+                <div id="chatWindow"></div>
+                <div class="function">
+                    <div class="others">
+                        <div class="left">
+                            <div class="settings common dropup">
+                                <a class="dropdown-toggle icon-style" id="dropdownMenu" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="设置">
+                                    <i class="fa fa-cog fa-lg" aria-hidden="true"></i>
+                                </a>
+                                <div class="dropdown-menu" style="padding:0;" onclick="event.stopPropagation()">
+                                    <div class="settings-common">
+                                        <span><i class="fa fa fa-adjust fa-lg" aria-hidden="true"></i>  主题风格</span>
+                                        <select class="form-control ipt-common theme">
+                        <option value="light">明亮风格</option>
+					    <option value="dark">黑夜风格</option>
+					    <option value="gray">灰色风格</option>
+				   	    <option value="cyan">青色风格</option>
+					    <option value="blue">蓝色风格</option>
+					    <option value="light-blue">浅蓝色风格</option>
+					    <option value="green">绿色风格</option>
+					    <option value="light-green">浅绿色风格</option>
+					    <option value="yellow">黄色风格</option>
+					    <option value="light-yellow">浅黄色风格</option>
+					    <option value="orange">橙色风格</option>
+					    <option value="light-orange">浅橙色风格</option>
+					    <option value="pink">粉色风格</option>
+					    <option value="light-pink">浅粉色风格</option>
+					    <option value="teal">青绿色风格</option>
+					    <option value="purple">紫色风格</option>
+					    <option value="silver">银色风格</option>
+                                        </select>
+                                    </div>
+<div class="settings-common">
+    <span><i class="fa fa-lock fa-lg" aria-hidden="true"></i>  gpt4授权码：</span>
+    <input type="text" class="form-control ipt-common password" placeholder="免费授权码:freegpt" value="freegpt">
+</div>
+                                    <div class="settings-common">
+                                        <span><i class="fa fa-key fa-lg" aria-hidden="true"></i>  OpenAI API Key</span>
+                                        <input type="text" class="form-control ipt-common api-key" placeholder="使用中英逗号、中英句号、中英引号、|都可分隔">
+                                    </div>
+
+<div class="settings-common">
+                                        <span><i class="fa fa-globe fa-lg" aria-hidden="true"></i>  OpenAI API URL</span>
+                                        <input type="text" class="form-control ipt-common api_url" placeholder="示例:https://xx.com">
+                                    </div>
+
+                                    <div class="settings-common model-search-container">
+                                        <span><i class="fa fa-brain fa-lg" aria-hidden="true"></i>  OpenAI Models</span>
+                                        <input type="text" class="form-control ipt-common model-search-input" placeholder="搜索模型">
+					                    <select class="form-control ipt-common model model-select">
+					    					     <option value="gpt-4o-mini">gpt-4o-mini（OpenAI，128k）</option>
+                                            <option value="gpt-4o-mini-2024-07-18">gpt-4o-mini-2024-07-18（OpenAI，128k）</option>
+                                            <option value="gpt-4o">gpt-4o（OpenAI，128k）</option>
+                                            <option value="gpt-4o-2024-05-13">gpt-4o-2024-05-13（OpenAI，128k）</option>
+                                            <option value="gpt-4o-2024-08-06">gpt-4o-2024-08-06（OpenAI，128k）</option>
+                                            <option value="gpt-4o-2024-11-20">gpt-4o-2024-11-20（OpenAI，128k）</option>
+                                            <option value="chatgpt-4o-latest">chatgpt-4o-latest（OpenAI，128k）</option>
+                                            <option value="o1-mini">o1-mini（OpenAI，128k）</option>
+                                            <option value="o1-mini-2024-09-12">o1-mini-2024-09-12（OpenAI，128k）</option>
+                                            <option value="o1-preview">o1-preview（OpenAI，128k）</option>                         
+                                            <option value="o1-preview-2024-09-12">o1-preview-2024-09-12（OpenAI，128k）</option>
+                                            <option value="o1-2024-12-17">o1-2024-12-17（OpenAI，128k）</option>
+                                            <option value="o3-mini">o3-mini（OpenAI，128k）</option>
+                                            <option value="o3-mini-2025-01-31">o3-mini-2025-01-31（OpenAI，128k）</option>
+                                            <option value="gpt-4.5-preview">gpt-4.5-preview（OpenAI，128k）</option>
+                                            <option value="gpt-4.5-preview-2025-02-27">gpt-4.5-preview-2025-02-27（OpenAI，128k）</option>
+                                            <option value="gpt-4-turbo">gpt-4-turbo（OpenAI，128k）</option>
+                                            <option value="gpt-4-turbo-2024-04-09">gpt-4-turbo-2024-04-09（OpenAI，128k）</option>
+                                            <option value="gpt-4-turbo-preview">gpt-4-turbo-preview（OpenAI，128k）</option>
+                                            <option value="gpt-4-0125-preview">gpt-4-0125-preview（OpenAI，128k）</option>
+                                            <option value="gpt-4-1106-preview">gpt-4-1106-preview（OpenAI，128k）</option>
+                                            <option value="gpt-4">gpt-4（OpenAI，8k）</option>
+                                            <option value="gpt-4-0314">gpt-4-0314（OpenAI，8k）</option>
+                                            <option value="gpt-4-0613">gpt-4-0613（OpenAI，8k）</option>
+                                            <option value="gpt-4-32k">gpt-4-32k（OpenAI，32k）</option>
+                                            <option value="gpt-4-32k-0314">gpt-4-32k-0314（OpenAI，32k）</option>
+                                            <option value="gpt-4-32k-0613">gpt-4-32k-0613（OpenAI，32k）</option>
+                                            <option value="gpt-4-vision-preview">gpt-4-vision-preview（OpenAI，4k）</option>
+					                        <option value="gpt-3.5-turbo-0125">gpt-3.5-turbo-0125（OpenAI，4k）</option>
+                                            <option value="gpt-3.5-turbo-0301">gpt-3.5-turbo-0301（OpenAI，4k）</option>
+                                            <option value="gpt-3.5-turbo-0613">gpt-3.5-turbo-0613（OpenAI，4k）</option>
+                                            <option value="gpt-3.5-turbo-1106">gpt-3.5-turbo-1106（OpenAI，4k）</option>
+                                            <option value="gpt-3.5-turbo">gpt-3.5-turbo（OpenAI，4k）</option>
+                                            <option value="gpt-3.5-turbo-16k">gpt-3.5-turbo-16k（OpenAI，16k）</option>
+                                            <option value="gpt-3.5-turbo-16k-0613">gpt-3.5-turbo-16k-0613（OpenAI，16k）</option>
+                                            <option value="o1-mini-all">o1-mini-all（OpenAI，128k）</option>
+                                            <option value="o1-preview-all">o1-preview-all（OpenAI，128k）</option>
+                                            <option value="o1-all">o1-all（OpenAI，128k）</option>
+                                            <option value="o1-pro-all">o1-pro-all（OpenAI，128k）</option>
+                                            <option value="o3-mini-all">o3-mini-all（OpenAI，128k）</option>
+                                            <option value="o3-mini-high-all">o3-mini-high-all（OpenAI，128k）</option>
+                                            <option value="gpt-4o-all">gpt-4o-all（OpenAI）</option>
+                                            <option value="gpt-4-all">gpt-4-all（OpenAI）</option>
+                                            <option value="gpt-4-dalle">gpt-4-dalle（OpenAI）</option>
+                                            <option value="gpt-3.5-turbo-instruct">gpt-3.5-turbo-instruct（OpenAI，4k）</option>
+                                            <option value="babbage-002">babbage-002（OpenAI）</option>
+                                            <option value="davinci-002">davinci-002（OpenAI）</option>
+                                            <option value="text-embedding-ada-002">text-embedding-ada-002（OpenAI）</option>
+                                            <option value="text-embedding-3-small">text-embedding-3-small（OpenAI）</option>
+                                            <option value="text-embedding-3-large">text-embedding-3-large（OpenAI）</option>
+                                            <option value="embedding-001">embedding-001（Google，2k）</option>
+                                            <option value="embedding-gecko-001">embedding-gecko-001（Google，1k）</option>
+                                            <option value="text-embedding-004">text-embedding-004（Google，2k）</option>
+                                            <option value="gemini-embedding-exp">gemini-embedding-exp（Google，8k）</option>
+                                            <option value="gemini-embedding-exp-03-07">gemini-embedding-exp-03-07（Google，8k）</option>
+                                            <option value="text-moderation-stable">text-moderation-stable（OpenAI）</option>
+                                            <option value="text-moderation-latest">text-moderation-latest（OpenAI）</option>
+                                            <option value="tts-1">tts-1（OpenAI）</option>
+                                            <option value="tts-1-hd">tts-1-hd（OpenAI）</option>
+                                            <option value="tts-1-1106">tts-1-1106（OpenAI）</option>
+                                            <option value="tts-1-hd-1106">tts-1-hd-1106（OpenAI）</option>
+                                            <option value="dall-e-2">dalle-2（OpenAI，小）</option>
+                                            <option value="dall-e-2-m">dalle-2（OpenAI，中）</option>
+                                            <option value="dall-e-2-l">dalle-2（OpenAI，大）</option>
+                                            <option value="dall-e-3">dalle-3（OpenAI，方图）</option>
+                                            <option value="dall-e-3-w">dalle-3-w（OpenAI，宽图）</option>
+                                            <option value="dall-e-3-l">dalle-3-l（OpenAI，长图）</option>
+                                            <option value="dall-e-3-hd">dalle-3-hd（OpenAI，方图高清）</option>
+                                            <option value="dall-e-3-w-hd">dalle-3-w-hd（OpenAI，宽图高清）</option>
+                                            <option value="dall-e-3-l-hd">dalle-3-l-hd（OpenAI，长图高清）</option>
+                                            <option value="dall-e-3-v">dalle-3-v（OpenAI，方图生动）</option>
+                                            <option value="dall-e-3-w-v">dalle-3-w-v（OpenAI，宽图生动）</option>
+                                            <option value="dall-e-3-l-v">dalle-3-l-v（OpenAI，长图生动）</option>
+                                            <option value="dall-e-3-p">dalle-3-p（OpenAI，方图高清生动）</option>
+                                            <option value="dall-e-3-w-p">dalle-3-w-p（OpenAI，宽图高清生动）</option>
+                                            <option value="dall-e-3-l-p">dalle-3-l-p（OpenAI，长图高清生动）</option>
+                                            <option value="cursor-3-5-sonnet-20240620">cursor-3-5-sonnet-20240620（ Anthropic，200k）</option>
+					                        <option value="cursor-3-5-sonnet-20241022">cursor-3-5-sonnet-20241022（ Anthropic，200k）</option>
+					                        <option value="cursor-3-7-sonnet-20250219">cursor-3-7-sonnet-20250219（ Anthropic，200k）</option>
+					                        <option value="claude-3-haiku-20240307">claude-3-haiku-20240307（ Anthropic，200k）</option>
+                                            <option value="claude-3-sonnet-20240229">claude-3-sonnet-20240229（ Anthropic，200k）</option>
+                                            <option value="claude-3-opus-20240229">claude-3-opus-20240229（ Anthropic，200k）</option>
+                                            <option value="claude-3-5-haiku-20241022">claude-3-5-haiku-20241022（ Anthropic，200k）</option>
+                                            <option value="claude-3-5-haiku-latest">claude-3-5-haiku-latest（ Anthropic，200k）</option>
+                                            <option value="claude-3-5-sonnet-20240620">claude-3-5-sonnet-20240620（ Anthropic，200k）</option>
+                                            <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet-20241022（ Anthropic，200k）</option>
+                                            <option value="claude-3-5-sonnet-latest">claude-3-5-sonnet-latest（ Anthropic，200k）</option>
+                                            <option value="claude-3-7-sonnet-20250219">claude-3-7-sonnet-20250219（ Anthropic，200k）</option>
+                                            <option value="claude-3-7-sonnet-latest">claude-3-7-sonnet-latest（ Anthropic，200k）</option>
+                                            <option value="claude-3-7-sonnet-thinking">claude-3-7-sonnet-thinking（ Anthropic，200k）</option>
+                                            <option value="claude-3-7-sonnet-thinking-20250219">claude-3-7-sonnet-thinking-20250219（ Anthropic，200k）</option>
+                                            <option value="claude-3-7-sonnet-20250219-thinking">claude-3-7-sonnet-20250219-thinking（ Anthropic，200k）</option>
+                                            <option value="gemma-3-27b-it">gemma-3-27b-it（Google，100k）</option>
+                                            <option value="gemini-1.5-flash-8b">gemini-1.5-flash-8b（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash-8b-001">gemini-1.5-flash-8b-001（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash-8b-exp-0827">gemini-1.5-flash-8b-exp-0827（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash-8b-exp-0924">gemini-1.5-flash-8b-exp-0924（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash-8b-latest">gemini-1.5-flash-8b-latest（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash">gemini-1.5-flash（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash-001">gemini-1.5-flash-001（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash-002">gemini-1.5-flash-002（Google，1000k）</option>        
+                                            <option value="gemini-1.5-flash-001-tuning">gemini-1.5-flash-001-tuning（Google，1000k）</option>
+                                            <option value="gemini-1.5-flash-latest">gemini-1.5-flash-latest（Google，1000k）</option>
+                                            <option value="gemini-1.5-pro">gemini-1.5-pro（Google，2000k）</option>
+                                            <option value="gemini-1.5-pro-001">gemini-1.5-pro-001（Google，2000k）</option>
+                                            <option value="gemini-1.5-pro-002">gemini-1.5-pro-002（Google，2000k）</option>            
+                                            <option value="gemini-1.5-pro-latest">gemini-1.5-pro-latest（Google，2000k）</option>
+                                            <option value="gemini-exp-1206">gemini-exp-1206（Google，2000k）</option>
+                                            <option value="learnlm-1.5-pro-experimental">learnlm-1.5-pro-experimental（Google，32k）</option>
+                                            <option value="gemini-2.0-flash-exp">gemini-2.0-flash-exp（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-exp-search">gemini-2.0-flash-exp-search（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-exp-image-generation">gemini-2.0-flash-exp-image-generation（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-thinking-exp">gemini-2.0-flash-thinking-exp（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-thinking-exp-1219">gemini-2.0-flash-thinking-exp-1219（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-thinking-exp-01-21">gemini-2.0-flash-thinking-exp-01-21（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash">gemini-2.0-flash（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-001">gemini-2.0-flash-001（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-lite-preview">gemini-2.0-flash-lite-preview（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-lite-preview-02-05">gemini-2.0-flash-lite-preview-02-05（Google，1000k）</option>
+                                                                            
+                                            <option value="gemini-2.0-flash-lite">gemini-2.0-flash-lite（Google，1000k）</option>
+                                            <option value="gemini-2.0-flash-lite-001">gemini-2.0-flash-lite-001（Google，1000k）</option>
+                                            <option value="gemini-2.0-pro-exp">gemini-2.0-pro-exp（Google，2000k）</option>
+                                            <option value="gemini-2.0-pro-exp-02-05">gemini-2.0-pro-exp-02-05（Google，2000k）</option>
+                                            <option value="gemini-2.0-pro-exp-search">gemini-2.0-pro-exp-search（Google，2000k）</option>
+                                            <option value="grok-3">grok-3（Grok）</option>
+                                            <option value="grok-3-deepsearch">grok-3-deepsearch（Grok）</option>
+                                            <option value="grok-3-search">grok-3-search（Grok）</option>
+                                            <option value="grok-3-reasoner">grok-3-reasoner（Grok）</option>
+                                            <option value="grok-3-reasoning">grok-3-reasoning（Grok）</option>
+                                            <option value="grok-3-all">grok-3-all（Grok）</option>
+                                            <option value="abab5.5s-chat">abab5.5s-chat（MiniMax）</option>
+                                            <option value="abab5.5-chat">abab5.5-chat（MiniMax）</option>
+                                            <option value="abab6.5s-chat">abab6.5g-chat（MiniMax）</option>
+                                            <option value="abab6.5-chat">abab6.5-chat（MiniMax）</option>
+                                            <option value="abab6.5g-chat">abab6.5g-chat（MiniMax）</option>
+                                            <option value="abab6.5t-chat">abab6.5g-chat（MiniMax）</option>
+                                            <option value="codegeex-4">codegeex-4（智谱清言）</option>
+                                            <option value="charglm-3">charglm-3（智谱清言）</option>
+                                            <option value="glm-3-turbo">glm-3-turbo（智谱清言）</option>
+                                            <option value="glm-4-flash">glm-4-flash（智谱清言）</option>
+                                            <option value="glm-4-flashx">glm-4-flashx（智谱清言）</option>
+                                            <option value="glm-4-long">glm-4-long（智谱清言）</option>
+                                            <option value="glm-4-air">glm-4-air（智谱清言）</option>
+                                            <option value="glm-4-airx">glm-4-airx（智谱清言）</option>
+                                            <option value="glm-4">glm-4（智谱清言）</option>
+                                            <option value="glm-4-0520">glm-4-0520（智谱清言）</option>
+                                            <option value="glm-4-plus">glm-4-plus（智谱清言）</option>
+                                            <option value="glm-4-alltools">glm-4-alltools（智谱清言）</option>
+                                            <option value="glm-4v-plus">glm-4v-plus（智谱清言）</option>
+                                            <option value="glm-4v">glm-4v（智谱清言）</option>
+                                            <option value="glm-4-all">glm-4-all（智谱清言）</option>
+                                            <option value="moonshot-v1-8k">moonshot-v1-8k（Kimi，8k）</option>
+                                            <option value="moonshot-v1-32k">moonshot-v1-32k（Kimi，32k）</option>
+                                            <option value="moonshot-v1-128k">moonshot-v1-128k（Kimi，128k）</option>
+                                            <option value="command">command（Cohere）</option>
+                                            <option value="command-light">command-light（Cohere）</option>  
+                                            <option value="command-light-nightly">command-light-nightly（Cohere）</option>
+                                            <option value="command-nightly">command-nightly（Cohere）</option>
+                                            <option value="command-r">command-r（Cohere）</option>  
+                                            <option value="command-r-08-2024">command-r-08-2024（Cohere）</option> 
+                                            <option value="command-r-plus">command-r-plus（Cohere）</option>
+                                            <option value="command-r-plus-08-2024">command-r-plus-08-2024（Cohere）</option>                  
+                                            <option value="deepseek-chat">deepseek-chat（深度求索）</option>
+                                            <option value="deepseek-coder">deepseek-coder（深度求索）</option> 
+                                            <option value="deepseek-reasoner">deepseek-reasoner（深度求索）</option> 
+                                            <option value="deepseek-v3">deepseek-v3（深度求索）</option>                              
+                                            <option value="deepseek-r1">deepseek-r1（深度求索）</option> 
+                                            <option value="deepseek-r1-7b">deepseek-r1-7b（深度求索）</option> 
+                                            <option value="deepseek-r1-32b">deepseek-r1-32b（深度求索）</option> 
+                                            <option value="doubao-lite-4k">doubao-lite-4k（字节跳动）</option>  
+                                            <option value="doubao-lite-32k">doubao-lite-32k（字节跳动）</option> 
+                                            <option value="doubao-lite-128k">doubao-lite-128k（字节跳动）</option>  
+                                            <option value="doubao-1.5-lite-32k">doubao-1.5-lite-32k（字节跳动）</option>  
+                                            <option value="doubao-pro-4k">doubao-pro-4k（字节跳动）</option>  
+                                            <option value="doubao-pro-32k">doubao-pro-32k（字节跳动）</option> 
+                                            <option value="doubao-pro-128k">doubao-pro-128k（字节跳动）</option> 
+                                            <option value="doubao-pro-256k">doubao-pro-256k（字节跳动）</option>
+                                            <option value="doubao-1.5-pro-32k">doubao-1.5-pro-32k（字节跳动）</option>
+                                            <option value="doubao-1.5-pro-256k">doubao-1.5-pro-256k（字节跳动）</option>
+                                            <option value="doubao-vision-lite-32k">doubao-vision-lite-32k（字节跳动）</option>
+                                            <option value="doubao-vision-pro-32k">doubao-vision-pro-32k（字节跳动）</option>
+                                            <option value="doubao-1.5-vision-pro-32k">doubao-1.5-vision-pro-32k（字节跳动）</option>
+                                            <option value="doubao-pro-browsing-4k">doubao-pro-browsing-4k（字节跳动）</option>  
+                                            <option value="doubao-pro-browsing-32k">doubao-pro-browsing-32k（字节跳动）</option>
+                                            <option value="doubao-pro-character-4k">doubao-pro-character-4k（字节跳动）</option>  
+                                            <option value="doubao-pro-character-32k">doubao-pro-character-32k（字节跳动）</option>
+                                            <option value="doubao-pro-functioncall-4k">doubao-pro-functioncall-4k（字节跳动）</option>  
+                                            <option value="doubao-pro-functioncall-32k">doubao-pro-functioncall-32k（字节跳动）</option>
+                                            <option value="qwen-turbo">qwen-turbo（通义千问）</option>
+                                            <option value="yi-large">yi-large（零一万物）</option>
+                                            <option value="yi-large-fc">yi-large-fc（零一万物）</option>
+                                            <option value="yi-large-preview">yi-large-preview（零一万物）</option>
+                                            <option value="yi-large-rag">yi-large-rag（零一万物）</option>                                    
+                                            <option value="yi-large-turbo">yi-large-turbo（零一万物）</option> 
+                                            <option value="yi-medium">yi-medium（零一万物）</option> 
+                                            <option value="yi-medium-200k">yi-medium-200k（零一万物）</option> 
+                                            <option value="yi-spark">yi-spark（零一万物）</option>
+                                            <option value="yi-vision">yi-vision（零一万物）</option>                                    
+                                            <option value="SparkDesk-v1.1">SparkDesk-v1.1（讯飞星火）</option>
+                                            <option value="SparkDesk-v2.1">SparkDesk-v2.1（讯飞星火）</option>
+                                            <option value="SparkDesk-v3.1">SparkDesk-v3.1（讯飞星火）</option>
+                                            <option value="SparkDesk-v3.5">SparkDesk-v3.5（讯飞星火）</option>
+                                            <option value="SparkDesk-v4.0">SparkDesk-v4.0（讯飞星火）</option>
+                                            <option value="suno-v3">suno-v3</option>
+                                            <option value="suno-v3.5">suno-v3.5</option>
+                                            <option value="stable-diffusion">stable-diffusion</option>
+                                            <option value="stable-diffusion-xl-base-1.0">stable-diffusion-xl-base-1.0</option>
+                                            <option value="stable-diffusion-xl-lightning">stable-diffusion-xl-lightning</option>
+                                            <option value="cogview-3">cogview-3（智谱清言)</option>
+                                            <option value="cogview-3-plus">cogview-3-plus（智谱清言)</option>
+                                            <option value="chat-cogview-3">chat-cogview-3（智谱清言)</option>
+                                            <option value="chat-flux-schnell">chat-flux-schnell</option>
+                                            <option value="chat-flux-dev">chat-flux-dev</option>
+                                            <option value="chat-flux-pro">chat-flux-pro</option>
+                                            <option value="chat-flux-pro-max">chat-flux-pro-max</option>
+                                            <option value="chat-flux.1.1-pro">chat-flux.1.1-pro</option>
+                                            <option value="chat-kolors">chat-kolors（快手）</option>
+                                            <option value="chat-kling">chat-kling（快手）</option>
+                                            <option value="chat-video">chat-video（Runway）</option>
+                                            <option value="chat-video-gen3">chat-video-gen3（Runway）</option>
+                                            <option value="chat-video-vidu">chat-video-vidu（Runway）</option>
+                                            <option value="chat-video-vidu-vip">chat-video-vidu-vip（Runway）</option>
+                                            <option value="sora-1:1-480p-5s">sora-1:1-480p-5s（Sora）</option>
+                                            <option value="sora-9:16-480p-5s">sora-9:16-480p-5s（Sora）</option>
+                                            <option value="sora-16:9-480p-5s">sora-16:9-480p-5s（Sora）</option>
+                                            <option value="sora-1:1-720p-5s">sora-1:1-720p-5s（Sora）</option>
+                                            <option value="sora-1:1-480p-10s">sora-1:1-480p-10s（Sora）</option>
+                                            <option value="sora-16:9-480p-10s">sora-16:9-480p-10s（Sora）</option>
+                                            <option value="sora-9:16-720p-5s">sora-9:16-720p-5s（Sora）</option>
+                                            <option value="sora-16:9-720p-5s">sora-16:9-720p-5s（Sora）</option>
+                                            <option value="gpt-4-gizmo-g-RuhDS8mbd">gpts-搜索适合gpts（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-TiS7zU3kO">gpts-人性化GPT内容（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-CE7PJLt9G">gpts-AZo科学（OpenAI，商业）</option>
+                                            <option value="gpt-4-gizmo-g-gFt1ghYJl">gpts-徽标创建者（OpenAI，设计logo图标）</option>
+                                            <option value="gpt-4-gizmo-g-pCq5xaCri">gpts-商业LOGO设计（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-V2KIUZSj0">gpts-Ai PDF（OpenAI，存储聊天）</option>
+                                            <option value="gpt-4-gizmo-g-UfFxTDMxq">gpts-PDF研究助理（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-bo0FiWLY7">gpts-共识（OpenAI，AI研究助手）</option>
+                                            <option value="gpt-4-gizmo-g-RW6Z5D1s8">gpts-人工智能学者（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-pNWGgUYqS">gpts-网络领航（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-kZ0eYXlJe">gpts-学者GPT（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-xTRb4dRBQ">gpts-数学人工智能（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-9YeZz6m6k">gpts-数学求解器（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-NgAcklHd8">gpts-科学论文引用（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-BlafpMvzd">gpts-浏览器专业版（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-n7Rs0IK86">gpts-编码向导（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-2DQzU5UZl">gpts-Code Copilot（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-HgZuFuuBK">gpts-专业编程员（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-cKXjWStaE">gpts-python专家（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-TfiZbdLM0">gpts-机器/深度学习（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-Ej5zYQRIB">gpts-学术助理专业版（OpenAI）（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-z77yDe7Vu">gpts-书籍AI（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-B3hgivKK9">gpts-写作专家（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-Ji2QOyMml">gpts-生成广告文案（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-xck3iENsZ">gpts-法律GPT（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-byG64QRaW">gpts-临床医学手册（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-UbpNAGYL9">gpts-全能作家（OpenAI，专业版）</option>
+                                            <option value="gpt-4-gizmo-g-2Eo3NxuS7">gpts-网站设计师（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-hz8Pw1quF">gpts-网站截图转代码（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-h0lbLuFF1">gpts-文本转语音（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-tc0eHXdgb">gpts-MJ 提示生成器 （OpenAI，V6）</option>
+                                            <option value="gpt-4-gizmo-g-alKfVrz9K">gpts-Canva（OpenAI，设计帖子稿子）</option>
+                                            <option value="gpt-4-gizmo-g-WxckXARTP">gpts-占星术专家（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-TzI2BlJPT">gpts-深度游戏（OpenAI，带图的故事）</option>
+                                            <option value="gpt-4-gizmo-g-XESLWF1uQ">gpts-闹鬼酒店逃生冒险（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-a9JivI0y2">gpts-生成自定义角色（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-jCYeXl5xh">gpts-仿GPT-5（OpenAI，高情商、推理）</option>
+                                            <option value="gpt-4-gizmo-g-LQHhJCXhW">gpts-聊天专家（OpenAI，深入研究）</option>
+                                            <option value="gpt-4-gizmo-g-l38NcMokB">gpts-MiaAI（OpenAI，语音伴侣）</option>
+                                            <option value="gpt-4-gizmo-g-Hkqnd7mFT">gpts-视频生成GPT（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-h8l4uLHFQ">gpts-旁白视频生成（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-gFFsdkfMC">gpts-照片卡通化（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-5QhhdsfDj">gpts-图表设计师（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-pmuQfob8d">gpts-图片生成优化器（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-7CKojumSX">gpts-艺术设计师（OpenAI，一次出4张图）</option>
+                                            <option value="gpt-4-gizmo-g-2fkFE8rbu">gpts-DALL·E（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-szDdJUX9V">gpts-财务向导（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-HMNcP6w7d">gpts-数据分析师（OpenAI）</option>
+                                            <option value="gpt-4-gizmo-g-AXE9e2ihi">gpts-ChatGPT越狱DAN（OpenAI）</option>
+
+
+                                        </select>
+                                    </div>
+<div class="settings-common">
+    <span><i class="fa fa-plus-square fa-lg" aria-hidden="true"></i>  自定义模型</span>
+    <button class="btn btn-secondary btn-sm add-custom-model">添加</button>
+    <button class="btn btn-danger btn-sm delete-custom-model">删除</button>
+    <input type="text" class="form-control ipt-common custom-model" id="customModelInput" placeholder="输入自定义模型名称">
+</div>
+
+				  <div class="settings-common">
+    <span><i class="fa fa-thermometer-half fa-lg" aria-hidden="true"></i>  Temperature:</span>
+    <input type="range" min="0" max="2" step="0.1" value="0.5" class="form-control ipt-common temperature" id="temperature">
+    <input type="number" min="0" max="2" step="0.1" value="0.5" class="form-control ipt-common temperature-input" id="temperature-input">
+</div>
+<div class="settings-common">
+    <span><i class="fa fa-sliders-h fa-lg" aria-hidden="true"></i>  Max Tokens:</span>
+    <input type="range" min="100" max="2000000" step="100" value="3000" class="form-control ipt-common max-tokens" id="maxTokens">
+    <input type="number" min="100" max="2000000" step="100" value="3000" class="form-control ipt-common max-tokens-input" id="maxTokens-input">
+</div>
+					                                    <div class="settings-common">
+                                        <span><i class="fa fa-route fa-lg" aria-hidden="true"></i>模型请求路径选择</span>
+                                        <select class="form-control ipt-common api-path" id="apiPathSelect">
+                                            <option value="/v1/chat/completions" selected>/v1/chat/completions</option>
+                                            <option value="/v1/completions">/v1/completions</option>
+                                            <option value="/v1/images/generations">/v1/images/generations</option>
+                                            <option value="/v1/moderations">/v1/moderations</option>
+                                            <option value="/v1/embeddings">/v1/embeddings</option>
+                                            <option value="/v1/audio/speech">/v1/audio/speech</option>
+                                        </select>
+                                    </div>
+                                    <div class="settings-common">
+                                        <span><i class="fa fa-hourglass-half fa-lg" aria-hidden="true"></i>连续对话消息上限</span>
+                                        <input type="number" class="form-control ipt-common max-dialogue-messages" id="maxDialogueMessages" min="10" placeholder="默认: 150">
+                                    </div>
+					<div class="settings-common">
+                                        <span><i class="fa fa-exchange-alt fa-lg" aria-hidden="true"></i>开启流式输出模式</span>
+                                        <div class="chck-btn">
+                                            <input id="streamOutput" type="checkbox" checked>
+                                            <label for="streamOutput" class="check-trail">
+                                                <div class="check-handler"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-common">
+                                        <span><i class="fa fa-floppy-o fa-lg" aria-hidden="true"></i>  记录对话内容，刷新不会消失</span>
+                                        <div class="chck-btn">
+                                            <input id="chck-1" type="checkbox">
+                                            <label for="chck-1" class="check-trail">
+                                                <div class="check-handler"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="settings-common">
+                                        <span><i class="fa fa-retweet fa-lg" aria-hidden="true"></i>  开启连续对话，加倍消耗tokens</span>
+                                        <div class="chck-btn">
+                                            <input id="chck-2" type="checkbox">
+                                            <label for="chck-2" class="check-trail">
+                                                <div class="check-handler"></div>
+                                            </label>
+                                        </div>
+                                    </div>
+					<div class="settings-common">
+    <span><i class="fa fa-eye fa-lg" aria-hidden="true"></i>  显示余额信息</span>
+    <div class="chck-btn">
+        <input id="toggleBalance" type="checkbox" checked>
+        <label for="toggleBalance" class="check-trail">
+            <div class="check-handler"></div>
+        </label>
+    </div>
+</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="right">
+                            <div class="screenshot common">
+                                <a class="icon-style" title="截图保存对话"><i class="fa fa-file-image-o fa-lg" aria-hidden="true"></i></a>
+                            </div>
+                           <div class="delete common">
+    			        <a id="deleteBtn" class="icon-style" title="删除历史记录"><i class="fa fa-trash-alt fa-lg" aria-hidden="true"></i></a>
+			    </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xs-12" id="uploadArea">
+    <input type="file" id="imageUpload" class="form-control" accept="image/*">
+    <button style="border: transparent;" onclick="document.getElementById('imageUpload').click()" aria-disabled="false" aria-label="附加文件" class="flex items-center justify-center h-8 w-8 rounded-lg rounded-bl-xl text-token-text-primary dark:text-white focus-visible:outline-black dark:focus-visible:outline-white hover:bg-black/10">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" clip-rule="evenodd" d="M9 7C9 4.23858 11.2386 2 14 2C16.7614 2 19 4.23858 19 7V15C19 18.866 15.866 22 12 22C8.13401 22 5 18.866 5 15V9C5 8.44772 5.44772 8 6 8C6.55228 8 7 8.44772 7 9V15C7 17.7614 9.23858 20 12 20C14.7614 20 17 17.7614 17 15V7C17 5.34315 15.6569 4 14 4C12.3431 4 11 5.34315 11 7V15C11 15.5523 11.4477 16 12 16C12.5523 16 13 15.5523 13 15V9C13 8.44772 13.4477 8 14 8C14.5523 8 15 8.44772 15 9V15C15 16.6569 13.6569 18 12 18C10.3431 18 9 16.6569 9 15V7Z" fill="currentColor"></path>
+            </svg>
+        </button>
+    <div id="imagePreviewContainer" style="position: relative; display: none;">
+        <img id="imagePreview" src="#" alt="Image preview" style="max-width: 100px;">
+        <span id="closeButton" style="position: absolute; top: -10px; right: -105px; cursor: pointer; font-size: 20px; color: red; z-index: 1;">×</span>
+    </div>
+</div>
+
+                    <div class="ipt">
+                        <div class="col-xs-12">
+                            <textarea id="chatInput" class="form-control" rows="1" placeholder="Tips:Ctrl+Enter快捷发送消息哦! "></textarea>
+                        </div>
+                        <button id="chatBtn" class="btn btn-primary" type="button">发送</button>
+                    </div>
+                </div>
+            </div>
+<footer class="foot" style="margin-top: 15px;">
+                    <p class="lead text-center" style="color: green;">
+        欢迎！感兴趣的小伙伴可以加入q群ChatGPT学习交流群—— 956755074
+    </p>
+    <!-- 第一组 -->
+    <p class="lead text-center">
+        <a href="https://qm.qq.com/cgi-bin/qm/qr?authKey=dBz7wtzXpg5Q1%2F65h4FUudBeLnbOqRzyTsu0t8Jtg0aD%2FWlUv9ilOaGUDxJ8mVJC&k=486Bm9k6xYTodQfqo8DtY2xaK76e4Oh-&noverify=0&group_code=956755074" target="_blank">
+            <i class="fa fa-comments fa-lg" aria-hidden="true"></i> QQ Group
+        </a>
+        <a href="https://api.gpt6.icu" target="_blank">
+            <i class="fa fa-cogs fa-lg" aria-hidden="true"></i> CF-API
+        </a>
+        <a href="https://f1.gpt6.icu" target="_blank">
+            <i class="fa fa-code fa-lg" aria-hidden="true"></i> FREE Chat (前端)
+        </a>
+        <a href="https://mj.gpt6.icu" target="_blank">
+            <i class="fa fa-robot fa-lg" aria-hidden="true"></i> Chat-MJ
+        </a>
+
+        <a href="https://shop.gpt6.icu" target="_blank">
+            <i class="fa fa-shopping-cart fa-lg" aria-hidden="true"></i> CF-SHOP
+        </a>
+        <a href="https://open.gpt6.icu" target="_blank">
+            <i class="fa fa-globe fa-lg" aria-hidden="true"></i> Chat-OpenWebUI
+        </a>
+        <a href="https://libre.gpt6.icu" target="_blank">
+            <i class="fa fa-book fa-lg" aria-hidden="true"></i> Chat-Libre
+        </a>
+        <a href="https://status.gpt6.icu" target="_blank">
+            <i class="fa fa-server fa-lg" aria-hidden="true"></i> CF-网站监控
+        </a>
+    </p>
+
+    <!-- 第三组 -->
+    <p class="lead text-center">
+        <a href="https://t.me/fggpt" target="_blank">
+            <i class="fa fa-telegram fa-lg" aria-hidden="true"></i> TG Group
+        </a>
+        <a href="https://img.gpt6.icu" target="_blank">
+            <i class="fa fa-image fa-lg" aria-hidden="true"></i> CF 图床
+        </a>
+        <a href="https://gpt6.icu" target="_blank">
+            <i class="fa fa-server fa-lg" aria-hidden="true"></i> FREE Chat (后端)
+        </a>
+        <a href="https://lobe.gpt6.icu" target="_blank">
+            <i class="fa fa-cloud fa-lg" aria-hidden="true"></i> Chat-Lobe
+        </a>
+        <a href="https://paint.gpt6.icu" target="_blank">
+            <i class="fa fa-paint-brush fa-lg" aria-hidden="true"></i> Paint-Web
+        </a>
+        <a href="https://next.gpt6.icu" target="_blank">
+            <i class="fa fa-lightbulb-o fa-lg" aria-hidden="true"></i> Chat-NextWeb
+        </a>
+        <a href="https://cfjc.gpt6.icu" target="_blank">
+            <i class="fa fa-plane fa-lg" aria-hidden="true"></i> CF-机场
+        </a>
+        <a href="https://vps.gpt6.icu" target="_blank">
+            <i class="fa fa-server fa-lg" aria-hidden="true"></i> CF-vps监控
+        </a>
+    </p>
+</footer>
+        </div>
+    </div>
+</div>
+<script src="../static/js/jquery-2.1.1.js"></script>
+<script src="../static/js/bootstrap.min.js"></script>
+<script src="../static/js/highlight.min.js"></script>
+<script src="../static/js/marked.min.js"></script>
+<script src="../static/js/html2canvas.min.js"></script>
+<script src="../static/js/custom.js"></script>
+</body>
+</html>
