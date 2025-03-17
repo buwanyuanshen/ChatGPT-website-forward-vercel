@@ -1,3 +1,25 @@
+
+        .model-select-wrapper {
+            position: relative; /* 让搜索框可以相对于此元素定位 */
+        }
+
+        .model-search-box {
+            position: absolute; /* 绝对定位使其位于下拉框上方 */
+            top: -25px; /* 调整到合适的位置，使其在下拉框上方 */
+            left: 0;
+            width: 100%;
+            padding: 5px;
+            background-color: transparent; /* 设置背景透明 */
+            border: none; /* 移除边框 */
+            border-bottom: 1px solid #ccc; /* 添加下边框，可选 */
+            color: inherit; /* 继承父元素的颜色 */
+            outline: none; /* 移除默认的focus outline */
+            box-sizing: border-box; /* 包含padding和border在width内 */
+        }
+         .model-search-box::placeholder {
+            color: #aaa; /* 设置占位符颜色，使其可见 */
+            opacity: 0.8; /* 降低占位符的Opacity */
+        }
 .left {
     display: flex;
     align-items: center;
