@@ -828,8 +828,6 @@ function addResponseMessage(message) {
     lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
   }
 
-  // **新增代码：判断是否之前滚动到底部**
-  const isScrolledToBottom = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
 
   // 绑定按钮事件
   lastResponseElement.find('.view-button').on('click', function() {
@@ -841,11 +839,6 @@ function addResponseMessage(message) {
   lastResponseElement.find('.delete-message-btn').click(function() {
     $(this).closest('.message-bubble').remove();
   });
-
-  // **新增代码：只有在之前滚动到底部时才滚动到底部**
-  if (isScrolledToBottom) {
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-  }
 }
 
 // 复制按钮点击事件
@@ -1233,6 +1226,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     const reader = response.body.getReader();
     let res = '';
     let str;
+    // **新增代码 - 在请求前记录是否滚动到底部**
+    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -1282,6 +1277,13 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
         }
     }
+
+    // **新增代码 - 流式响应结束后判断是否滚动到底部**
+    if (wasScrolledToBottomBeforeRequest) {
+      chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    }
+
+
     return str;
 } else { // 非流式输出处理
     const responseData = await response.json();
@@ -1303,6 +1305,12 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         addFailMessage("Unexpected response format.");
         resFlag = false;
         return null;
+    }
+
+    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
+    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    if (wasScrolledToBottomBeforeRequest) {
+      chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
     }
 }
 
