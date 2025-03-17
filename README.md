@@ -1,5 +1,8 @@
 ## 一键部署ChatGPT-website-forward项目！十秒极速部署一个ChatGPT对话式网页！
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/buwanyuanshen/ChatGPT-website-forward-vercel)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/import/project?template=https://github.com/buwanyuanshen/ChatGPT-website-forward-vercel
+
+本项目是阿牛[ChatGPT-website项目](https://github.com/Aniuyyds/ChatGPT-website)的改进版本。
+欢迎点 Star ! 
 ## 环境变量（需要则填）
 API_KEYS支持多个填写，以英文逗号分隔即可！
 | 环境变量 | 说明 | 建议值（示例） |用处| vercel 部署|
