@@ -570,6 +570,7 @@ $(document).ready(function() {
   var chatInput = $('#chatInput');
   var chatWindow = $('#chatWindow');
   var streamOutputSetting = $('#streamOutputSetting'); // 获取模型输出方式设置行
+  const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
 
   // 存储对话信息,实现连续对话
   var messages = [];
@@ -965,7 +966,7 @@ if ($(".settings-common .api_url").val().trim()) {
     }
 }
 
-let apiUrl = datas.api_url + "/v1/chat/completions";
+let apiUrl = datas.api_url + "/v1/chat/completions"; // Default path
 let requestBody = {
     "messages": data.prompts,
     "model": data.model,
@@ -976,9 +977,18 @@ let requestBody = {
     "stream": getCookie('streamOutput') !== 'false' // 从 Cookie 获取流式输出设置
 };
 
+// Use selected API path if it's not the default one
+const selectedApiPath = apiPathSelect.val();
+if (selectedApiPath) {
+    apiUrl = datas.api_url + selectedApiPath;
+} else {
+    apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
+}
+
+
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
-if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002")) {
+if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
         "prompt": data.prompts[0].content,
@@ -989,7 +999,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         "n": 1,
         "stream": getCookie('streamOutput') !== 'false'
     };
-} else if (data.image_base64 && data.image_base64.trim() !== '') {
+} else if (data.image_base64 && data.image_base64.trim() !== '' && (selectedApiPath === '/v1/chat/completions' || apiPathSelect.val() === null )) {
     apiUrl = datas.api_url + "/v1/chat/completions";
    requestBody = {
     "messages": [
@@ -1011,7 +1021,7 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
     "n": 1,
     "stream": getCookie('streamOutput') !== 'false'
     };
-} else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
+} else if ((selectedApiPath === '/v1/images/generations' || apiPathSelect.val() === null ) && (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3"))) {
     apiUrl = datas.api_url + "/v1/images/generations";
     let size = "1024x1024";
     let quality = "standard";
@@ -1041,24 +1051,35 @@ if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") ||
         };
     }
 
-} else if (model.includes("moderation")) {
+} else if ((selectedApiPath === '/v1/moderations' || apiPathSelect.val() === null ) && model.includes("moderation")) {
     apiUrl = datas.api_url + "/v1/moderations";
     requestBody = {
         "input": data.prompts[0].content, // Moderation uses the last message as input
         "model": data.model,
     };
-} else if (model.includes("embedding")) {
+} else if ((selectedApiPath === '/v1/embeddings' || apiPathSelect.val() === null ) && model.includes("embedding")) {
     apiUrl = datas.api_url + "/v1/embeddings";
     requestBody = {
         "input": data.prompts[0].content, // Embedding uses the last message as input
         "model": data.model,
     };
-} else if (model.includes("tts-1")) {
+} else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null ) && model.includes("tts-1")) {
     apiUrl = datas.api_url + "/v1/audio/speech";
     requestBody = {
         "input": data.prompts[0].content, // TTS uses the last message as input
         "model": data.model,
         "voice": "alloy",
+    };
+} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+        "messages": data.prompts,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": getCookie('streamOutput') !== 'false'
     };
 }
     if (data.model.includes("o1") && !data.model.includes("all")) {
@@ -1621,7 +1642,7 @@ function updateModelSettings(modelName) {
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
@@ -1790,5 +1811,15 @@ $(".delete a").click(function(){
       }, 2000);
     });
   }
+    // 读取apiPath
+    const apiPath = localStorage.getItem('apiPath');
+    if (apiPath) {
+        apiPathSelect.val(apiPath);
+    }
 
+    // apiPath select event
+    apiPathSelect.change(function() {
+        const selectedApiPath = $(this).val();
+        localStorage.setItem('apiPath', selectedApiPath);
+    });
 });
