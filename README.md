@@ -12,7 +12,8 @@ API_KEYS支持多个填写，以英文逗号分隔即可！
 ## 效果展示
 ![image](https://github.com/user-attachments/assets/1aae3729-4919-401c-83e1-4613b17c1670)
 
-![image](https://img.picgo.net/2024/10/10/IMG_20241010_002718ea818b7b80bc55ce.jpg)
+![image](https://github.com/user-attachments/assets/347466a0-3b83-484b-b17d-2feb0de1d29e)
+
 
 # 截止2024.12.07最新ChatGPT免费使用网址，还在更新中！：
 1. Free Chat（后端）:[Free Chat（后端）](https://gpt6.icu)
