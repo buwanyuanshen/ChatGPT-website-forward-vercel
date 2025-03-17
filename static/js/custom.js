@@ -1661,8 +1661,8 @@ function updateModelSettings(modelName) {
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
     const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hasKo = previousModel.toLowerCase().includes("kolors");
-    const hasKl = previousModel.toLowerCase().includes("kling");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
