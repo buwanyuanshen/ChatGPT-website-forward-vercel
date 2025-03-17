@@ -828,7 +828,8 @@ function addResponseMessage(message) {
     lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
   }
 
-  // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed this line
+  chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+
 
 // 绑定查看按钮事件
 $('.view-button').on('click', function() {
@@ -1278,11 +1279,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 str += content;
             }
         }
-                // Capture scroll position before adding message
-                const scrollPos = chatWindow.scrollTop();
                 addResponseMessage(str);
-                // Restore scroll position after adding message
-                chatWindow.scrollTop(scrollPos); // Add this line to restore scroll position
                 resFlag = true;
             } else {
                 if (jsonObj.error) {
@@ -1654,11 +1651,11 @@ function updateModelSettings(modelName) {
     const hadMj = previousModel.toLowerCase().includes("midjourney");
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
-    const hadVd = modelName.toLowerCase().includes("video");
-    const hadSora = modelName.toLowerCase().includes("sora");
-    const hadSuno = modelName.toLowerCase().includes("suno");
-    const hadKo = modelName.toLowerCase().includes("kolors");
-    const hadKl = modelName.toLowerCase().includes("kling");
+    const hadVd = previousModel.toLowerCase().includes("video");
+    const hadSora = previousModel.toLowerCase().includes("sora");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
