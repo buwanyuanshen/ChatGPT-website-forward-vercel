@@ -10,7 +10,7 @@ API_KEYS支持多个填写，以英文逗号分隔即可！
 ## 改进
 解决了vercel部署无法流式的问题
 ## 效果展示
-![image](https://img.picgo.net/2024/10/10/IMG_20241010_0032501b5464e2bc7ac651.jpg)
+![image](https://github.com/user-attachments/assets/1aae3729-4919-401c-83e1-4613b17c1670)
 
 ![image](https://img.picgo.net/2024/10/10/IMG_20241010_002718ea818b7b80bc55ce.jpg)
 
