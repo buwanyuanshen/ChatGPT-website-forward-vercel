@@ -1,6 +1,31 @@
+$(document).ready(function() {
+    // 获取模型选择框和搜索框元素
+    const modelSelect = $('.settings-common .model');
+    const modelSearchBox = $('.model-search-box');
+
+    // 监听搜索框的输入事件
+    modelSearchBox.on('input', function() {
+        const searchTerm = $(this).val().toLowerCase(); // 获取搜索词并转换为小写
+
+        // 遍历模型选择框的每一个选项
+        modelSelect.find('option').each(function() {
+            const optionText = $(this).text().toLowerCase(); // 获取选项文本并转换为小写
+            // 如果选项文本包含搜索词，则显示选项，否则隐藏
+            if (optionText.includes(searchTerm)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    });
+
+    // 初始化显示所有模型选项
+    modelSelect.find('option').show();
+});
+
+
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
-const searchInput = document.getElementById('modelSearch');
 
 if (selectElement) {
     // 遍历 select 元素下的所有 option 元素
@@ -10,19 +35,6 @@ if (selectElement) {
         option.textContent = option.value; // 设置 textContent 为 value
     });
 }
-
-searchInput.addEventListener('input', function() {
-    const searchTerm = searchInput.value.toLowerCase();
-    Array.from(selectElement.options).forEach(option => {
-        const description = option.getAttribute('data-description').toLowerCase();
-        if (description.includes(searchTerm)) {
-            option.style.display = ''; // Show the option
-        } else {
-            option.style.display = 'none'; // Hide the option
-        }
-    });
-});
-
 function resetImageUpload() {
     imageUpload.value = '';
     base64Image = '';
@@ -900,7 +912,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1817,7 +1829,7 @@ $(".delete a").click(function(){
         $(this).text('复制失败');
       }
 
-      // 从文档中删除临时的 textarea 元素
+      // 从文档中删除临时的 textarea 元素 
       document.body.removeChild(textArea);
 
       setTimeout(() => {
