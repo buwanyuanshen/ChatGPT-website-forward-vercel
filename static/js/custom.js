@@ -848,31 +848,6 @@ function addResponseMessage(message) {
   }
 }
 
-
-// 绑定查看按钮事件
-$('.view-button').on('click', function() {
-  // Get the image URL
-  const imageUrl = $(this).siblings('.message-text').find('img').attr('src');
-
-  // Open the image in a new window or tab
-  window.open(imageUrl, '_blank');
-});
-
-
-  // 绑定复制按钮点击事件
-  let copyButton = lastResponseElement.find('.copy-button').last();
-  copyButton.click(function() {
-    let messageText = $(this).prev().html(); // 获取响应消息的内容（包括HTML标签）
-    copyMessage(messageText); // 调用复制消息函数，传入响应消息内容
-  });
-
-  // 绑定删除按钮点击事件
-  let deleteButton = lastResponseElement.find('.delete-message-btn').last();
-  deleteButton.click(function() {
-    $(this).closest('.message-bubble').remove(); // 删除该条响应消息
-  });
-}
-
 // 复制按钮点击事件
 $(document).on('click', '.copy-button', function() {
   let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
