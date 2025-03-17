@@ -1,4 +1,3 @@
-// custom.js - 请将以下JavaScript代码添加到你的 custom.js 文件中
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
 const searchInput = document.querySelector('.model-search-input');
@@ -1652,11 +1651,11 @@ function updateModelSettings(modelName) {
     const hadMj = previousModel.toLowerCase().includes("midjourney");
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
-    const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = modelName.toLowerCase().includes("sora");
-    const hadSuno = modelName.toLowerCase().includes("suno");
-    const hadKo = modelName.toLowerCase().includes("kolors");
-    const hadKl = modelName.toLowerCase().includes("kling");
+    const hadVd = modelName.toLowerCase().includes("video");
+    const hasSora = modelName.toLowerCase().includes("sora");
+    const hasSuno = modelName.toLowerCase().includes("suno");
+    const hasKo = modelName.toLowerCase().includes("kolors");
+    const hasKl = modelName.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
@@ -1666,6 +1665,30 @@ function updateModelSettings(modelName) {
 
     // 更新上一个模型名称为当前模型
     localStorage.setItem('previousModel', modelName);
+
+    // --- Start of Path Auto-Switching Logic ---
+    let targetApiPath = null;
+    const lowerModelName = modelName.toLowerCase();
+
+    if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
+        targetApiPath = '/v1/completions';
+    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) {
+        targetApiPath = '/v1/images/generations';
+    } else if (lowerModelName.includes("moderation")) {
+        targetApiPath = '/v1/moderations';
+    } else if (lowerModelName.includes("embedding")) {
+        targetApiPath = '/v1/embeddings';
+    } else if (lowerModelName.includes("tts-1")) {
+        targetApiPath = '/v1/audio/speech';
+    } else {
+        targetApiPath = '/v1/chat/completions'; // Default path
+    }
+
+    if (targetApiPath) {
+        apiPathSelect.val(targetApiPath);
+        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
+    }
+    // --- End of Path Auto-Switching Logic ---
 }
 
 
