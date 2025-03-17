@@ -1,10 +1,22 @@
+.model-search-container {
+    position: relative; /* 设置相对定位，以便搜索框绝对定位 */
+}
+
 .model-search-input {
-    width: calc(100% - 20px); /* Adjust width as needed, consider padding */
-    padding: 8px;
-    margin: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box; /* To include padding and border in the element's total width and height */
+    position: absolute; /* 绝对定位使其覆盖在下拉框上方 */
+    top: 0;
+    left: 0;
+    width: 50%; /* 设置宽度为下拉框的一半 */
+    height: calc(100% - 2px); /* 稍微调整高度以匹配下拉框 */
+    padding: 5px;
+    border: none;
+    background-color: transparent; /* 背景透明 */
+    color: inherit; /* 继承父元素的颜色 */
+    z-index: 10; /* 确保搜索框在下拉框之上 */
+    outline: none; /* 移除默认的focus outline */
+}
+ .model-select {
+    position: relative; /* 让select成为相对定位容器 */
 }
 .left {
     display: flex;
