@@ -1652,10 +1652,10 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = modelName.toLowerCase().includes("video");
-    const hasSora = modelName.toLowerCase().includes("sora");
-    const hasSuno = modelName.toLowerCase().includes("suno");
-    const hasKo = modelName.toLowerCase().includes("kolors");
-    const hasKl = modelName.toLowerCase().includes("kling");
+    const hadSora = modelName.toLowerCase().includes("sora");
+    const hadSuno = modelName.toLowerCase().includes("suno");
+    const hadKo = modelName.toLowerCase().includes("kolors");
+    const hadKl = modelName.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
