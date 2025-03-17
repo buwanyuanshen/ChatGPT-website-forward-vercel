@@ -1,5 +1,7 @@
+// custom.js - 请将以下JavaScript代码添加到你的 custom.js 文件中
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
+const searchInput = document.querySelector('.model-search-input');
 
 if (selectElement) {
     // 遍历 select 元素下的所有 option 元素
@@ -9,6 +11,19 @@ if (selectElement) {
         option.textContent = option.value; // 设置 textContent 为 value
     });
 }
+
+searchInput.addEventListener('input', function() {
+    const searchTerm = searchInput.value.toLowerCase();
+    Array.from(selectElement.options).forEach(option => {
+        const description = option.getAttribute('data-description').toLowerCase();
+        if (description.includes(searchTerm)) {
+            option.style.display = 'block'; // 或者 option.hidden = false;
+        } else {
+            option.style.display = 'none'; // 或者 option.hidden = true;
+        }
+    });
+});
+
 function resetImageUpload() {
     imageUpload.value = '';
     base64Image = '';
@@ -483,10 +498,10 @@ chatInput.addEventListener('keydown', function (event) {
         chatInput.style.height = '32px';
         iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
     }
-    // For mobile enter to send
-    else if (!event.ctrlKey && event.keyCode === 13) {
+    // 如果是手机端，直接按下Enter键发送
+    else if (isMobile() && event.keyCode == 13) {
         chatBtn.click();
-        event.preventDefault(); // Prevent line break in textarea
+        event.preventDefault();  //避免回车换行
     }
 });
 
@@ -576,24 +591,8 @@ $(document).ready(function() {
   var chatWindow = $('#chatWindow');
   var streamOutputSetting = $('#streamOutputSetting'); // 获取模型输出方式设置行
   const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
-
-  // Model Search Functionality
-  const modelSearchInput = $('#modelSearchInput');
-  const modelSelectDropdown = $('.model');
-  const modelOptions = modelSelectDropdown.find('option');
-
-  modelSearchInput.on('input', function() {
-      const searchTerm = modelSearchInput.val().toLowerCase();
-      modelOptions.each(function() {
-          const option = $(this);
-          const modelDescription = option.data('description').toLowerCase();
-          if (modelDescription.includes(searchTerm)) {
-              option.show();
-          } else {
-              option.hide();
-          }
-      });
-  });
+    const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
+    const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
 
 
   // 存储对话信息,实现连续对话
@@ -1405,11 +1404,6 @@ function handleEnter(e) {
     chatBtn.click();
     e.preventDefault();  //避免回车换行
   }
-  // 如果是手机端，直接按下Enter键发送
-  else if (isMobile() && e.keyCode == 13) {
-    chatBtn.click();
-    e.preventDefault();  //避免回车换行
-  }
 }
 
 // 绑定键盘事件
@@ -1659,14 +1653,14 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
-    const hadKl = previousModel.toLowerCase().includes("kling");
+    const hadSora = modelName.toLowerCase().includes("sora");
+    const hadSuno = modelName.toLowerCase().includes("suno");
+    const hadKo = modelName.toLowerCase().includes("kolors");
+    const hadKl = modelName.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hasSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
