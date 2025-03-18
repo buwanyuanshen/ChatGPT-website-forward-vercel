@@ -793,7 +793,7 @@ function addResponseMessage(message) {
     const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
     let urls = [];
     let match;
-    let linkedMessageContent = escapedMessage; // Start with escaped message as base
+    let viewButtons = []; // Array to hold button elements
 
     // Find all URLs in the message
     while ((match = urlRegex.exec(message)) !== null) {
@@ -814,29 +814,30 @@ function addResponseMessage(message) {
             if (urlsFromJson && urlsFromJson.length > 0) {
                 let imagesHtml = '';
                 urlsFromJson.forEach(url => {
-                    imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"> <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button></span>`;
-                    // No viewButtonsHtml accumulation here for JSON images
+                    imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"></span>`;
+                    let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>'); // Create button element
+                    viewButton.data('url', url); // Set data-url
+                    viewButtons.push(viewButton); // Add to button array
                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
-                messageContent = escapedMessage + imagesHtml; // Images are directly in messageContent
+                messageContent = escapedMessage + imagesHtml;
             }
         } catch (error) {
             console.error('JSON 解析错误:', error);
         }
     } else if (urls.length > 0) {
+        let linkedMessageContent = escapedMessage;
         urls.forEach(url => {
-            // Create cleaner link text (e.g., just the domain)
-            let linkText = new URL(url).hostname || url; // Get hostname or fallback to full URL if parsing fails
-            if (linkText.startsWith('www.')) {
-                linkText = linkText.substring(4); // Remove "www." if present
-            }
-            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`; // Use cleaner linkText in <a> tag
-            const viewButtonHtml = ` <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button right after the link
-            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl + viewButtonHtml); // Replace URL with link and view button
+            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl); // Just replace with link in text
+
+            let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>'); // Create button element
+            viewButton.data('url', url); // Set data-url
+            viewButtons.push(viewButton); // Add to button array
+
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
-        messageContent = linkedMessageContent; // Update message content with formatted links
-
+        messageContent = linkedMessageContent; // Update message content with links
     }
 
     if (message.startsWith('"//')) {
@@ -848,7 +849,12 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml is no longer needed here
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+        // Append view buttons after copy button
+        viewButtons.forEach(button => {
+            lastResponseElement.append(button);
+        });
+        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     }
 
 
