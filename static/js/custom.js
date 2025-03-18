@@ -789,8 +789,8 @@ function addResponseMessage(message) {
     }
 
     let messageContent = escapedMessage;
-    // Refined URL regex to not include trailing parenthesis
-    const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
+    // Even more refined URL regex - explicitly disallowing trailing parenthesis and other punctuation
+    const urlRegex = /(https?:\/\/[^\s([{}<>,!'"|`；：。，、]+)/g; //  Exclude more symbols from URL match
     let urls = [];
     let match;
     let viewButtonsHtml = '';
@@ -829,10 +829,12 @@ function addResponseMessage(message) {
             // Create Markdown link: [domain name](full URL)
             const urlObj = new URL(url);
             const domain = urlObj.hostname.replace(/^www\./, ''); // Get domain without 'www.'
-            const markdownLink = `[${domain}](${url})`;
+            // Try to create Markdown link without parenthesis in URL part
+            const markdownLink = `[${domain}](${encodeURI(url)})`; // Encode URL to handle special chars
             processedMessage = processedMessage.replace(url, markdownLink); // Replace in plain text message for markdown parsing
             const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
             viewButtonsHtml += viewButtonHtml; // Append button HTML
+            console.log("Markdown Link created:", markdownLink, "for URL:", url); // DEBUG: Log Markdown link
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
         escapedMessage = marked.parse(escapeHtml(processedMessage)); // Parse the processed message with markdown links
