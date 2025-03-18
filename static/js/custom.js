@@ -765,7 +765,7 @@ function addResponseMessage(message) {
         $(".answer .others .center").css("display", "flex");
     }
 
-    let escapedMessage; // Will be used for the final escaped and parsed message
+    let escapedMessage;
 
     // 处理流式消息中的代码块
     let codeMarkCount = 0;
@@ -776,30 +776,27 @@ function addResponseMessage(message) {
         index = message.indexOf('```', index + 3);
     }
 
-    let preEscapedMessage; // Message before URL processing, for code block handling
     if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-        preEscapedMessage = marked.parse(message + '\n\n```');
+        escapedMessage = marked.parse(message + '\n\n```');
     } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        preEscapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
     } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
         if (message.includes('`')) {
-            preEscapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
         } else {
-            preEscapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
         }
     }
-    let messageContent = preEscapedMessage; // Initialize with pre-escaped content
 
-
+    let messageContent = escapedMessage;
     // Refined URL regex to not include trailing parenthesis
     const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
     let urls = [];
     let match;
-    let viewButtonsHtml = '';
-    let processedMessage = message; // Start with the original message for URL processing
+    let linkedMessageContent = escapedMessage; // Start with escaped message as base
 
     // Find all URLs in the message
-    while ((match = urlRegex.exec(message))) { // Use original message for regex matching
+    while ((match = urlRegex.exec(message)) !== null) {
         urls.push(match[0]);
     }
 
@@ -818,32 +815,29 @@ function addResponseMessage(message) {
                 let imagesHtml = '';
                 urlsFromJson.forEach(url => {
                     imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"> <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button></span>`;
-                    viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
+                    // No viewButtonsHtml accumulation here for JSON images
                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
-                messageContent = preEscapedMessage + imagesHtml; // Append images to pre-escaped content
+                messageContent = escapedMessage + imagesHtml; // Images are directly in messageContent
             }
         } catch (error) {
             console.error('JSON 解析错误:', error);
         }
     } else if (urls.length > 0) {
         urls.forEach(url => {
-            // Create Markdown link: [domain name](full URL) - with space after
-            const urlObj = new URL(url);
-            const domain = urlObj.hostname.replace(/^www\./, ''); // Get domain without 'www.'
-            const markdownLink = `[${domain}](${url})`; // Markdown link - no space at the end this time
-            processedMessage = processedMessage.replace(url, markdownLink); // Replace in plain text message for markdown parsing
-            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
-            viewButtonsHtml += viewButtonHtml; // Append button HTML
+            // Create cleaner link text (e.g., just the domain)
+            let linkText = new URL(url).hostname || url; // Get hostname or fallback to full URL if parsing fails
+            if (linkText.startsWith('www.')) {
+                linkText = linkText.substring(4); // Remove "www." if present
+            }
+            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`; // Use cleaner linkText in <a> tag
+            const viewButtonHtml = ` <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button right after the link
+            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl + viewButtonHtml); // Replace URL with link and view button
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
-        escapedMessage = marked.parse(escapeHtml(processedMessage)); // Parse the processed message with markdown links AFTER escaping
-        messageContent = escapedMessage; // Update message content with fully processed and parsed content
-    } else {
-        escapedMessage = marked.parse(escapeHtml(message)); // Parse original message if no URLs
-        messageContent = escapedMessage;
-    }
+        messageContent = linkedMessageContent; // Update message content with formatted links
 
+    }
 
     if (message.startsWith('"//')) {
         // 处理包含base64编码的音频
@@ -854,7 +848,7 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml is no longer needed here
     }
 
 
