@@ -789,14 +789,13 @@ function addResponseMessage(message) {
     }
 
     let messageContent = escapedMessage;
-    // 更加精确的 URL 正则表达式，避免捕获尾部的 )
-    // 匹配以 https:// 或 http:// 开头，后面跟随非空白字符，直到遇到空白字符、), ", ' 或行尾
-    const urlRegex = /(https?:\/\/[^\s<>()"]+)/g;
+    // Refined URL regex to NOT include closing parenthesis at the end
+    const urlRegex = /(https?:\/\/[^\s]*[^\s\)])(?=[)\s]|$)/g; // Negative lookahead for closing parenthesis
     let urls = [];
     let match;
     let viewButtonsHtml = '';
 
-    // 查找消息中所有 URL
+    // Find all URLs in the message
     while ((match = urlRegex.exec(message)) !== null) {
         urls.push(match[0]);
     }
