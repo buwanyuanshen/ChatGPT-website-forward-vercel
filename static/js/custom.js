@@ -767,99 +767,99 @@ function addResponseMessage(message) {
 
     let escapedMessage;
 
-    // 处理流式消息中的代码块 (code block handling remains the same)
+    // 处理流式消息中的代码块
     let codeMarkCount = 0;
     let index = message.indexOf('```');
+
     while (index !== -1) {
         codeMarkCount++;
         index = message.indexOf('```', index + 3);
     }
-    if (codeMarkCount % 2 == 1) {
+
+    if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
         escapedMessage = marked.parse(message + '\n\n```');
     } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);
-    } else if (codeMarkCount == 0) {
+        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
         if (message.includes('`')) {
-            escapedMessage = marked.parse(message);
+            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
         } else {
-            escapedMessage = marked.parse(escapeHtml(message));
+            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
         }
     }
 
-    let messageContentDiv = $('<div>').addClass('message-text'); // Create a div for message content
-    let currentText = "";
-    const urlRegex = /(https?:\/\/[^\s()]+)/g; // Keep URL regex for matching
-    let lastIndex = 0;
+    let messageContent = escapedMessage;
+    // Refined URL regex to not include trailing parenthesis
+    const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
+    let urls = [];
     let match;
     let viewButtonsHtml = '';
+    let processedMessage = message; // Start with the original message for processing
 
+    // Find all URLs in the message
+    while ((match = urlRegex.exec(message))) { // Use original message for regex matching
+        urls.push(match[0]);
+    }
 
-    if (message.includes('Unexpected data format:')) { // JSON data handling - keep as is
+    console.log("URLs found in message:", urls); // DEBUG: Log found URLs
+
+    if (message.includes('Unexpected data format:')) {
+        // 从消息中提取 JSON 类似的字符串
         const dataString = message.split('Unexpected data format: ')[1].trim();
         const jsonString = dataString.replace(/'/g, '"');
+
         try {
             const dataObject = JSON.parse(jsonString);
             const urlsFromJson = dataObject.data.map(item => item.url);
+
             if (urlsFromJson && urlsFromJson.length > 0) {
                 let imagesHtml = '';
                 urlsFromJson.forEach(url => {
                     imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"> <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button></span>`;
-                    viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
+                    viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
+                    console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
-                messageContentDiv.html(escapedMessage + imagesHtml); // Set HTML content for JSON case
-            } else {
-                messageContentDiv.html(escapedMessage); // Just escaped message if no JSON URLs
+                messageContent = escapedMessage + imagesHtml;
             }
         } catch (error) {
             console.error('JSON 解析错误:', error);
-            messageContentDiv.html(escapedMessage); // Fallback to escaped message on error
         }
-    } else { // Handle URLs in regular text
-        while ((match = urlRegex.exec(message)) !== null) {
-            let url = match[0];
-            let startIndex = match.index;
-            let endIndex = urlRegex.lastIndex;
-
-            // Append text before the URL
-            currentText = message.substring(lastIndex, startIndex);
-            messageContentDiv.append(document.createTextNode(currentText)); // Append as text node
-
-            // Create link and append
-            let link = $('<a>')
-                .attr('href', url)
-                .attr('target', '_blank')
-                .attr('rel', 'noopener noreferrer')
-                .text(url); // Display full URL as link text for now, can adjust later
-            messageContentDiv.append(link);
-
-            viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // Create view button
-
-            lastIndex = endIndex; // Update last index to after the URL
-        }
-        // Append any remaining text after the last URL
-        currentText = message.substring(lastIndex);
-        messageContentDiv.append(document.createTextNode(currentText));
+    } else if (urls.length > 0) {
+        urls.forEach(url => {
+            // Create Markdown link: [domain name](full URL) - with space after
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.replace(/^www\./, ''); // Get domain without 'www.'
+            const markdownLink = `[${domain}](${url}) `; // Note the space at the end of markdown link
+            processedMessage = processedMessage.replace(url, markdownLink); // Replace in plain text message for markdown parsing
+            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
+            viewButtonsHtml += viewButtonHtml; // Append button HTML
+            console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
+        });
+        escapedMessage = marked.parse(escapeHtml(processedMessage)); // Parse the processed message with markdown links
+        messageContent = escapedMessage; // Update message content with markdown parsed content
+    } else {
+        escapedMessage = marked.parse(escapeHtml(message)); // Parse original message if no URLs
+        messageContent = escapedMessage;
     }
 
 
-    if (message.startsWith('"//')) { // Audio handling - keep as is
+    if (message.startsWith('"//')) {
+        // 处理包含base64编码的音频
         const base64Data = message.replace(/"/g, '');
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else if (message.startsWith('//')) {
+        // 处理包含base64编码的音频
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else { // Append message content, copy button, view buttons, delete button
-        lastResponseElement.append(messageContentDiv); // Append the div with text and links
-        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button>');
-        lastResponseElement.append(viewButtonsHtml); // Append view buttons HTML
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    } else {
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
     }
 
 
-    // Button event bindings - keep as is
+    // 绑定按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
-        console.log("View button clicked, opening URL:", urlToOpen);
+        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
