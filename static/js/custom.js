@@ -788,35 +788,36 @@ function addResponseMessage(message) {
         }
     }
 
-    let messageTextContent = ""; // To build the message content with links
+    let messageTextContent = ""; // To build the message content with HTML links directly
     const urlRegex = /(https?:\/\/[^\s()]+)/g;
     let urls = [];
     let match;
     let lastIndex = 0; // To track last index processed in message
     let viewButtonsHtml = '';
 
-    // Find all URLs and build message content
+    // Find all URLs and build message content with HTML links
     while ((match = urlRegex.exec(message)) !== null) {
         urls.push(match[0]);
         const url = match[0];
         const urlHostname = new URL(url).hostname;
-        // Construct linked URL as pure HTML <a> tag - NO MARKDOWN SYNTAX
-        const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`;
+        const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`; // HTML link
         const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
 
-        // Append text before URL
+        // Append text before URL (escaped for HTML)
         messageTextContent += escapeHtml(message.substring(lastIndex, match.index));
-        // Append linked URL and view button
-        messageTextContent += linkedUrl; // Append directly the HTML <a> tag
+        // Append HTML linked URL and view button
+        messageTextContent += linkedUrl;
         viewButtonsHtml += viewButtonHtml;
 
         lastIndex = urlRegex.lastIndex; // Update last index to after the matched URL
 
         console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
     }
-    // Append any remaining text after the last URL
+    // Append any remaining text after the last URL (escaped for HTML)
     messageTextContent += escapeHtml(message.substring(lastIndex));
-    messageContent = marked.parse(messageTextContent); // Parse final message content
+    // messageContent = marked.parse(messageTextContent); // No need to parse as Markdown anymore - we built HTML directly
+    messageContent = messageTextContent; // Directly use messageTextContent as HTML content
+
 
     if (message.includes('Unexpected data format:')) {
         // 从消息中提取 JSON 类似的字符串
@@ -842,15 +843,24 @@ function addResponseMessage(message) {
         }
     }
 
-    // No changes for audio handling
 
-    lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
+    if (message.startsWith('"//')) {
+        // 处理包含base64编码的音频
+        const base64Data = message.replace(/"/g, '');
+        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    } else if (message.startsWith('//')) {
+        // 处理包含base64编码的音频
+        const base64Data = message;
+        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    } else {
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
+    }
 
 
-    // 绑定按钮事件 - No changes here
+    // 绑定按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
-        console.log("View button clicked, opening URL:", urlToOpen);
+        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
