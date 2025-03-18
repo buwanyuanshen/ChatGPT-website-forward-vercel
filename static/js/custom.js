@@ -789,14 +789,14 @@ function addResponseMessage(message) {
     }
 
     let messageContent = escapedMessage;
-    // Refined URL regex to not include trailing parenthesis
-    const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
+    // 更加精确的 URL 正则表达式，避免捕获尾部的 )
+    // 匹配以 https:// 或 http:// 开头，后面跟随非空白字符，直到遇到空白字符、), ", ' 或行尾
+    const urlRegex = /(https?:\/\/[^\s<>()"]+)/g;
     let urls = [];
     let match;
     let viewButtonsHtml = '';
-    let processedMessageContent = messageContent; // Working copy of messageContent
 
-    // Find all URLs in the message
+    // 查找消息中所有 URL
     while ((match = urlRegex.exec(message)) !== null) {
         urls.push(match[0]);
     }
@@ -815,28 +815,26 @@ function addResponseMessage(message) {
             if (urlsFromJson && urlsFromJson.length > 0) {
                 let imagesHtml = '';
                 urlsFromJson.forEach(url => {
-                    const urlHostname = new URL(url).hostname; // Extract hostname for cleaner link text
                     imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"> <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button></span>`;
                     viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
-                processedMessageContent = escapedMessage + imagesHtml; // Use processedMessageContent here
+                messageContent = escapedMessage + imagesHtml;
             }
         } catch (error) {
             console.error('JSON 解析错误:', error);
         }
     } else if (urls.length > 0) {
+        let linkedMessageContent = escapedMessage;
         urls.forEach(url => {
-            const urlHostname = new URL(url).hostname; // Extract hostname for cleaner link text
-            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`; // Use hostname as link text
+            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
             const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
-
-            // Replace the first occurrence of the URL in processedMessageContent
-            processedMessageContent = processedMessageContent.replace(url, linkedUrl);
-
+            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl); // Just replace with link in text
             viewButtonsHtml += viewButtonHtml; // Append button HTML
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
+        messageContent = linkedMessageContent; // Update message content with links
+
     }
 
     if (message.startsWith('"//')) {
@@ -848,7 +846,7 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + processedMessageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here, use processedMessageContent
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
     }
 
 
