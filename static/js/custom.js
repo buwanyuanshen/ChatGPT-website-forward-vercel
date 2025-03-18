@@ -456,6 +456,12 @@ var chatBtn = document.getElementById('chatBtn');
 // 获取删除按钮元素
 var deleteBtn = document.getElementById('deleteBtn');
 
+// 判断是否是移动端
+function isMobile() {
+  // 使用适当的移动设备检测逻辑，这里简单地检查是否小于某个屏幕宽度
+  return window.innerWidth <= 768; // 这里假设小于等于768像素的宽度是移动端
+}
+
 // 监听输入框内容变化
 chatInput.addEventListener('input', function () {
     // 保存当前输入框的滚动高度
@@ -1409,11 +1415,6 @@ function handleEnter(e) {
 // 绑定键盘事件
 chatInput.on("keydown", handleEnter);
 
-// 判断是否是移动端
-function isMobile() {
-  // 使用适当的移动设备检测逻辑，这里简单地检查是否小于某个屏幕宽度
-  return window.innerWidth <= 768; // 这里假设小于等于768像素的宽度是移动端
-}
 
   // 设置栏宽度自适应
   let width = $('.function .others').width();
