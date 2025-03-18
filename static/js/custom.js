@@ -765,90 +765,45 @@ function addResponseMessage(message) {
     $(".answer .others .center").css("display", "flex");
   }
 
-  let escapedMessage;
+  let escapedMessage = marked.parse(escapeHtml(message)); // Parse markdown for all messages
 
-  // 处理流式消息中的代码块
-  let codeMarkCount = 0;
-  let index = message.indexOf('```');
+  let messageContent = escapedMessage;
+  let buttonsHtml = ''; // Initialize buttons HTML
 
-  while (index !== -1) {
-    codeMarkCount++;
-    index = message.indexOf('```', index + 3);
-  }
+  // 提取消息中的所有链接
+  const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+)/gi;
+  const urls = message.match(urlRegex);
 
-  if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-    escapedMessage = marked.parse(message + '\n\n```');
-  } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-    escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-  } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-    if (message.includes('`')) {
-      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-    } else {
-      escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
-    }
-  }
+  if (urls && urls.length > 0) {
+      // 移除消息文本中的图片链接，避免重复显示为普通链接
+      const imageUrlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(png|jpg|jpeg|gif)(?:\?[^\s]*)?)/gi;
+      const textContent = messageContent.replace(imageUrlRegex, '');
+      messageContent = textContent;
 
-  if (message.includes('Unexpected data format:')) {
-    // 从消息中提取 JSON 类似的字符串
-    const dataString = message.split('Unexpected data format: ')[1].trim();
 
-    // 将单引号替换为双引号，形成有效的 JSON
-    const jsonString = dataString.replace(/'/g, '"');
-
-    try {
-      const dataObject = JSON.parse(jsonString);
-      const urls = dataObject.data.map(item => item.url);
-
-      if (urls && urls.length > 0) {
-        let imagesHtml = '';
-        urls.forEach(url => {
-          imagesHtml += '<img src="' + url + '" style="max-width: 35%; max-height: 35%;" alt="messages"> ';
-        });
-        lastResponseElement.append('<div class="message-text">' + escapedMessage + imagesHtml + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-      }
-    } catch (error) {
-      console.error('JSON 解析错误:', error);
-      // 如果解析失败，回退到正则表达式方法
-    }
-  } else  if (message.includes('https://')) {
-    // 使用改进的正则表达式方法作为回退
-    const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(png|jpg|jpeg|gif)(?:\?[^\s]*)?)/gi;  // 修复：匹配更复杂的URL，允许query parameters
-    const urls = message.match(urlRegex);
-
-    let messageContent = escapedMessage; // 默认消息内容为 escapedMessage
-
-    if (urls && urls.length > 0) {
-      let imagesHtml = '';
+      let viewButtonsHtml = '';
       urls.forEach(url => {
-        imagesHtml += '<img src="' + url + '" style="max-width: 35%; max-height: 35%;" alt="messages"> ';
+          // 为每个链接添加放大按钮
+          viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
       });
-      // 将 escapedMessage 和 imagesHtml 组合起来
-      messageContent = escapedMessage + imagesHtml;
-    }
-
-    lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } else if (message.startsWith('"//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message.replace(/"/g, '');
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } else if (message.startsWith('//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message;
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } else {
-    lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+      buttonsHtml += viewButtonsHtml;
   }
+
+  buttonsHtml += '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>';
+
+
+  lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + buttonsHtml);
 
 
   // 绑定按钮事件
   lastResponseElement.find('.view-button').on('click', function() {
-    window.open($(this).siblings('.message-text').find('img').attr('src'), '_blank');
+      window.open($(this).data('url'), '_blank');
   });
   lastResponseElement.find('.copy-button').click(function() {
-    copyMessage($(this).prev().text().trim());
+      copyMessage($(this).prev().text().trim());
   });
   lastResponseElement.find('.delete-message-btn').click(function() {
-    $(this).closest('.message-bubble').remove();
+      $(this).closest('.message-bubble').remove();
   });
 }
 
@@ -1660,9 +1615,9 @@ function updateModelSettings(modelName) {
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
-    const hadKl = previousModel.toLowerCase().includes("kling");
+    const hadSuno = modelName.toLowerCase().includes("suno");
+    const hadKo = modelName.toLowerCase().includes("kolors");
+    const hadKl = modelName.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
