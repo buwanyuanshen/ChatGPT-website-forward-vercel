@@ -789,8 +789,16 @@ function addResponseMessage(message) {
     }
 
     let messageContent = escapedMessage;
-    const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(?:png|jpg|jpeg|gif|webp|svg|bmp|tiff|ico|pdf|html|txt|js|css|json|xml|csv|xlsx|docx|pptx|zip|rar|7z|tar|gz|bz2|xz|mp3|mp4|avi|mov|wmv|flv|mkv|webm|ogg|ogv|oga)(?:\?[^\s]*)?|[^\s'"<>\]{}]+\.[^\s'"<>\]{}]+\.(?:com|org|net|info|biz|gov|edu|mil|name|pro|aero|cat|coop|jobs|mobi|tel|travel|museum|asia|eu|uk|us|cn|de|fr|jp|kr|ru|in|br|au|ca|mx|es|it|za|ng|pk|bd|ir|eg|tr|vn|id|th|ph|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|ss|st|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tr|tt|tv|tw|tz|ua|ug|um|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|za|zm|zw)(?:\?[^\s]*)?)/gi;
-    const urls = message.match(urlRegex) || [];
+    // Simplified URL regex - using a more general pattern
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    let urls = [];
+    let match;
+    let viewButtonsHtml = '';
+
+    // Find all URLs in the message
+    while ((match = urlRegex.exec(message)) !== null) {
+        urls.push(match[0]);
+    }
 
     console.log("URLs found in message:", urls); // DEBUG: Log found URLs
 
@@ -807,8 +815,8 @@ function addResponseMessage(message) {
                 let imagesHtml = '';
                 urlsFromJson.forEach(url => {
                     imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"> <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button></span>`;
-                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
-
+                    viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
+                    console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
                 messageContent = escapedMessage + imagesHtml;
             }
@@ -819,11 +827,13 @@ function addResponseMessage(message) {
         let linkedMessageContent = escapedMessage;
         urls.forEach(url => {
             const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
-            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl + viewButtonHtml);
+            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
+            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl); // Just replace with link in text
+            viewButtonsHtml += viewButtonHtml; // Append button HTML
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
-        messageContent = linkedMessageContent;
+        messageContent = linkedMessageContent; // Update message content with links
+
     }
 
     if (message.startsWith('"//')) {
@@ -835,7 +845,7 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
     }
 
 
