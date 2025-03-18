@@ -810,18 +810,23 @@ function addResponseMessage(message) {
       console.error('JSON 解析错误:', error);
       // 如果解析失败，回退到正则表达式方法
     }
-  } else if (message.includes('https://')) {
+  } else  if (message.includes('https://')) {
     // 使用改进的正则表达式方法作为回退
     const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(png|jpg|jpeg|gif)(?:\?[^\s]*)?)/gi;  // 修复：匹配更复杂的URL，允许query parameters
     const urls = message.match(urlRegex);
+
+    let messageContent = escapedMessage; // 默认消息内容为 escapedMessage
 
     if (urls && urls.length > 0) {
       let imagesHtml = '';
       urls.forEach(url => {
         imagesHtml += '<img src="' + url + '" style="max-width: 35%; max-height: 35%;" alt="messages"> ';
       });
-      lastResponseElement.append('<div class="message-text">' + escapedMessage + imagesHtml + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+      // 将 escapedMessage 和 imagesHtml 组合起来
+      messageContent = escapedMessage + imagesHtml;
     }
+
+    lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
   } else if (message.startsWith('"//')) {
     // 处理包含base64编码的音频
     const base64Data = message.replace(/"/g, '');
@@ -1654,10 +1659,10 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
-    const hadKl = previousModel.toLowerCase().includes("kling");
+    const hasSora = previousModel.toLowerCase().includes("sora");
+    const hasSuno = previousModel.toLowerCase().includes("suno");
+    const hasKo = previousModel.toLowerCase().includes("kolors");
+    const hasKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
