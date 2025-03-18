@@ -789,9 +789,10 @@ function addResponseMessage(message) {
   }
 
   let messageContent = escapedMessage;
-  let viewButtonsHtml = '';
   const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(?:png|jpg|jpeg|gif|webp|svg|bmp|tiff|ico|pdf|html|txt|js|css|json|xml|csv|xlsx|docx|pptx|zip|rar|7z|tar|gz|bz2|xz|mp3|mp4|avi|mov|wmv|flv|mkv|webm|ogg|ogv|oga)(?:\?[^\s]*)?|[^\s'"<>\]{}]+\.[^\s'"<>\]{}]+\.(?:com|org|net|info|biz|gov|edu|mil|name|pro|aero|cat|coop|jobs|mobi|tel|travel|museum|asia|eu|uk|us|cn|de|fr|jp|kr|ru|in|br|au|ca|mx|es|it|za|ng|pk|bd|ir|eg|tr|vn|id|th|ph|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|ss|st|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tr|tt|tv|tw|tz|ua|ug|um|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|za|zm|zw)(?:\?[^\s]*)?)/gi;
   const urls = message.match(urlRegex) || [];
+  let viewButtons = []; // Array to hold button elements
+
 
   if (message.includes('Unexpected data format:')) {
     // 从消息中提取 JSON 类似的字符串
@@ -808,7 +809,9 @@ function addResponseMessage(message) {
         let imagesHtml = '';
         urlsFromJson.forEach(url => {
           imagesHtml += '<img src="' + url + '" style="max-width: 35%; max-height: 35%;" alt="messages"> ';
-          viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image
+          let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+          viewButton.data('url', url); // Set data-url using jQuery .data()
+          viewButtons.push(viewButton); // Add button element to array
         });
         messageContent = escapedMessage + imagesHtml;
       }
@@ -819,8 +822,10 @@ function addResponseMessage(message) {
   } else if (urls.length > 0) {
       urls.forEach(url => {
           const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-          messageContent = messageContent.replace(url, linkedUrl); // Replace plain text URLs with links in markdown output
-          viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL
+          messageContent = messageContent.replace(url, linkedUrl); // Replace plain text URLs with links
+          let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+          viewButton.data('url', url); // Set data-url using jQuery .data()
+          viewButtons.push(viewButton); // Add button element to array
       });
       escapedMessage = messageContent; // Update escapedMessage with linked URLs
   }
@@ -834,7 +839,12 @@ function addResponseMessage(message) {
     const base64Data = message;
     lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
   } else {
-    lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+      // Append view buttons after copy button
+    viewButtons.forEach(button => {
+        lastResponseElement.append(button);
+    });
+    lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
   }
 
 
@@ -903,7 +913,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
