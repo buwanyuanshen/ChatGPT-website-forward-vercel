@@ -794,9 +794,10 @@ function addResponseMessage(message) {
     let urls = [];
     let match;
     let viewButtonsHtml = '';
+    let processedMessage = message; // Start with the original message for processing
 
     // Find all URLs in the message
-    while ((match = urlRegex.exec(message)) !== null) {
+    while ((match = urlRegex.exec(message))) { // Use original message for regex matching
         urls.push(match[0]);
     }
 
@@ -824,17 +825,23 @@ function addResponseMessage(message) {
             console.error('JSON 解析错误:', error);
         }
     } else if (urls.length > 0) {
-        let linkedMessageContent = escapedMessage;
         urls.forEach(url => {
-            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            // Create Markdown link: [domain name](full URL)
+            const urlObj = new URL(url);
+            const domain = urlObj.hostname.replace(/^www\./, ''); // Get domain without 'www.'
+            const markdownLink = `[${domain}](${url})`;
+            processedMessage = processedMessage.replace(url, markdownLink); // Replace in plain text message for markdown parsing
             const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
-            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl); // Just replace with link in text
             viewButtonsHtml += viewButtonHtml; // Append button HTML
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
-        messageContent = linkedMessageContent; // Update message content with links
-
+        escapedMessage = marked.parse(escapeHtml(processedMessage)); // Parse the processed message with markdown links
+        messageContent = escapedMessage; // Update message content with markdown parsed content
+    } else {
+        escapedMessage = marked.parse(escapeHtml(message)); // Parse original message if no URLs
+        messageContent = escapedMessage;
     }
+
 
     if (message.startsWith('"//')) {
         // 处理包含base64编码的音频
