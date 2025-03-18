@@ -800,22 +800,24 @@ function addResponseMessage(message) {
         urls.push(match[0]);
         const url = match[0];
         const urlHostname = new URL(url).hostname;
+        // Create just the HTML <a> tag - NO Markdown syntax
         const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`;
         const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
 
-        // Append text before URL
+        // Append text before URL (escape HTML)
         messageTextContent += escapeHtml(message.substring(lastIndex, match.index));
-        // Append linked URL and view button
+        // Append directly the HTML link and view button
         messageTextContent += linkedUrl;
         viewButtonsHtml += viewButtonHtml;
+
 
         lastIndex = urlRegex.lastIndex; // Update last index to after the matched URL
 
         console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
     }
-    // Append any remaining text after the last URL
+    // Append any remaining text after the last URL (escape HTML)
     messageTextContent += escapeHtml(message.substring(lastIndex));
-    messageContent = marked.parse(messageTextContent); // Parse final message content
+    messageContent = marked.parse(messageTextContent); // Parse the complete message content
 
 
     if (message.includes('Unexpected data format:')) {
