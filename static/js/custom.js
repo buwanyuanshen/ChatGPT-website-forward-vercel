@@ -789,8 +789,8 @@ function addResponseMessage(message) {
     }
 
     let messageContent = escapedMessage;
-    // Simplified URL regex - using a more general pattern
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    // Refined URL regex to not include trailing parenthesis
+    const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
     let urls = [];
     let match;
     let viewButtonsHtml = '';
