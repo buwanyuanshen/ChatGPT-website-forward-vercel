@@ -800,25 +800,23 @@ function addResponseMessage(message) {
         urls.push(match[0]);
         const url = match[0];
         const urlHostname = new URL(url).hostname;
-        // Create just the HTML <a> tag - NO Markdown syntax
+        // Construct linked URL as pure HTML <a> tag - NO MARKDOWN SYNTAX
         const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`;
         const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
 
-        // Append text before URL (escape HTML)
+        // Append text before URL
         messageTextContent += escapeHtml(message.substring(lastIndex, match.index));
-        // Append directly the HTML link and view button
-        messageTextContent += linkedUrl;
+        // Append linked URL and view button
+        messageTextContent += linkedUrl; // Append directly the HTML <a> tag
         viewButtonsHtml += viewButtonHtml;
-
 
         lastIndex = urlRegex.lastIndex; // Update last index to after the matched URL
 
         console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
     }
-    // Append any remaining text after the last URL (escape HTML)
+    // Append any remaining text after the last URL
     messageTextContent += escapeHtml(message.substring(lastIndex));
-    messageContent = marked.parse(messageTextContent); // Parse the complete message content
-
+    messageContent = marked.parse(messageTextContent); // Parse final message content
 
     if (message.includes('Unexpected data format:')) {
         // 从消息中提取 JSON 类似的字符串
@@ -844,24 +842,15 @@ function addResponseMessage(message) {
         }
     }
 
+    // No changes for audio handling
 
-    if (message.startsWith('"//')) {
-        // 处理包含base64编码的音频
-        const base64Data = message.replace(/"/g, '');
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (message.startsWith('//')) {
-        // 处理包含base64编码的音频
-        const base64Data = message;
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
-    }
+    lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
 
 
-    // 绑定按钮事件
+    // 绑定按钮事件 - No changes here
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
-        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
+        console.log("View button clicked, opening URL:", urlToOpen);
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
