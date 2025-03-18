@@ -788,35 +788,35 @@ function addResponseMessage(message) {
         }
     }
 
-    let messageTextContent = ""; // To build the message content with HTML links directly
+    let messageTextContent = ""; // To build the message content with links
     const urlRegex = /(https?:\/\/[^\s()]+)/g;
     let urls = [];
     let match;
     let lastIndex = 0; // To track last index processed in message
     let viewButtonsHtml = '';
 
-    // Find all URLs and build message content with HTML links
+    // Find all URLs and build message content
     while ((match = urlRegex.exec(message)) !== null) {
         urls.push(match[0]);
         const url = match[0];
         const urlHostname = new URL(url).hostname;
-        const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`; // HTML link
+        // Construct linkedUrl as pure HTML <a> tag
+        const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`;
         const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
 
-        // Append text before URL (escaped for HTML)
+        // Append text before URL
         messageTextContent += escapeHtml(message.substring(lastIndex, match.index));
-        // Append HTML linked URL and view button
-        messageTextContent += linkedUrl;
+        // Append linked URL and view button
+        messageTextContent += linkedUrl; // Append directly HTML link
         viewButtonsHtml += viewButtonHtml;
 
         lastIndex = urlRegex.lastIndex; // Update last index to after the matched URL
 
         console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
     }
-    // Append any remaining text after the last URL (escaped for HTML)
+    // Append any remaining text after the last URL
     messageTextContent += escapeHtml(message.substring(lastIndex));
-    // messageContent = marked.parse(messageTextContent); // No need to parse as Markdown anymore - we built HTML directly
-    messageContent = messageTextContent; // Directly use messageTextContent as HTML content
+    messageContent = marked.parse(messageTextContent); // Parse final message content
 
 
     if (message.includes('Unexpected data format:')) {
