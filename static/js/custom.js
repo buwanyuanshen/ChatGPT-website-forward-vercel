@@ -758,106 +758,99 @@ function editMessage(message) {
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
-  let lastResponseElement = $(".message-bubble .response").last();
-  lastResponseElement.empty();
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
 
-  if ($(".answer .others .center").css("display") === "none") {
-    $(".answer .others .center").css("display", "flex");
-  }
-
-  let escapedMessage;
-
-  // 处理流式消息中的代码块
-  let codeMarkCount = 0;
-  let index = message.indexOf('```');
-
-  while (index !== -1) {
-    codeMarkCount++;
-    index = message.indexOf('```', index + 3);
-  }
-
-  if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-    escapedMessage = marked.parse(message + '\n\n```');
-  } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-    escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-  } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-    if (message.includes('`')) {
-      escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-    } else {
-      escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+    if ($(".answer .others .center").css("display") === "none") {
+        $(".answer .others .center").css("display", "flex");
     }
-  }
 
-  let messageContent = escapedMessage;
-  const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(?:png|jpg|jpeg|gif|webp|svg|bmp|tiff|ico|pdf|html|txt|js|css|json|xml|csv|xlsx|docx|pptx|zip|rar|7z|tar|gz|bz2|xz|mp3|mp4|avi|mov|wmv|flv|mkv|webm|ogg|ogv|oga)(?:\?[^\s]*)?|[^\s'"<>\]{}]+\.[^\s'"<>\]{}]+\.(?:com|org|net|info|biz|gov|edu|mil|name|pro|aero|cat|coop|jobs|mobi|tel|travel|museum|asia|eu|uk|us|cn|de|fr|jp|kr|ru|in|br|au|ca|mx|es|it|za|ng|pk|bd|ir|eg|tr|vn|id|th|ph|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|ss|st|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tr|tt|tv|tw|tz|ua|ug|um|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|za|zm|zw)(?:\?[^\s]*)?)/gi;
-  const urls = message.match(urlRegex) || [];
-  let viewButtons = []; // Array to hold button elements
+    let escapedMessage;
 
+    // 处理流式消息中的代码块
+    let codeMarkCount = 0;
+    let index = message.indexOf('```');
 
-  if (message.includes('Unexpected data format:')) {
-    // 从消息中提取 JSON 类似的字符串
-    const dataString = message.split('Unexpected data format: ')[1].trim();
+    while (index !== -1) {
+        codeMarkCount++;
+        index = message.indexOf('```', index + 3);
+    }
 
-    // 将单引号替换为双引号，形成有效的 JSON
-    const jsonString = dataString.replace(/'/g, '"');
+    if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+        escapedMessage = marked.parse(message + '\n\n```');
+    } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+        if (message.includes('`')) {
+            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+        } else {
+            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+        }
+    }
 
-    try {
-      const dataObject = JSON.parse(jsonString);
-      const urlsFromJson = dataObject.data.map(item => item.url);
+    let messageContent = escapedMessage;
+    const urlRegex = /(https?:\/\/[^\s'"<>\]{}]+?\.(?:png|jpg|jpeg|gif|webp|svg|bmp|tiff|ico|pdf|html|txt|js|css|json|xml|csv|xlsx|docx|pptx|zip|rar|7z|tar|gz|bz2|xz|mp3|mp4|avi|mov|wmv|flv|mkv|webm|ogg|ogv|oga)(?:\?[^\s]*)?|[^\s'"<>\]{}]+\.[^\s'"<>\]{}]+\.(?:com|org|net|info|biz|gov|edu|mil|name|pro|aero|cat|coop|jobs|mobi|tel|travel|museum|asia|eu|uk|us|cn|de|fr|jp|kr|ru|in|br|au|ca|mx|es|it|za|ng|pk|bd|ir|eg|tr|vn|id|th|ph|my|mz|na|nc|ne|nf|ng|ni|nl|no|np|nr|nu|nz|om|pa|pe|pf|pg|ph|pk|pl|pm|pn|pr|ps|pt|pw|py|qa|re|ro|rs|ru|rw|sa|sb|sc|sd|se|sg|sh|si|sj|sk|sl|sm|sn|so|sr|ss|st|sv|sx|sy|sz|tc|td|tf|tg|th|tj|tk|tl|tm|tn|to|tr|tt|tv|tw|tz|ua|ug|um|us|uy|uz|va|vc|ve|vg|vi|vn|vu|wf|ws|ye|yt|za|zm|zw)(?:\?[^\s]*)?)/gi;
+    const urls = message.match(urlRegex) || [];
 
-      if (urlsFromJson && urlsFromJson.length > 0) {
-        let imagesHtml = '';
-        urlsFromJson.forEach(url => {
-          imagesHtml += '<img src="' + url + '" style="max-width: 35%; max-height: 35%;" alt="messages"> ';
-          let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-          viewButton.data('url', url); // Set data-url using jQuery .data()
-          viewButtons.push(viewButton); // Add button element to array
+    console.log("URLs found in message:", urls); // DEBUG: Log found URLs
+
+    if (message.includes('Unexpected data format:')) {
+        // 从消息中提取 JSON 类似的字符串
+        const dataString = message.split('Unexpected data format: ')[1].trim();
+        const jsonString = dataString.replace(/'/g, '"');
+
+        try {
+            const dataObject = JSON.parse(jsonString);
+            const urlsFromJson = dataObject.data.map(item => item.url);
+
+            if (urlsFromJson && urlsFromJson.length > 0) {
+                let imagesHtml = '';
+                urlsFromJson.forEach(url => {
+                    imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"> <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button></span>`;
+                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
+
+                });
+                messageContent = escapedMessage + imagesHtml;
+            }
+        } catch (error) {
+            console.error('JSON 解析错误:', error);
+        }
+    } else if (urls.length > 0) {
+        let linkedMessageContent = escapedMessage;
+        urls.forEach(url => {
+            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
+            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl + viewButtonHtml);
+            console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
-        messageContent = escapedMessage + imagesHtml;
-      }
-    } catch (error) {
-      console.error('JSON 解析错误:', error);
-      // 如果解析失败，回退到正则表达式方法
+        messageContent = linkedMessageContent;
     }
-  } else if (urls.length > 0) {
-      urls.forEach(url => {
-          const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-          messageContent = messageContent.replace(url, linkedUrl); // Replace plain text URLs with links
-          let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-          viewButton.data('url', url); // Set data-url using jQuery .data()
-          viewButtons.push(viewButton); // Add button element to array
-      });
-      escapedMessage = messageContent; // Update escapedMessage with linked URLs
-  }
 
-  if (message.startsWith('"//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message.replace(/"/g, '');
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } else if (message.startsWith('//')) {
-    // 处理包含base64编码的音频
-    const base64Data = message;
-    lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  } else {
-    lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
-      // Append view buttons after copy button
-    viewButtons.forEach(button => {
-        lastResponseElement.append(button);
+    if (message.startsWith('"//')) {
+        // 处理包含base64编码的音频
+        const base64Data = message.replace(/"/g, '');
+        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    } else if (message.startsWith('//')) {
+        // 处理包含base64编码的音频
+        const base64Data = message;
+        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    } else {
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    }
+
+
+    // 绑定按钮事件
+    lastResponseElement.find('.view-button').on('click', function() {
+        const urlToOpen = $(this).data('url');
+        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
+        window.open(urlToOpen, '_blank');
     });
-    lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-  }
-
-
-  // 绑定按钮事件
-  lastResponseElement.find('.view-button').on('click', function() {
-    window.open($(this).data('url') || $(this).siblings('.message-text').find('img').attr('src') , '_blank');
-  });
-  lastResponseElement.find('.copy-button').click(function() {
-    copyMessage($(this).prev().text().trim());
-  });
-  lastResponseElement.find('.delete-message-btn').click(function() {
-    $(this).closest('.message-bubble').remove();
-  });
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim());
+    });
+    lastResponseElement.find('.delete-message-btn').click(function() {
+        $(this).closest('.message-bubble').remove();
+    });
 }
 
 // 复制按钮点击事件
