@@ -788,36 +788,20 @@ function addResponseMessage(message) {
         }
     }
 
-    let messageTextContent = ""; // To build the message content with links
-    const urlRegex = /(https?:\/\/[^\s()]+)/g;
+    let messageContent = escapedMessage;
+    // Refined URL regex to not include trailing parenthesis
+    const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
     let urls = [];
     let match;
-    let lastIndex = 0; // To track last index processed in message
     let viewButtonsHtml = '';
+    let processedMessageContent = messageContent; // Working copy of messageContent
 
-    // Find all URLs and build message content
+    // Find all URLs in the message
     while ((match = urlRegex.exec(message)) !== null) {
         urls.push(match[0]);
-        const url = match[0];
-        const urlHostname = new URL(url).hostname;
-        // Construct linkedUrl as pure HTML <a> tag
-        const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`;
-        const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
-
-        // Append text before URL
-        messageTextContent += escapeHtml(message.substring(lastIndex, match.index));
-        // Append linked URL and view button
-        messageTextContent += linkedUrl; // Append directly HTML link
-        viewButtonsHtml += viewButtonHtml;
-
-        lastIndex = urlRegex.lastIndex; // Update last index to after the matched URL
-
-        console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
     }
-    // Append any remaining text after the last URL
-    messageTextContent += escapeHtml(message.substring(lastIndex));
-    messageContent = marked.parse(messageTextContent); // Parse final message content
 
+    console.log("URLs found in message:", urls); // DEBUG: Log found URLs
 
     if (message.includes('Unexpected data format:')) {
         // 从消息中提取 JSON 类似的字符串
@@ -836,13 +820,24 @@ function addResponseMessage(message) {
                     viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
-                messageContent += imagesHtml; // Append images HTML, not replace
+                processedMessageContent = escapedMessage + imagesHtml; // Use processedMessageContent here
             }
         } catch (error) {
             console.error('JSON 解析错误:', error);
         }
-    }
+    } else if (urls.length > 0) {
+        urls.forEach(url => {
+            const urlHostname = new URL(url).hostname; // Extract hostname for cleaner link text
+            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`; // Use hostname as link text
+            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
 
+            // Replace the first occurrence of the URL in processedMessageContent
+            processedMessageContent = processedMessageContent.replace(url, linkedUrl);
+
+            viewButtonsHtml += viewButtonHtml; // Append button HTML
+            console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
+        });
+    }
 
     if (message.startsWith('"//')) {
         // 处理包含base64编码的音频
@@ -853,7 +848,7 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
+        lastResponseElement.append('<div class="message-text">' + processedMessageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here, use processedMessageContent
     }
 
 
