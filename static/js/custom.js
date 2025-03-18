@@ -793,7 +793,7 @@ function addResponseMessage(message) {
     const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
     let urls = [];
     let match;
-    let viewButtons = []; // Array to hold button elements
+    let viewButtonsHtml = '';
 
     // Find all URLs in the message
     while ((match = urlRegex.exec(message)) !== null) {
@@ -814,10 +814,9 @@ function addResponseMessage(message) {
             if (urlsFromJson && urlsFromJson.length > 0) {
                 let imagesHtml = '';
                 urlsFromJson.forEach(url => {
-                    imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"></span>`;
-                    let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>'); // Create button element
-                    viewButton.data('url', url); // Set data-url
-                    viewButtons.push(viewButton); // Add to button array
+                    const urlHostname = new URL(url).hostname; // Extract hostname for cleaner link text
+                    imagesHtml += `<span class="image-container"><img src="${url}" style="max-width: 35%; max-height: 35%;" alt="messages"> <button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button></span>`;
+                    viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
                 messageContent = escapedMessage + imagesHtml;
@@ -828,13 +827,11 @@ function addResponseMessage(message) {
     } else if (urls.length > 0) {
         let linkedMessageContent = escapedMessage;
         urls.forEach(url => {
-            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
-            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl); // Just replace with link in text
-
-            let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>'); // Create button element
-            viewButton.data('url', url); // Set data-url
-            viewButtons.push(viewButton); // Add to button array
-
+            const urlHostname = new URL(url).hostname; // Extract hostname for cleaner link text
+            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`; // Use hostname as link text
+            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
+            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl); // Replace with cleaner link in text
+            viewButtonsHtml += viewButtonHtml; // Append button HTML
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
         messageContent = linkedMessageContent; // Update message content with links
@@ -849,12 +846,7 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
-        // Append view buttons after copy button
-        viewButtons.forEach(button => {
-            lastResponseElement.append(button);
-        });
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + viewButtonsHtml + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append viewButtonsHtml here
     }
 
 
