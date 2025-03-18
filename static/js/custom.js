@@ -765,7 +765,7 @@ function addResponseMessage(message) {
         $(".answer .others .center").css("display", "flex");
     }
 
-    let escapedMessage;
+    let escapedMessage; // Will be used for the final escaped and parsed message
 
     // 处理流式消息中的代码块
     let codeMarkCount = 0;
@@ -776,25 +776,27 @@ function addResponseMessage(message) {
         index = message.indexOf('```', index + 3);
     }
 
+    let preEscapedMessage; // Message before URL processing, for code block handling
     if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-        escapedMessage = marked.parse(message + '\n\n```');
+        preEscapedMessage = marked.parse(message + '\n\n```');
     } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+        preEscapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
     } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
         if (message.includes('`')) {
-            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+            preEscapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
         } else {
-            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+            preEscapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
         }
     }
+    let messageContent = preEscapedMessage; // Initialize with pre-escaped content
 
-    let messageContent = escapedMessage;
+
     // Refined URL regex to not include trailing parenthesis
     const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
     let urls = [];
     let match;
     let viewButtonsHtml = '';
-    let processedMessage = message; // Start with the original message for processing
+    let processedMessage = message; // Start with the original message for URL processing
 
     // Find all URLs in the message
     while ((match = urlRegex.exec(message))) { // Use original message for regex matching
@@ -819,7 +821,7 @@ function addResponseMessage(message) {
                     viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
-                messageContent = escapedMessage + imagesHtml;
+                messageContent = preEscapedMessage + imagesHtml; // Append images to pre-escaped content
             }
         } catch (error) {
             console.error('JSON 解析错误:', error);
@@ -829,14 +831,14 @@ function addResponseMessage(message) {
             // Create Markdown link: [domain name](full URL) - with space after
             const urlObj = new URL(url);
             const domain = urlObj.hostname.replace(/^www\./, ''); // Get domain without 'www.'
-            const markdownLink = `[${domain}](${url}) `; // Note the space at the end of markdown link
+            const markdownLink = `[${domain}](${url})`; // Markdown link - no space at the end this time
             processedMessage = processedMessage.replace(url, markdownLink); // Replace in plain text message for markdown parsing
             const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
             viewButtonsHtml += viewButtonHtml; // Append button HTML
             console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
         });
-        escapedMessage = marked.parse(escapeHtml(processedMessage)); // Parse the processed message with markdown links
-        messageContent = escapedMessage; // Update message content with markdown parsed content
+        escapedMessage = marked.parse(escapeHtml(processedMessage)); // Parse the processed message with markdown links AFTER escaping
+        messageContent = escapedMessage; // Update message content with fully processed and parsed content
     } else {
         escapedMessage = marked.parse(escapeHtml(message)); // Parse original message if no URLs
         messageContent = escapedMessage;
