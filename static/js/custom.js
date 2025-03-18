@@ -788,19 +788,35 @@ function addResponseMessage(message) {
         }
     }
 
-    let messageContent = escapedMessage;
-    // Refined URL regex to not include trailing parenthesis
-    const urlRegex = /(https?:\/\/[^\s()]+)/g; // Exclude space and parenthesis from URL match
+    let messageTextContent = ""; // To build the message content with links
+    const urlRegex = /(https?:\/\/[^\s()]+)/g;
     let urls = [];
     let match;
+    let lastIndex = 0; // To track last index processed in message
     let viewButtonsHtml = '';
 
-    // Find all URLs in the message
+    // Find all URLs and build message content
     while ((match = urlRegex.exec(message)) !== null) {
         urls.push(match[0]);
-    }
+        const url = match[0];
+        const urlHostname = new URL(url).hostname;
+        const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`;
+        const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`;
 
-    console.log("URLs found in message:", urls); // DEBUG: Log found URLs
+        // Append text before URL
+        messageTextContent += escapeHtml(message.substring(lastIndex, match.index));
+        // Append linked URL and view button
+        messageTextContent += linkedUrl;
+        viewButtonsHtml += viewButtonHtml;
+
+        lastIndex = urlRegex.lastIndex; // Update last index to after the matched URL
+
+        console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
+    }
+    // Append any remaining text after the last URL
+    messageTextContent += escapeHtml(message.substring(lastIndex));
+    messageContent = marked.parse(messageTextContent); // Parse final message content
+
 
     if (message.includes('Unexpected data format:')) {
         // 从消息中提取 JSON 类似的字符串
@@ -819,23 +835,13 @@ function addResponseMessage(message) {
                     viewButtonsHtml += `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each image - building button HTML
                     console.log("View button created for URL (JSON):", url); // DEBUG: Log button creation
                 });
-                messageContent = escapedMessage + imagesHtml;
+                messageContent += imagesHtml; // Append images HTML, not replace
             }
         } catch (error) {
             console.error('JSON 解析错误:', error);
         }
-    } else if (urls.length > 0) {
-        let linkedMessageContent = escapedMessage;
-        urls.forEach(url => {
-            const urlHostname = new URL(url).hostname; // Extract hostname for cleaner link text
-            const linkedUrl = `<a href="${url}" target="_blank" rel="noopener noreferrer">${urlHostname}</a>`; // Use hostname as link text
-            const viewButtonHtml = `<button class="view-button" data-url="${url}"><i class="fas fa-search"></i></button>`; // View button for each URL - building button HTML
-            linkedMessageContent = linkedMessageContent.replace(url, linkedUrl); // Replace with cleaner link in text
-            viewButtonsHtml += viewButtonHtml; // Append button HTML
-            console.log("View button created for URL (Regex):", url); // DEBUG: Log button creation
-        });
-        messageContent = linkedMessageContent; // Update message content with links
     }
+
 
     if (message.startsWith('"//')) {
         // 处理包含base64编码的音频
