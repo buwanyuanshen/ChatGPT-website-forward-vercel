@@ -21,6 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
+    setCookie('modelSearchInput', searchInput.value, 30); // 存储模型搜索框输入内容
 });
 
 function resetImageUpload() {
@@ -94,6 +95,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化时检查一次
     checkModelAndShowUpload();
+
+    // 初始化模型搜索框
+    const savedModelSearchInput = getCookie('modelSearchInput');
+    if (savedModelSearchInput) {
+        searchInput.value = savedModelSearchInput;
+    }
 });
 
 
@@ -440,6 +447,12 @@ $(document).ready(function () {
     }
     initializeDataDescription();
     updateTitle();
+
+    // 初始化 apiPath select
+    const savedApiPath = getCookie('apiPath');
+    if (savedApiPath) {
+        $('#apiPathSelect').val(savedApiPath);
+    }
 });
 
 
@@ -651,6 +664,53 @@ function addImageMessage(imageUrl) {
     });
 }
 
+// 添加富文本消息到窗口，可以包含文本和图片
+function addRichTextMessage(parts) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    let messageContent = '';
+    let viewButtons = [];
+
+    parts.forEach(part => {
+        if (part.text) {
+            messageContent += marked.parse(escapeHtml(part.text));
+        } else if (part.inlineData) {
+            const mimeType = part.inlineData.mimeType;
+            const base64Data = part.inlineData.data;
+            if (mimeType.startsWith('image/')) {
+                const imageUrl = `data:${mimeType};base64,${base64Data}`;
+                messageContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
+                let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+                viewButton.data('url', imageUrl);
+                viewButtons.push(viewButton);
+            } else {
+                messageContent += `<p>不支持的数据类型: ${mimeType}</p>`;
+            }
+        }
+    });
+
+    lastResponseElement.append(`<div class="message-text">${messageContent}</div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+    viewButtons.forEach(button => {
+        lastResponseElement.append(button);
+    });
+    lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+
+    // 绑定查看按钮事件
+    lastResponseElement.find('.view-button').on('click', function() {
+        const urlToOpen = $(this).data('url');
+        window.open(urlToOpen, '_blank');
+    });
+    // 绑定复制按钮点击事件
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim());
+    });
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').click(function() {
+        $(this).closest('.message-bubble').remove();
+    });
+}
+
+
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
     let lastResponseElement = $(".message-bubble .response").last();
@@ -757,6 +817,7 @@ function editMessage(message) {
 }
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
+// 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
@@ -841,7 +902,8 @@ function addResponseMessage(message) {
         $(this).closest('.message-bubble').remove();
     });
 }
-    
+
+
 // 复制按钮点击事件
 $(document).on('click', '.copy-button', function() {
   let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
@@ -895,7 +957,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -994,10 +1056,34 @@ if (selectedApiPath) {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
 }
 
-
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
-if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
+// --- Google API Support Start ---
+if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    requestBody = {
+        "contents": [{
+            "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
+        }],
+        "generationConfig": {
+            "maxOutputTokens": data.max_tokens,
+            "temperature": data.temperature,
+            "topP": 1,
+            "responseModalities":["Text","Image"]
+        }
+    };
+}else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    requestBody = {
+        "contents": [{
+            "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
+        }],
+        "generationConfig": {
+            "maxOutputTokens": data.max_tokens,
+            "temperature": data.temperature,
+            "topP": 1        }
+    };
+}else if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
         "prompt": data.prompts[0].content,
@@ -1079,7 +1165,18 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+} else if (selectedApiPath === '/v1/messages') { // New API path for /v1/messages
+    apiUrl = datas.api_url + "/v1/messages";
+    requestBody = {
+        "messages": data.prompts,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": getCookie('streamOutput') !== 'false'
+    };
+}else { // Default to /v1/chat/completions for other models or if path is not explicitly set
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "messages": data.prompts,
@@ -1160,7 +1257,10 @@ const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
+        // --- Google API Support: Conditional Header ---
+        'Authorization': selectedApiPath === '/v1beta/models/model:generateContent?' ? undefined : 'Bearer ' + apiKey // Don't send Bearer token for Google API, adjust if Google Auth is different
+        // --- Google API Support: Conditional Header End ---
+        || 'Bearer ' + apiKey // Default OpenAI Auth
     },
     body: JSON.stringify(requestBody)
 });
@@ -1171,6 +1271,25 @@ if (!response.ok) {
     return;
 }
 
+// --- Google API Support: Response Handling ---
+if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
+    const responseData = await response.json();
+    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content) {
+        const parts = responseData.candidates[0].content.parts;
+        addRichTextMessage(parts); // 使用新的函数处理富文本消息
+        resFlag = true;
+        return parts; // 返回 parts 用于后续处理，如果需要的话
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+        return;
+    } else {
+        addFailMessage("Google Gemini API 返回数据格式不正确");
+        resFlag = false;
+        return;
+    }
+} else
+// --- Google API Support: Response Handling End ---
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
@@ -1226,53 +1345,88 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str;
+    let str; // 初始化 str
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
             break;
         }
         str = '';
-        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        const lines = res.trim().split(/[\n]+(?=\{)/);
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let jsonObj;
-            try {
-                jsonObj = JSON.parse(line);
-            } catch (e) {
-                break;
-            }
-    if (jsonObj.choices) {
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-            const content = jsonObj.choices[0].delta.content;
+        res += new TextDecoder().decode(value);
 
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
+        if (apiUrl === datas.api_url + "/v1/messages") {
+            // /v1/messages 流式响应处理
+            const stream_res = res.trim().split(/[\n\n]/); // 使用双换行符分割
+            str = ''; // 重置 str
+            for (let i = 0; i < stream_res.length; i++) {
+                const stream_line = stream_res[i];
+                if (stream_line.startsWith("event: content_block_delta")) {
+                    const dataLine = stream_res[i + 1]; // 获取下一行 data
+                    if (dataLine && dataLine.startsWith("data: ")) {
+                        try {
+                            const json_data = JSON.parse(dataLine.substring(6)); // 从 "data: " 后开始解析
+                            if (json_data.type === "content_block_delta" && json_data.delta.type === "text_delta") {
+                                str += json_data.delta.text;
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse JSON:", dataLine.substring(6), e);
+                        }
+                    }
+                }
             }
-        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-            str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-            const message = jsonObj.choices[0].message;
-            const reasoningContent = message.reasoning_content;
-            const content = message.content;
+            if (str) {  //只有当str不为空时才添加
+              addResponseMessage(str);
+              resFlag = true;
+              res = ''; // 清空 res，避免重复处理
+            }
 
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        }
-                addResponseMessage(str);
-                resFlag = true;
-            } else {
-                if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+        } else {
+          // 其他路径的流式响应处理 (原逻辑)
+          str = ''; //reset str
+          const lines = res.trim().split(/[\n]+(?=\{)/).filter(line => line.trim() !== ''); // 过滤空行
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].replace(/^data: /, '').replace("[DONE]", ''); // 移除 "data: " 和 "[DONE]"
+
+                let jsonObj;
+                try {
+                    jsonObj = JSON.parse(line);
+                } catch (e) {
+                    continue; // 如果解析失败，跳过当前行
+                }
+
+                if (jsonObj && jsonObj.choices) {
+                    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+                        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+                        const content = jsonObj.choices[0].delta.content;
+
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
+                        }
+                    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+                        str += jsonObj.choices[0].text;
+                    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+                        const message = jsonObj.choices[0].message;
+                        const reasoningContent = message.reasoning_content;
+                        const content = message.content;
+
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
+                        }
+                    }
+
+                    if(str) {  //只有当str不为空时才添加
+                      addResponseMessage(str);
+                      resFlag = true;
+                    }
+                } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + (jsonObj.error.code ? " " + jsonObj.error.code : ""));
                     resFlag = false;
                 }
             }
@@ -1281,13 +1435,28 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
     // **新增代码 - 流式响应结束后判断是否滚动到底部**
     if (wasScrolledToBottomBeforeRequest) {
-      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
+        // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
-
-
     return str;
+
 } else { // 非流式输出处理
     const responseData = await response.json();
+
+    // /v1/messages 非流式响应
+    if (apiUrl === datas.api_url + "/v1/messages") {
+        if (responseData.content && responseData.content.length > 0 && responseData.content[0].text) {
+            let content = responseData.content[0].text;
+            addResponseMessage(content);
+            resFlag = true;
+            return content;
+        } else if (responseData.error) {
+            addFailMessage(responseData.error.message);
+            resFlag = false;
+            return;
+        }
+    }
+
+    // 其他 API 的非流式响应 (原逻辑)
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
         if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
@@ -1306,12 +1475,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         addFailMessage("Unexpected response format.");
         resFlag = false;
         return null;
-    }
-
-    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    if (wasScrolledToBottomBeforeRequest) {
-      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
 }
 
@@ -1683,7 +1846,7 @@ function updateModelSettings(modelName) {
 
     if (targetApiPath) {
         apiPathSelect.val(targetApiPath);
-        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
+        setCookie('apiPath', targetApiPath, 30); // Also store apiPath in cookie
     }
     // --- End of Path Auto-Switching Logic ---
 }
@@ -1850,7 +2013,7 @@ $(".delete a").click(function(){
     });
   }
     // 读取apiPath
-    const apiPath = localStorage.getItem('apiPath');
+    const apiPath = getCookie('apiPath'); // Changed to getCookie
     if (apiPath) {
         apiPathSelect.val(apiPath);
     }
@@ -1858,6 +2021,6 @@ $(".delete a").click(function(){
     // apiPath select event
     apiPathSelect.change(function() {
         const selectedApiPath = $(this).val();
-        localStorage.setItem('apiPath', selectedApiPath);
+        setCookie('apiPath', selectedApiPath, 30); // Changed to setCookie
     });
 });
