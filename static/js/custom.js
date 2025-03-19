@@ -21,6 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
+    setCookie('modelSearchTerm', searchInput.value, 30); // 保存搜索词到 cookie
 });
 
 function resetImageUpload() {
@@ -94,6 +95,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化时检查一次
     checkModelAndShowUpload();
+
+    // 初始化模型搜索框内容
+    const modelSearchTerm = getCookie('modelSearchTerm');
+    if (modelSearchTerm) {
+        searchInput.value = modelSearchTerm;
+        searchInput.dispatchEvent(new Event('input')); // 触发 input 事件以应用筛选
+    }
 });
 
 
@@ -173,6 +181,13 @@ document.addEventListener('DOMContentLoaded', function() {
     maxDialogueMessagesInput.addEventListener('change', function() {
         setCookie('maxDialogueMessages', this.value, 30);
     });
+
+    // 初始化 API Path 选择器
+    const apiPathSelect = document.getElementById('apiPathSelect');
+    const savedApiPath = getCookie('apiPath');
+    if (savedApiPath) {
+        apiPathSelect.value = savedApiPath;
+    }
 });
 
 
@@ -634,22 +649,48 @@ $(document).ready(function() {
     return div.innerHTML;
   }
 
-// 添加图片消息到窗口 (独立图片消息，例如 DALL-E)
+// 添加图片消息到窗口
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
-    // lastResponseElement.empty(); //  Don't empty here, append to existing content if needed
+    lastResponseElement.empty();
     lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
-    lastResponseElement.find('.view-button').off('click').on('click', function() {
+    lastResponseElement.find('.view-button').on('click', function() {
         window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').off('click').on('click', function() {
-        $(this).closest('.message-bubble').remove();
+    lastResponseElement.find('.delete-message-btn').on('click', function() {
+        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
     });
 }
 
+// 添加Gemini 图片消息到窗口 (处理 base64 编码的图片)
+function addGeminiImageMessage(base64Image, mimeType, textContent) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    let imageElement = '';
+    if (base64Image && mimeType) {
+        const imageUrl = `data:${mimeType};base64,${base64Image}`;
+        imageElement = `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">` + '<button class="view-button"><i class="fas fa-search"></i></button>';
+         // 绑定查看按钮事件
+        lastResponseElement.find('.view-button').on('click', function() {
+            window.open(imageUrl, '_blank');
+        });
+    }
+    let textElement = '';
+    if (textContent) {
+        textElement = `<p>${marked.parse(escapeHtml(textContent))}</p>`; // 使用 marked.parse 和 escapeHtml 处理文本内容
+    }
+
+    lastResponseElement.append(`<div class="message-text">${textElement}${imageElement}</div>` + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').on('click', function() {
+        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+    });
+}
 
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
@@ -820,11 +861,11 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text text-content">' + messageContent + '</div>'); // Wrap text in text-content div
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
         viewButtons.forEach(button => {
             lastResponseElement.append(button);
         });
-        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Add copy and delete buttons at the end
+        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     }
 
 
@@ -834,12 +875,8 @@ function addResponseMessage(message) {
         console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
-    lastResponseElement.find('.copy-button').off('click').on('click', function() { // Rebind copy button to fix copy issue
-        let fullText = '';
-        $(this).closest('.response').find('.message-text.text-content').each(function() { // Select all text-content divs within the response
-            fullText += $(this).text().trim() + '\n'; // Append each text part with a newline
-        });
-        copyMessage(fullText.trim()); // Copy the combined text
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim());
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
@@ -1002,7 +1039,7 @@ const model = data.model.toLowerCase(); // Convert model name to lowercase for e
 
 // --- Google API Support Start ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1015,7 +1052,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
         }
     };
 }else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1214,44 +1251,29 @@ if (!response.ok) {
 }
 
 // --- Google API Support: Response Handling ---
-if (selectedApiPath === '/v1beta/models/model:generateContent?') {
+if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
-    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        let lastResponseElement = $(".message-bubble .response").last();
-        lastResponseElement.empty(); // Clear previous loading icon
-
-        responseData.candidates[0].content.parts.forEach(part => {
-            if (part.text) {
-                // Append text content if any text parts are present, wrapped in text-content div
-                lastResponseElement.append('<div class="message-text text-content">' + marked.parse(escapeHtml(part.text)) + '</div>');
-            } else if (part.inlineData) {
-                const mimeType = part.inlineData.mimeType;
-                const imageData = part.inlineData.data;
-                const imageUrl = `data:${mimeType};base64,${imageData}`;
-                // Directly append image element for inline images, using dedicated function
-                addImageMessageInline(imageUrl, lastResponseElement);
+    if (responseData.candidates && responseData.candidates.length > 0) {
+        let combinedContent = '';
+        let hasImage = false;
+        responseData.candidates.forEach(candidate => {
+            if (candidate.content && candidate.content.parts) {
+                candidate.content.parts.forEach(part => {
+                    if (part.text) {
+                        combinedContent += part.text + '\n';
+                    } else if (part.inlineData) {
+                        addGeminiImageMessage(part.inlineData.data, part.inlineData.mimeType, combinedContent);
+                        combinedContent = ''; // Reset text content after image
+                        hasImage = true;
+                    }
+                });
             }
         });
-
-        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Add copy and delete buttons after all parts
-
-
-        lastResponseElement.find('.copy-button').off('click').on('click', function() {
-            let fullText = '';
-            $(this).closest('.response').find('.message-text.text-content').each(function() { // Select all text-content divs within the response
-                fullText += $(this).text().trim() + '\n'; // Append each text part with a newline
-            });
-            copyMessage(fullText.trim()); // Copy the combined text
-        });
-
-
-        lastResponseElement.find('.delete-message-btn').off('click').on('click', function() {
-            $(this).closest('.message-bubble').remove();
-        });
-
-
+        if (!hasImage && combinedContent.trim() !== '') {
+            addResponseMessage(combinedContent.trim()); // Display remaining text if no image was processed
+        }
         resFlag = true;
-        return responseData.candidates[0].content.parts.map(part => part.text || (part.inlineData ? "[Image]" : "")).join(" "); // Return combined text and image markers
+        return combinedContent;
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1454,25 +1476,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
 
   }
-
-  // Function to add inline image message (for Gemini API response parts)
-function addImageMessageInline(imageUrl, lastResponseElement) {
-    // Append image element directly to the lastResponseElement
-    const imageElement = $(`<div class="message-text inline-image"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%; cursor: pointer;" alt="Generated Image"></div>`);
-
-    lastResponseElement.append(imageElement);
-
-
-    // 绑定查看按钮事件
-    viewButton.off('click').on('click', function() {
-        window.open(imageUrl, '_blank');
-    });
-
-    // Image click to view (alternative to button, or in addition) - keep this for direct image click
-    imageElement.find('img').off('click').on('click', function() {
-        window.open(imageUrl, '_blank');
-    });
-}
 
 
   // 处理用户输入
@@ -1839,7 +1842,7 @@ function updateModelSettings(modelName) {
 
     if (targetApiPath) {
         apiPathSelect.val(targetApiPath);
-        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
+        setCookie('apiPath', targetApiPath, 30); // 保存 API Path 到 Cookie
     }
     // --- End of Path Auto-Switching Logic ---
 }
@@ -2006,7 +2009,7 @@ $(".delete a").click(function(){
     });
   }
     // 读取apiPath
-    const apiPath = localStorage.getItem('apiPath');
+    const apiPath = getCookie('apiPath');
     if (apiPath) {
         apiPathSelect.val(apiPath);
     }
@@ -2014,6 +2017,6 @@ $(".delete a").click(function(){
     // apiPath select event
     apiPathSelect.change(function() {
         const selectedApiPath = $(this).val();
-        localStorage.setItem('apiPath', selectedApiPath);
+        setCookie('apiPath', selectedApiPath, 30);
     });
 });
