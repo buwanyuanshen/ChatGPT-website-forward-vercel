@@ -1087,7 +1087,6 @@ else if (selectedApiPath === '/v1beta') {
         "contents": [{ // Updated request body structure for Gemini
             "parts": data.prompts.map(p => ({ "text": p.content })) // Map messages to parts with text
         }],
-        "stream": getCookie('streamOutput') !== 'false' // Keep stream setting
     };
      if (data.image_base64 && data.image_base64.trim() !== '' ) { // Gemini Vision (Multimodal)
         apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`; // Vision API path is the same as chat for Gemini
@@ -1103,7 +1102,6 @@ else if (selectedApiPath === '/v1beta') {
                     },
                 ],
             }],
-            "stream": getCookie('streamOutput') !== 'false'
         };
     }
 }
