@@ -21,7 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
-    setCookie('modelSearchInput', searchInput.value, 30); // Store search input in cookie
+    setCookie('modelSearchInput', searchInput.value, 30); // Save search input to cookie
 });
 
 function resetImageUpload() {
@@ -315,36 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ensure DOM is fully loaded before adding event listeners
     document.addEventListener('DOMContentLoaded', function () {
         initListeners();
-
-        // Load saved API Path from cookie
-        const savedApiPath = getCookie('apiPath');
-        if (savedApiPath) {
-            $('#apiPathSelect').val(savedApiPath);
-        }
-
-        // Load saved Model Search Input from cookie
-        const savedModelSearchInput = getCookie('modelSearchInput');
-        if (savedModelSearchInput) {
-            searchInput.value = savedModelSearchInput;
-            const searchTerm = savedModelSearchInput.toLowerCase();
-            if (selectElement) {
-                Array.from(selectElement.options).forEach(option => {
-                    const description = option.getAttribute('data-description').toLowerCase();
-                    if (description.includes(searchTerm)) {
-                        option.style.display = 'block';
-                    } else {
-                        option.style.display = 'none';
-                    }
-                });
-            }
-        }
-        // Load saved Model Select value from cookie
-        const savedModelSelect = getCookie('selectedModel');
-        if (savedModelSelect) {
-            $('.settings-common .model').val(savedModelSelect);
-            updateModelSettings(savedModelSelect);
-            $(".title h2").text($(".settings-common .model option:selected").data('description'));
-        }
     });
 
 
@@ -630,6 +600,23 @@ $(document).ready(function() {
     const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
 
+    // Load saved API Path from cookie
+    const savedApiPath = getCookie('apiPath');
+    if (savedApiPath) {
+        apiPathSelect.val(savedApiPath);
+    }
+
+    // Save API Path to cookie on change
+    apiPathSelect.change(function() {
+        setCookie('apiPath', $(this).val(), 30);
+    });
+
+    // Load saved model search input from cookie
+    const savedModelSearchInput = getCookie('modelSearchInput');
+    if (savedModelSearchInput) {
+        searchInput.val(savedModelSearchInput);
+    }
+
 
   // 存储对话信息,实现连续对话
   var messages = [];
@@ -788,7 +775,7 @@ function editMessage(message) {
 }
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
-function addResponseMessage(messageContent) { // Changed parameter name to messageContent
+function addResponseMessage(message, isGeminiImageResponse = false, imageDataURL = null) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -796,59 +783,96 @@ function addResponseMessage(messageContent) { // Changed parameter name to messa
         $(".answer .others .center").css("display", "flex");
     }
 
-    let escapedMessage = marked.parse(escapeHtml(messageContent)); // Default to markdown parsing for text
+    let escapedMessage;
 
-    let viewButtons = [];
-
-    // Parse the message content as HTML to find <a> tags
-    let tempElement = $('<div>').html(escapedMessage); // Use escapedMessage here for HTML parsing
-    let links = tempElement.find('a');
-
-    console.log("Links found in HTML:", links); // DEBUG: Log found links
-
-    if (links.length > 0) {
-        links.each(function() {
-            let url = $(this).attr('href');
-            if (url) {
-                let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-                viewButton.data('url', url);
-                viewButtons.push(viewButton);
-                console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
-            }
+    if (isGeminiImageResponse && imageDataURL) {
+        // Handle Gemini image response
+        lastResponseElement.append('<div class="message-text">' + message + `<img src="${imageDataURL}" style="max-width: 30%; max-height: 30%; display: block; margin-top: 10px;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+         // 绑定查看按钮事件 (for image, but URL might be dataURL, so view button might not be very useful here unless you have original URL)
+        lastResponseElement.find('.view-button').on('click', function() {
+            // For data URL, opening in new tab might not be ideal, consider other actions if needed.
+            window.open(imageDataURL, '_blank');
         });
-         escapedMessage = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
-    }
+        // 绑定删除按钮点击事件
+        lastResponseElement.find('.delete-message-btn').click(function() {
+            $(this).closest('.message-bubble').remove();
+        });
 
-
-    if (messageContent.startsWith('"//')) {
-        // 处理包含base64编码的音频
-        const base64Data = messageContent.replace(/"/g, '');
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (messageContent.startsWith('//')) {
-        // 处理包含base64编码的音频
-        const base64Data = messageContent;
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>'); // Use escapedMessage here
-        viewButtons.forEach(button => {
-            lastResponseElement.append(button);
+        // 处理流式消息中的代码块
+        let codeMarkCount = 0;
+        let index = message.indexOf('```');
+
+        while (index !== -1) {
+            codeMarkCount++;
+            index = message.indexOf('```', index + 3);
+        }
+
+        if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+            escapedMessage = marked.parse(message + '\n\n```');
+        } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+            escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+        } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+            if (message.includes('`')) {
+                escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+            } else {
+                escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+            }
+        }
+
+        let messageContent = escapedMessage;
+        let viewButtons = [];
+
+        // Parse the message content as HTML to find <a> tags
+        let tempElement = $('<div>').html(messageContent);
+        let links = tempElement.find('a');
+
+        console.log("Links found in HTML:", links); // DEBUG: Log found links
+
+        if (links.length > 0) {
+            links.each(function() {
+                let url = $(this).attr('href');
+                if (url) {
+                    let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+                    viewButton.data('url', url);
+                    viewButtons.push(viewButton);
+                    console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
+                }
+            });
+             messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
+        }
+
+
+        if (message.startsWith('"//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message.replace(/"/g, '');
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        } else if (message.startsWith('//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message;
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        } else {
+            lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+            viewButtons.forEach(button => {
+                lastResponseElement.append(button);
+            });
+            lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        }
+
+
+        // 绑定按钮事件
+        lastResponseElement.find('.view-button').on('click', function() {
+            const urlToOpen = $(this).data('url');
+            console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
+            window.open(urlToOpen, '_blank');
         });
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        lastResponseElement.find('.copy-button').click(function() {
+            copyMessage($(this).prev().text().trim());
+        });
+        lastResponseElement.find('.delete-message-btn').click(function() {
+            $(this).closest('.message-bubble').remove();
+        });
     }
-
-
-    // 绑定按钮事件
-    lastResponseElement.find('.view-button').on('click', function() {
-        const urlToOpen = $(this).data('url');
-        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
-        window.open(urlToOpen, '_blank');
-    });
-    lastResponseElement.find('.copy-button').click(function() {
-        copyMessage($(this).prev().text().trim());
-    });
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-    });
 }
 
 // 复制按钮点击事件
@@ -904,7 +928,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -999,17 +1023,15 @@ let requestBody = {
 const selectedApiPath = apiPathSelect.val();
 if (selectedApiPath) {
     apiUrl = datas.api_url + selectedApiPath;
-    setCookie('apiPath', selectedApiPath, 30); // Store selected API Path in cookie
 } else {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
-    setCookie('apiPath', null, 30); // Clear cookie if default is used
 }
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
 // --- Google API Support Start ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1022,7 +1044,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
         }
     };
 }else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1224,20 +1246,18 @@ if (!response.ok) {
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        let messageContent = '';
-        for (const part of responseData.candidates[0].content.parts) {
+        let textContent = "";
+        let imageDataURL = null;
+        responseData.candidates[0].content.parts.forEach(part => {
             if (part.text) {
-                messageContent += part.text; // No markdown parse here, handled in addResponseMessage
-            } else if (part.inlineData && part.inlineData.data && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
-                const imageData = part.inlineData.data;
-                const mimeType = part.inlineData.mimeType;
-                const imageUrl = `data:${mimeType};base64,${imageData}`;
-                messageContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
+                textContent += part.text;
+            } else if (part.inlineData) {
+                imageDataURL = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
             }
-        }
-        addResponseMessage(messageContent); // Now add the combined content as HTML, markdown parse in addResponseMessage
+        });
+        addResponseMessage(textContent, true, imageDataURL); // Call addResponseMessage with image flag and dataURL
         resFlag = true;
-        return messageContent;
+        return textContent;
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1337,7 +1357,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 }
             }
             if (str) {  //只有当str不为空时才添加
-              addResponseMessage(str); // Pass str directly, markdown parsing in addResponseMessage
+              addResponseMessage(str);
               resFlag = true;
               res = ''; // 清空 res，避免重复处理
             }
@@ -1381,7 +1401,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                     }
 
                     if(str) {  //只有当str不为空时才添加
-                      addResponseMessage(str); // Pass str directly, markdown parsing in addResponseMessage
+                      addResponseMessage(str);
                       resFlag = true;
                     }
                 } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
@@ -1406,7 +1426,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     if (apiUrl === datas.api_url + "/v1/messages") {
         if (responseData.content && responseData.content.length > 0 && responseData.content[0].text) {
             let content = responseData.content[0].text;
-            addResponseMessage(content); // Pass content directly, markdown parsing in addResponseMessage
+            addResponseMessage(content);
             resFlag = true;
             return content;
         } else if (responseData.error) {
@@ -1424,7 +1444,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
         }
-        addResponseMessage(content); // Pass content directly, markdown parsing in addResponseMessage
+        addResponseMessage(content);
         resFlag = true;
         return content;
     } else if (responseData.error) {
@@ -1818,13 +1838,7 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(".settings-common .model option:selected").data('description'));
-            setCookie('selectedModel', selectedModel, 30); // Store selected model in cookie
-        } else {
-            const defaultModel = $('.settings-common .model').val(); // Get default model from select
-            updateModelSettings(defaultModel);
-            setCookie('selectedModel', defaultModel, 30); // Store default model in cookie if no cookie is set
         }
-
 
         // 监听model选择的变化
         $('.settings-common .model').change(function() {
@@ -1833,7 +1847,6 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(this).find("option:selected").data('description'));
-            setCookie('selectedModel', selectedModel, 30); // Store selected model in cookie
         });
 
 // 删除对话
