@@ -506,9 +506,10 @@ function addResponseMessage(messageParts) { // Modified to accept messageParts
             if (part.type === 'text') {
                 messageContentHTML += marked.parse(escapeHtml(part.content));
             } else if (part.type === 'image') {
+                console.log("Gemini Image Part URL:", part.url); // DEBUG: Log image URL
                 messageContentHTML += `<div class="message-text"><img src="${part.url}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
                 let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-                viewButton.data('url', part.url);
+                viewButton.data('url', part.url); // Setting data-url here
                 viewButtons.push(viewButton);
             }
         });
@@ -516,7 +517,7 @@ function addResponseMessage(messageParts) { // Modified to accept messageParts
 
     lastResponseElement.append('<div class="message-text">' + messageContentHTML + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
     viewButtons.forEach(button => {
-        lastResponseElement.append(button);
+        lastResponseElement.append(button); // Appending viewButtons here
     });
     lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
@@ -524,6 +525,7 @@ function addResponseMessage(messageParts) { // Modified to accept messageParts
     // 绑定按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
+        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
