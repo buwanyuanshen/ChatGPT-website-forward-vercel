@@ -638,7 +638,7 @@ $(document).ready(function() {
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.html(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
@@ -670,7 +670,7 @@ function addModerationMessage(moderationResult) {
         formattedResult += "</ul></li>";
     });
     formattedResult += "</ul>";
-    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.html('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
@@ -688,7 +688,7 @@ function addEmbeddingMessage(embeddingResult) {
     lastResponseElement.empty();
     // Display the embedding result as a JSON string in a <pre> block for readability
     const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
-    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.html(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定复制按钮点击事件
@@ -706,7 +706,7 @@ function addEmbeddingMessage(embeddingResult) {
 function addTTSMessage(audioBase64) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.html('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
@@ -757,7 +757,7 @@ function editMessage(message) {
 }
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
-function addResponseMessage(message) {
+function addResponseMessage(messageContent) { // changed parameter name to messageContent
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -769,30 +769,30 @@ function addResponseMessage(message) {
 
     // 处理流式消息中的代码块
     let codeMarkCount = 0;
-    let index = message.indexOf('```');
+    let index = messageContent.indexOf('```'); // use messageContent
 
     while (index !== -1) {
         codeMarkCount++;
-        index = message.indexOf('```', index + 3);
+        index = messageContent.indexOf('```', index + 3);
     }
 
     if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-        escapedMessage = marked.parse(message + '\n\n```');
+        escapedMessage = marked.parse(messageContent + '\n\n```'); // use messageContent
     } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+        escapedMessage = marked.parse(messageContent);  // 响应消息markdown实时转换为html // use messageContent
     } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-        if (message.includes('`')) {
-            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+        if (messageContent.includes('`')) { // use messageContent
+            escapedMessage = marked.parse(messageContent);  // 没有markdown代码块，但有代码段，依旧是 markdown格式 // use messageContent
         } else {
-            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+            escapedMessage = marked.parse(escapeHtml(messageContent)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面 // use messageContent
         }
     }
 
-    let messageContent = escapedMessage;
+    let processedMessageContent = escapedMessage; // Renamed to avoid confusion
     let viewButtons = [];
 
     // Parse the message content as HTML to find <a> tags
-    let tempElement = $('<div>').html(messageContent);
+    let tempElement = $('<div>').html(processedMessageContent);
     let links = tempElement.find('a');
 
     console.log("Links found in HTML:", links); // DEBUG: Log found links
@@ -807,20 +807,27 @@ function addResponseMessage(message) {
                 console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
             }
         });
-         messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
+         processedMessageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
     }
 
 
-    if (message.startsWith('"//')) {
+    if (messageContent.startsWith('"//')) { // use messageContent
         // 处理包含base64编码的音频
-        const base64Data = message.replace(/"/g, '');
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (message.startsWith('//')) {
+        const base64Data = messageContent.replace(/"/g, ''); // use messageContent
+        lastResponseElement.html('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // use .html() here
+    } else if (messageContent.startsWith('//')) { // use messageContent
         // 处理包含base64编码的音频
-        const base64Data = message;
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+        const base64Data = messageContent; // use messageContent
+        lastResponseElement.html('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // use .html() here
+    } else if (processedMessageContent.includes('<img src="data:image')) { // Check for base64 image data
+        lastResponseElement.html('<div class="message-text">' + processedMessageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>'); // Use .html() here for image rendering
+        viewButtons.forEach(button => {
+            lastResponseElement.append(button);
+        });
+        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    }
+     else {
+        lastResponseElement.html('<div class="message-text">' + processedMessageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>'); // Use .html() here for rendering markdown as HTML
         viewButtons.forEach(button => {
             lastResponseElement.append(button);
         });
@@ -1216,14 +1223,14 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
         let combinedContent = "";
         for (const part of responseData.candidates[0].content.parts) {
             if (part.text) {
-                combinedContent += part.text;
+                combinedContent += marked.parse(escapeHtml(part.text)); // Escape and parse text parts
             } else if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
                 const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
                 combinedContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
-                // You might need to adjust addResponseMessage to handle HTML content correctly.
+                // Now combinedContent contains both text (parsed as markdown) and image HTML
             }
         }
-        lastResponseElement.append(combinedContent); // Send combined content to addResponseMessage
+        addResponseMessage(combinedContent); // Send combined content to addResponseMessage
         resFlag = true;
         return combinedContent;
     } else if (responseData.error) {
