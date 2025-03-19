@@ -459,7 +459,7 @@ var deleteBtn = document.getElementById('deleteBtn');
 // 判断是否是移动端
 function isMobile() {
   // 使用适当的移动设备检测逻辑，这里简单地检查是否小于某个屏幕宽度
-  return window.innerWidth <= 768; // 这里假设小于等于768像素的宽度是移动端
+  return window.innerWidth <= 768; // 这里假设小于等于 768 像素的宽度是移动端
 }
 
 // 监听输入框内容变化
@@ -475,7 +475,7 @@ chatInput.addEventListener('input', function () {
     var newHeight = Math.min(maxHeight, chatInput.scrollHeight);
 
     // 设置外部容器的高度
-    iptContainer.style.height = (newHeight + 20) + 'px'; // 增加20px的额外空间
+    iptContainer.style.height = (newHeight + 20) + 'px'; // 增加 20px 的额外空间
 
     // 恢复滚动高度，避免闪烁
     chatInput.scrollTop = currentScrollHeight;
@@ -497,16 +497,16 @@ deleteBtn.addEventListener('click', function () {
 
 // 监听键盘按下事件
 chatInput.addEventListener('keydown', function (event) {
-    // 判断同时按下Ctrl键和Enter键
+    // 判断同时按下 Ctrl 键和 Enter 键
     if (event.ctrlKey && event.keyCode === 13) {
         // 设置输入框的初始高度
         chatInput.style.height = '32px';
         iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
     }
-    // 如果是手机端，直接按下Enter键发送
+    // 如果是手机端，直接按下 Enter 键发送
     else if (isMobile() && event.keyCode == 13) {
         chatBtn.click();
-        event.preventDefault();  //避免回车换行
+        event.preventDefault();  // 避免回车换行
     }
 });
 
@@ -530,7 +530,7 @@ $('.settings-common .temperature-input').on('input', function() {
     temperatureValue = parseFloat(temperatureValue).toFixed(1);
         $(this).val(temperatureValue);
     } else {
-        // 处理以0开头后面直接跟数字的情况，如01
+        // 处理以 0 开头后面直接跟数字的情况，如 01
         if (temperatureValue.startsWith('0') && temperatureValue.length > 1 && temperatureValue[1] !== '.') {
             temperatureValue = parseFloat(temperatureValue); // 将字符串转换为数字
             $(this).val(temperatureValue); // 更新输入框的值
@@ -626,7 +626,7 @@ $(document).ready(function() {
   });
 
 
-  // 转义html代码(对应字符转移为html实体)，防止在浏览器渲染
+  // 转义 html 代码 (对应字符转移为 html 实体)，防止在浏览器渲染
   function escapeHtml(html) {
     let text = document.createTextNode(html);
     let div = document.createElement('div');
@@ -718,7 +718,7 @@ function addTTSMessage(audioBase64) {
 function addRequestMessage(message) {
   $(".answer .tips").css({"display":"none"});    // 打赏卡隐藏
   chatInput.val('');
-  let escapedMessage = escapeHtml(message);  // 对请求message进行转义，防止输入的是html而被浏览器渲染
+  let escapedMessage = escapeHtml(message);  // 对请求 message 进行转义，防止输入的是 html 而被浏览器渲染
   let requestMessageElement = $('<div class="message-bubble"><span class="chat-icon request-icon"></span><div class="message-text request"><p>' + escapedMessage + '</p><button class="copy-button"><i class="far fa-copy"></i></button><button class="edit-button"><i class="fas fa-edit"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button></div></div>');
 
   chatWindow.append(requestMessageElement);
@@ -779,12 +779,12 @@ function addResponseMessage(message) {
     if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
         escapedMessage = marked.parse(message + '\n\n```');
     } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+        escapedMessage = marked.parse(message);  // 响应消息 markdown 实时转换为 html
+    } else if (codeMarkCount == 0) {  // 输出的代码没有 markdown 代码块
         if (message.includes('`')) {
-            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+            escapedMessage = marked.parse(message);  // 没有 markdown 代码块，但有代码段，依旧是 markdown 格式
         } else {
-            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是 markdown 格式，都用 escapeHtml 处理后再转换，防止非 markdown 格式 html 紊乱页面
         }
     }
 
@@ -812,11 +812,11 @@ function addResponseMessage(message) {
 
 
     if (message.startsWith('"//')) {
-        // 处理包含base64编码的音频
+        // 处理包含 base64 编码的音频
         const base64Data = message.replace(/"/g, '');
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else if (message.startsWith('//')) {
-        // 处理包含base64编码的音频
+        // 处理包含 base64 编码的音频
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
@@ -851,15 +851,15 @@ $(document).on('click', '.copy-button', function() {
   document.execCommand('copy');
   tempTextarea.remove();
 
-  // 将复制按钮显示为√
-  let checkMark = $('<i class="far fa-check-circle"></i>'); // 创建√图标元素
-  $(this).html(checkMark); // 替换按钮内容为√图标
+  // 将复制按钮显示为 √
+  let checkMark = $('<i class="far fa-check-circle"></i>'); // 创建 √ 图标元素
+  $(this).html(checkMark); // 替换按钮内容为 √ 图标
 
   // 延时一段时间后恢复原始复制按钮
   let originalButton = $(this);
   setTimeout(function() {
     originalButton.html('<i class="far fa-copy"></i>'); // 恢复原始复制按钮内容
-  }, 2000); // 设置延时时间为2秒
+  }, 2000); // 设置延时时间为 2 秒
 });
 
   // 添加失败信息到窗口
@@ -934,7 +934,7 @@ async function getApiKey() {
       const data = await response.json();
 
       if (data.apiKey) {
-        // 解码 API 密钥 
+        // 解码 API 密钥
         apiKey = decodeApiKey(data.apiKey);
         return apiKey;
       } else {
@@ -963,11 +963,11 @@ async function sendRequest(data) {
     return;
   }
 
-// 检查api_url是否存在非空值
+// 检查 api_url 是否存在非空值
 if ($(".settings-common .api_url").val().trim()) {
-    // 存储api_url值
+    // 存储 api_url 值
     datas.api_url =cleanApiUrl($(".settings-common .api_url").val());
-    // 检查api_url是否是正确的网址格式
+    // 检查 api_url 是否是正确的网址格式
     var apiUrlRegex = /^(http|https):\/\/[^ "]+$/;
     if (!apiUrlRegex.test(datas.api_url)) {
         // 如果不是正确的网址格式，则 return 错误消息
@@ -1179,7 +1179,7 @@ const response = await fetch(apiUrl, {
 
 if (!response.ok) {
     const errorData = await response.json();
-    addFailMessage(`请求失败，状态码: ${response.status}, 错误信息: ${errorData.error ? errorData.error.message : response.statusText}`);
+    addFailMessage(`请求失败，状态码: ${response.status}, 错误信息: ${errorData.error ? errorData.error.message : responseData.statusText}`);
     return;
 }
 
@@ -1238,7 +1238,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str = ''; // Initialize str here
+    let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
@@ -1246,6 +1246,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         if (done) {
             break;
         }
+        str = '';
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
@@ -1256,27 +1257,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             } catch (e) {
                 break;
             }
-        if (apiUrl === datas.api_url + "/v1/messages") { // ADDED THIS BLOCK FOR /v1/messages
-            if (jsonObj.type === 'content_block_delta') {
-                if (jsonObj.data && jsonObj.data.delta && jsonObj.data.delta.text) {
-                    str += jsonObj.data.delta.text;
-                    addResponseMessage(str); // Update response with accumulated text
-                    resFlag = true;
-                }
-            } else if (jsonObj.type === 'content_block_stop') {
-                // content_block_stop event, can handle if needed, for now just break;
-                break; // or continue if you expect more events after stop
-            } else if (jsonObj.type === 'message_stop') {
-                 break; // message_stop event, end of message
-            } else if (jsonObj.type === 'message_delta') {
-                // message_delta event, can handle usage info if needed
-            } else if (jsonObj.error) {
-                addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                resFlag = false;
-            }
-        }
-    else if (jsonObj.choices) { // Existing logic for other paths
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+    if (jsonObj.data) { // Modified: Check for jsonObj.data instead of jsonObj.choices
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices && jsonObj.choices[0].delta) { // Keep existing logic for /v1/chat/completions
             const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
             const content = jsonObj.choices[0].delta.content;
 
@@ -1285,9 +1267,9 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             } else if (content && content.trim() !== "") {
                 str += content;
             }
-        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices && jsonObj.choices[0].text) { // Keep existing logic for /v1/completions
             str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices && jsonObj.choices[0].message) { // Keep existing logic for /v1/chat/completions with message
             const message = jsonObj.choices[0].message;
             const reasoningContent = message.reasoning_content;
             const content = message.content;
@@ -1297,6 +1279,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             } else if (content && content.trim() !== "") {
                 str += content;
             }
+        } else if (apiUrl === datas.api_url + "/v1/messages" && jsonObj.data.delta && jsonObj.data.delta.text) { // ADDED: Handle /v1/messages response
+            str += jsonObj.data.delta.text;
         }
                 addResponseMessage(str);
                 resFlag = true;
@@ -1324,7 +1308,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             content = responseData.choices[0].message.content;
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices && responseData.choices[0].message && responseData.choices[0].message.content) { // ADDED THIS BLOCK FOR /v1/messages for non-stream
+        } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices && responseData.choices[0].message && responseData.choices[0].message.content) { // ADDED: Handle /v1/messages non-stream
             content = responseData.choices[0].message.content;
         }
         addResponseMessage(content);
@@ -1392,8 +1376,8 @@ let imageSrc = document.getElementById('imagePreview').src;
     } else {
         // 判读是否已开启连续对话
         if(localStorage.getItem('continuousDialogue') == 'true'){
-            // 控制上下文，对话长度超过4轮，取最新的3轮,即数组最后7条数据
-          data.prompts = messages.slice();  // 拷贝一份全局messages赋值给data.prompts,然后对data.prompts处理
+            // 控制上下文，对话长度超过 4 轮，取最新的 3 轮, 即数组最后 7 条数据
+          data.prompts = messages.slice();  // 拷贝一份全局 messages 赋值给 data.prompts, 然后对 data.prompts 处理
           if (data.prompts.length > 8) {
             data.prompts.splice(0, data.prompts.length - 7);
           }
@@ -1427,15 +1411,15 @@ $('.stop a').click(function() {
   if (ajaxRequest) {
     ajaxRequest.abort();
   }
-  // 隐藏具有类名为 "stop" 的父元素（假设你想隐藏整个父元素）
+  // 隐藏具有类名为 "stop" 的父元素 (假设你想隐藏整个父元素)
   $(this).closest('.stop').hide();
 });
-// Enter键盘事件
+// Enter 键盘事件
 function handleEnter(e) {
-  // 如果是电脑端，判断同时按下Ctrl键和Enter键
+  // 如果是电脑端，判断同时按下 Ctrl 键和 Enter 键
   if (!isMobile() && e.ctrlKey && e.keyCode == 13) {
     chatBtn.click();
-    e.preventDefault();  //避免回车换行
+    e.preventDefault();  // 避免回车换行
   }
 }
 
@@ -1466,7 +1450,7 @@ chatInput.on("keydown", handleEnter);
   if (theme) {
     setBgColor(theme);
   }else{
-    localStorage.setItem('theme', "light"); //默认的主题
+    localStorage.setItem('theme', "light"); // 默认的主题
     theme = localStorage.getItem('theme');
     setBgColor(theme);
   }
@@ -1486,7 +1470,7 @@ chatInput.on("keydown", handleEnter);
     $(".settings-common .password").val(password);
   }
 
-  // password输入框事件
+  // password 输入框事件
   $(".settings-common .password").blur(function() {
     const password = $(this).val();
     if(password.length!=0){
@@ -1502,7 +1486,7 @@ chatInput.on("keydown", handleEnter);
     $(".settings-common .api-key").val(apiKey);
   }
 
-  // apiKey输入框事件
+  // apiKey 输入框事件
   $(".settings-common .api-key").blur(function() {
     const apiKey = $(this).val();
     if(apiKey.length!=0){
@@ -1512,13 +1496,13 @@ chatInput.on("keydown", handleEnter);
     }
   })
 
- // 读取apiUrl
+ // 读取 apiUrl
   const api_url = localStorage.getItem('api_url');
   if (api_url) {
     $(".settings-common .api_url").val(api_url);
   }
 
-  // apiUrl输入框事件
+  // apiUrl 输入框事件
   $(".settings-common .api_url").blur(function() {
     const api_url = $(this).val();
     if(api_url.length!=0){
@@ -1531,7 +1515,7 @@ chatInput.on("keydown", handleEnter);
   // 是否保存历史对话
   var archiveSession = localStorage.getItem('archiveSession');
 
-  // 初始化archiveSession
+  // 初始化 archiveSession
   if(archiveSession == null){
     archiveSession = "true";
     localStorage.setItem('archiveSession', archiveSession);
@@ -1577,7 +1561,7 @@ chatInput.on("keydown", handleEnter);
   // 是否连续对话
   var continuousDialogue = localStorage.getItem('continuousDialogue');
 
-  // 初始化continuousDialogue
+  // 初始化 continuousDialogue
   if(continuousDialogue == null){
     continuousDialogue = "true";
     localStorage.setItem('continuousDialogue', continuousDialogue);
@@ -1600,7 +1584,7 @@ function deleteInputMessage() {
   chatInput.val('');
 }
   });
-// 读取model配置
+// 读取 model 配置
 const selectedModel = localStorage.getItem('selectedModel');
 
 // 检测模型并更新设置
@@ -1635,7 +1619,7 @@ function updateModelSettings(modelName) {
         }
     }
 
-    // 检测是否含有"tts"或"dall"并设置连续对话状态 - 保持原有的连续对话逻辑
+    // 检测是否含有 "tts" 或 "dall" 并设置连续对话状态 - 保持原有的连续对话逻辑
     const hasTTS = modelName.toLowerCase().includes("tts");
     const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hasCompletion2 = modelName.toLowerCase().includes("babbage-002");
@@ -1662,7 +1646,7 @@ function updateModelSettings(modelName) {
     $("#chck-2").prop("checked", isContinuousDialogueEnabled);
     localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
 
-    // 设置是否禁用checkbox
+    // 设置是否禁用 checkbox
     $("#chck-2").prop("disabled", hasTTS || hasDALL  || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
     // 获取上一个模型名称
@@ -1687,7 +1671,7 @@ function updateModelSettings(modelName) {
     const hadKl = previousModel.toLowerCase().includes("kling");
 
 
-    // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
+    // 如果从包含 tts 或 dall 的模型切换到不包含这些的模型，清除对话
     if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
@@ -1724,7 +1708,7 @@ function updateModelSettings(modelName) {
 }
 
 
-        // 初始加载时检测selectedModel
+        // 初始加载时检测 selectedModel
         if (selectedModel) {
             $(".settings-common .model").val(selectedModel);
             updateModelSettings(selectedModel);
@@ -1732,7 +1716,7 @@ function updateModelSettings(modelName) {
             $(".title h2").text($(".settings-common .model option:selected").data('description'));
         }
 
-        // 监听model选择的变化
+        // 监听 model 选择的变化
         $('.settings-common .model').change(function() {
             const selectedModel = $(this).val();
             localStorage.setItem('selectedModel', selectedModel);
@@ -1754,26 +1738,26 @@ function clearConversation() {
 $(".delete a").click(function(){
     clearConversation();
 });
-  // 读取temperature
+  // 读取 temperature
   const temperature = localStorage.getItem('temperature');
   if (temperature) {
     $(".settings-common .temperature-input").val(temperature);
     $(".settings-common .temperature").val(temperature);
   }
 
-  // temperature输入框事件
+  // temperature 输入框事件
   $(".settings-common .temperature-input").change(function() {
     const temperature = $(this).val();
     localStorage.setItem('temperature', temperature);
   })
 
-  // temperature滑条事件
+  // temperature 滑条事件
   $(".settings-common .temperature").change(function() {
     const temperature = $(this).val();
     localStorage.setItem('temperature', temperature);
      })
 
-// 读取max_tokens
+// 读取 max_tokens
   const max_tokens  = localStorage.getItem('max_tokens ');
   if (max_tokens) {
     $(".settings-common .max-tokens-input").val(max_tokens );
@@ -1884,7 +1868,7 @@ $(".delete a").click(function(){
       }, 2000);
     });
   }
-    // 读取apiPath
+    // 读取 apiPath
     const apiPath = localStorage.getItem('apiPath');
     if (apiPath) {
         apiPathSelect.val(apiPath);
