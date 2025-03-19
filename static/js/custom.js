@@ -1238,68 +1238,119 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str;
+    let str = ''; // 初始化 str
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
             break;
         }
-        str = '';
-        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        const lines = res.trim().split(/[\n]+(?=\{)/);
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let jsonObj;
-            try {
-                jsonObj = JSON.parse(line);
-            } catch (e) {
-                break;
-            }
-    if (jsonObj) {
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-            const content = jsonObj.choices[0].delta.content;
 
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-            str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-            const message = jsonObj.choices[0].message;
-            const reasoningContent = message.reasoning_content;
-            const content = message.content;
+        res += new TextDecoder().decode(value);
 
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
+        if (apiUrl === datas.api_url + "/v1/messages") {
+            // /v1/messages 流式响应处理
+            const stream_res = res.trim().split(/[\n\n]/); // 使用双换行符分割
+            str = ''; // 重置 str
+            for (let i = 0; i < stream_res.length; i++) {
+                const stream_line = stream_res[i];
+                if (stream_line.startsWith("event: content_block_delta")) {
+                    const dataLine = stream_res[i + 1]; // 获取下一行 data
+                    if (dataLine && dataLine.startsWith("data: ")) {
+                        try {
+                            const json_data = JSON.parse(dataLine.substring(6)); // 从 "data: " 后开始解析
+                            if (json_data.type === "content_block_delta" && json_data.delta.type === "text_delta") {
+                                str += json_data.delta.text;
+                            }
+                        } catch (e) {
+                            console.error("Failed to parse JSON:", dataLine.substring(6), e);
+                        }
+                    }
+                }
             }
-        }
-                addResponseMessage(str);
-                resFlag = true;
-            } else {
-                if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+            if (str) {  //只有当str不为空时才添加
+              addResponseMessage(str);
+              resFlag = true;
+              res = ''; // 清空 res，避免重复处理
+            }
+
+        } else {
+          // 其他路径的流式响应处理 (原逻辑)
+          str = ''; //reset str
+          const lines = res.trim().split(/[\n]+(?=\{)/).filter(line => line.trim() !== ''); // 过滤空行
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].replace(/^data: /, '').replace("[DONE]", ''); // 移除 "data: " 和 "[DONE]"
+
+                let jsonObj;
+                try {
+                    jsonObj = JSON.parse(line);
+                } catch (e) {
+                    continue; // 如果解析失败，跳过当前行
+                }
+
+                if (jsonObj && jsonObj.choices) {
+                    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+                        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+                        const content = jsonObj.choices[0].delta.content;
+
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
+                        }
+                    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+                        str += jsonObj.choices[0].text;
+                    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+                        const message = jsonObj.choices[0].message;
+                        const reasoningContent = message.reasoning_content;
+                        const content = message.content;
+
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
+                        }
+                    }
+
+                    if(str) {  //只有当str不为空时才添加
+                      addResponseMessage(str);
+                      resFlag = true;
+                    }
+                } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + (jsonObj.error.code ? " " + jsonObj.error.code : ""));
                     resFlag = false;
                 }
             }
+          res = ''; // Clear res after processing
         }
     }
 
     // **新增代码 - 流式响应结束后判断是否滚动到底部**
     if (wasScrolledToBottomBeforeRequest) {
-      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
+        // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
-
-
     return str;
+
 } else { // 非流式输出处理
     const responseData = await response.json();
+
+    // /v1/messages 非流式响应
+    if (apiUrl === datas.api_url + "/v1/messages") {
+        if (responseData.content && responseData.content.length > 0 && responseData.content[0].text) {
+            let content = responseData.content[0].text;
+            addResponseMessage(content);
+            resFlag = true;
+            return content;
+        } else if (responseData.error) {
+            addFailMessage(responseData.error.message);
+            resFlag = false;
+            return;
+        }
+    }
+
+    // 其他 API 的非流式响应 (原逻辑)
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
         if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
@@ -1318,60 +1369,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         addFailMessage("Unexpected response format.");
         resFlag = false;
         return null;
-    }
-  if (selectedApiPath === '/v1/messages') {
-    if (getCookie('streamOutput') !== 'false') {
-      // 流式响应处理
-      const reader = response.body.getReader();
-      let decoder = new TextDecoder();
-      let buffer = '';
-      let accumulatedText = '';
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        let events = buffer.split('\n\n');
-
-        for (let event of events) {
-          if (!event) continue;
-          
-          try {
-            const [header, body] = event.split('\n');
-            if (!body) continue;
-            
-            const jsonData = JSON.parse(body.replace('data: ', ''));
-            
-            if (jsonData.type === 'content_block_delta') {
-              accumulatedText += jsonData.delta.text;
-              addResponseMessage(accumulatedText);
-            }
-          } catch (e) {
-            console.error('Error parsing event:', e);
-          }
-        }
-        
-        buffer = events.pop() || '';
-      }
-      return accumulatedText;
-    } else {
-      // 非流式响应处理
-      const responseData = await response.json();
-      if (responseData.content && responseData.content[0].text) {
-        const content = responseData.content[0].text;
-        addResponseMessage(content);
-        return content;
-      } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        return null;
-      }
-    }
-  }
-    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    if (wasScrolledToBottomBeforeRequest) {
-      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
 }
 
