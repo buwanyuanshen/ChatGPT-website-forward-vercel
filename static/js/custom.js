@@ -21,6 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
+    localStorage.setItem('modelSearchInputValue', searchInput.value); // 保存搜索框内容
 });
 
 function resetImageUpload() {
@@ -94,6 +95,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化时检查一次
     checkModelAndShowUpload();
+
+    // 加载模型搜索框内容
+    const savedModelSearchValue = localStorage.getItem('modelSearchInputValue');
+    if (savedModelSearchValue) {
+        searchInput.value = savedModelSearchValue;
+    }
+
 });
 
 
@@ -635,15 +643,21 @@ $(document).ready(function() {
   }
 
 // 添加图片消息到窗口
-function addImageMessage(imageUrl) {
+function addImageMessage(imageUrl, isBase64 = false) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.html(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    let imageElement;
+    if (isBase64) {
+        imageElement = `<img src="data:image/png;base64,${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
+    } else {
+        imageElement = `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
+    }
+    lastResponseElement.append(`<div class="message-text">${imageElement}</div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
-        window.open(imageUrl, '_blank');
+        window.open(isBase64 ? `data:image/png;base64,${imageUrl}` : imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
@@ -670,7 +684,7 @@ function addModerationMessage(moderationResult) {
         formattedResult += "</ul></li>";
     });
     formattedResult += "</ul>";
-    lastResponseElement.html('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
@@ -688,7 +702,7 @@ function addEmbeddingMessage(embeddingResult) {
     lastResponseElement.empty();
     // Display the embedding result as a JSON string in a <pre> block for readability
     const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
-    lastResponseElement.html(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定复制按钮点击事件
@@ -706,7 +720,7 @@ function addEmbeddingMessage(embeddingResult) {
 function addTTSMessage(audioBase64) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.html('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
@@ -757,7 +771,7 @@ function editMessage(message) {
 }
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
-function addResponseMessage(messageContent) { // changed parameter name to messageContent
+function addResponseMessage(message) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -769,30 +783,30 @@ function addResponseMessage(messageContent) { // changed parameter name to messa
 
     // 处理流式消息中的代码块
     let codeMarkCount = 0;
-    let index = messageContent.indexOf('```'); // use messageContent
+    let index = message.indexOf('```');
 
     while (index !== -1) {
         codeMarkCount++;
-        index = messageContent.indexOf('```', index + 3);
+        index = message.indexOf('```', index + 3);
     }
 
     if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-        escapedMessage = marked.parse(messageContent + '\n\n```'); // use messageContent
+        escapedMessage = marked.parse(message + '\n\n```');
     } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(messageContent);  // 响应消息markdown实时转换为html // use messageContent
+        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
     } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-        if (messageContent.includes('`')) { // use messageContent
-            escapedMessage = marked.parse(messageContent);  // 没有markdown代码块，但有代码段，依旧是 markdown格式 // use messageContent
+        if (message.includes('`')) {
+            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
         } else {
-            escapedMessage = marked.parse(escapeHtml(messageContent)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面 // use messageContent
+            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
         }
     }
 
-    let processedMessageContent = escapedMessage; // Renamed to avoid confusion
+    let messageContent = escapedMessage;
     let viewButtons = [];
 
     // Parse the message content as HTML to find <a> tags
-    let tempElement = $('<div>').html(processedMessageContent);
+    let tempElement = $('<div>').html(messageContent);
     let links = tempElement.find('a');
 
     console.log("Links found in HTML:", links); // DEBUG: Log found links
@@ -807,27 +821,20 @@ function addResponseMessage(messageContent) { // changed parameter name to messa
                 console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
             }
         });
-         processedMessageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
+         messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
     }
 
 
-    if (messageContent.startsWith('"//')) { // use messageContent
+    if (message.startsWith('"//')) {
         // 处理包含base64编码的音频
-        const base64Data = messageContent.replace(/"/g, ''); // use messageContent
-        lastResponseElement.html('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // use .html() here
-    } else if (messageContent.startsWith('//')) { // use messageContent
+        const base64Data = message.replace(/"/g, '');
+        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    } else if (message.startsWith('//')) {
         // 处理包含base64编码的音频
-        const base64Data = messageContent; // use messageContent
-        lastResponseElement.html('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // use .html() here
-    } else if (processedMessageContent.includes('<img src="data:image')) { // Check for base64 image data
-        lastResponseElement.html('<div class="message-text">' + processedMessageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>'); // Use .html() here for image rendering
-        viewButtons.forEach(button => {
-            lastResponseElement.append(button);
-        });
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    }
-     else {
-        lastResponseElement.html('<div class="message-text">' + processedMessageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>'); // Use .html() here for rendering markdown as HTML
+        const base64Data = message;
+        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    } else {
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
         viewButtons.forEach(button => {
             lastResponseElement.append(button);
         });
@@ -1005,7 +1012,7 @@ const model = data.model.toLowerCase(); // Convert model name to lowercase for e
 
 // --- Google API Support Start ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1014,11 +1021,11 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
             "maxOutputTokens": data.max_tokens,
             "temperature": data.temperature,
             "topP": 1,
-            "responseModalities":["Text","Image"]
+            "responseModalities":["TEXT","Image"]
         }
     };
 }else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1220,19 +1227,19 @@ if (!response.ok) {
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        let combinedContent = "";
+        let messageText = "";
         for (const part of responseData.candidates[0].content.parts) {
             if (part.text) {
-                combinedContent += marked.parse(escapeHtml(part.text)); // Escape and parse text parts
-            } else if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
-                const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                combinedContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
-                // Now combinedContent contains both text (parsed as markdown) and image HTML
+                messageText += part.text;
+            } else if (part.inlineData && part.inlineData.mimeType === "image/png" && part.inlineData.data) {
+                addImageMessage(part.inlineData.data, true); // Indicate it's base64
             }
         }
-        addResponseMessage(combinedContent); // Send combined content to addResponseMessage
+        if (messageText) {
+            addResponseMessage(messageText); // Add remaining text message part
+        }
         resFlag = true;
-        return combinedContent;
+        return messageText;
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1681,10 +1688,7 @@ chatInput.on("keydown", handleEnter);
     } else {
       localStorage.setItem('continuousDialogue', false);
     }
-// 删除输入框中的消息
-function deleteInputMessage() {
-  chatInput.val('');
-}
+
   });
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
@@ -1801,7 +1805,7 @@ function updateModelSettings(modelName) {
 
     if (targetApiPath) {
         apiPathSelect.val(targetApiPath);
-        setCookie('apiPath', targetApiPath, 30); // Update cookie for API Path
+        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
     }
     // --- End of Path Auto-Switching Logic ---
 }
@@ -1875,19 +1879,6 @@ $(".delete a").click(function(){
     localStorage.setItem('max_tokens ', max_tokens );
       })
 
-// 删除输入框中的消息
-function deleteInputMessage() {
-  chatInput.val('');
-}
-
-// 删除功能
-$(".delete a").click(function(){
-  chatWindow.empty();
-  deleteInputMessage();
-  $(".answer .tips").css({"display":"flex"});
-  messages = [];
-  localStorage.removeItem("session");
-});
 
 // 删除功能
 $(".delete a").click(function(){
@@ -1967,26 +1958,15 @@ $(".delete a").click(function(){
       }, 2000);
     });
   }
-    // 读取apiPath from cookie
-    const apiPath = getCookie('apiPath');
+    // 读取apiPath
+    const apiPath = localStorage.getItem('apiPath');
     if (apiPath) {
         apiPathSelect.val(apiPath);
     }
 
-    // apiPath select event, store in cookie
+    // apiPath select event
     apiPathSelect.change(function() {
         const selectedApiPath = $(this).val();
-        setCookie('apiPath', selectedApiPath, 30);
-    });
-
-    // Read modelSearchTerm from cookie and set input value
-    const modelSearchTerm = getCookie('modelSearchTerm');
-    if (modelSearchTerm) {
-        searchInput.value = modelSearchTerm;
-    }
-
-    // Store modelSearchTerm in cookie on blur
-    searchInput.addEventListener('blur', function() {
-        setCookie('modelSearchTerm', searchInput.value, 30);
+        localStorage.setItem('apiPath', selectedApiPath);
     });
 });
