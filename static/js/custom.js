@@ -1,3 +1,4 @@
+
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
 const searchInput = document.querySelector('.model-search-input');
@@ -759,13 +760,7 @@ function editMessage(message) {
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
     let lastResponseElement = $(".message-bubble .response").last();
-    if(lastResponseElement.find('.message-text').length > 0) {
-        lastResponseElement = lastResponseElement.find('.message-text').last(); // For stream output append to the last message-text
-    } else {
-        lastResponseElement.empty(); // Ensure it's empty for the first chunk in non-stream or initial stream
-        lastResponseElement = $(".message-bubble .response").last(); // Re-select in case of empty
-    }
-
+    lastResponseElement.empty();
 
     if ($(".answer .others .center").css("display") === "none") {
         $(".answer .others .center").css("display", "flex");
@@ -826,29 +821,28 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append(messageContent);
-        lastResponseElement.parent().append('<button class="copy-button"><i class="far fa-copy"></i></button>'); // Append to parent .response
+        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
         viewButtons.forEach(button => {
-            lastResponseElement.parent().append(button); // Append to parent .response
+            lastResponseElement.append(button);
         });
-        lastResponseElement.parent().append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append to parent .response
+        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     }
 
 
     // 绑定按钮事件
-    lastResponseElement.parent().find('.view-button').on('click', function() { // Bind to parent
+    lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
         console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
-    lastResponseElement.parent().find('.copy-button').click(function() { // Bind to parent
+    lastResponseElement.find('.copy-button').click(function() {
         copyMessage($(this).prev().text().trim());
     });
-    lastResponseElement.parent().find('.delete-message-btn').click(function() { // Bind to parent
+    lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
     });
 }
-
+    
 // 复制按钮点击事件
 $(document).on('click', '.copy-button', function() {
   let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
@@ -902,7 +896,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -958,8 +952,6 @@ async function getApiKey() {
     return null;
   }
 }
-
-let ajaxRequest = null; // 用于存储当前的 AJAX 请求
 
 // 发送请求获得响应
 async function sendRequest(data) {
@@ -1088,19 +1080,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (selectedApiPath === '/v1/messages') { // New API path for /v1/messages
-    apiUrl = datas.api_url + "/v1/messages";
-    requestBody = {
-        "messages": data.prompts,
-        "model": data.model,
-        "max_tokens": data.max_tokens,
-        "temperature": data.temperature,
-        "top_p": 1,
-        "n": 1,
-        "stream": getCookie('streamOutput') !== 'false'
-    };
-}
-else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "messages": data.prompts,
@@ -1177,7 +1157,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
-ajaxRequest = fetch(apiUrl, { // Assign fetch to ajaxRequest
+const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
@@ -1185,9 +1165,6 @@ ajaxRequest = fetch(apiUrl, { // Assign fetch to ajaxRequest
     },
     body: JSON.stringify(requestBody)
 });
-
-const response = await ajaxRequest; // Await the fetch promise
-
 
 if (!response.ok) {
     const errorData = await response.json();
@@ -1250,7 +1227,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str = ''; // Initialize str here
+    let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
@@ -1258,6 +1235,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         if (done) {
             break;
         }
+        str = '';
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
@@ -1269,41 +1247,36 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 break;
             }
     if (jsonObj) {
-        if (selectedApiPath === '/v1/messages' && jsonObj.type === 'content_block_delta' && jsonObj.delta.type === 'text_delta') {
-            str = jsonObj.delta.text; // For /v1/messages, directly use delta.text
-            addResponseMessage(str);
-            resFlag = true;
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
 
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices) {
-            if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-                const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-                const content = jsonObj.choices[0].delta.content;
-
-                if (reasoningContent && reasoningContent.trim() !== "") {
-                    str = "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-                } else if (content && content.trim() !== "") {
-                    str = content;
-                }
-            } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                str = jsonObj.choices[0].text;
-            } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-                const message = jsonObj.choices[0].message;
-                const reasoningContent = message.reasoning_content;
-                const content = message.content;
-
-                if (reasoningContent && reasoningContent.trim() !== "") {
-                    str = "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-                } else if (content && content.trim() !== "") {
-                    str = content;
-                }
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
             }
-                    addResponseMessage(str);
-                    resFlag = true;
-                } else {
-                    if (jsonObj.error) {
-                        addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                        resFlag = false;
-                    }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/messages" && jsonObj.type === 'content_block_delta' && jsonObj.delta.type === 'text_delta') {
+            str += jsonObj.delta.text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
+
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        }
+                addResponseMessage(str);
+                resFlag = true;
+            } else {
+                if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                    resFlag = false;
                 }
             }
         }
@@ -1322,16 +1295,10 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         let content = '';
         if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
             content = responseData.choices[0].message.content;
-        } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
+        } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices[0].message) {
+            content = responseData.choices[0].message.content;
+        }else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
-        } else if (selectedApiPath === '/v1/messages' && responseData.content_block_deltas && responseData.content_block_deltas.length > 0) { // Handle /v1/messages non-stream response if needed - adapt based on actual non-stream response structure if different
-            let combinedContent = '';
-            responseData.content_block_deltas.forEach(delta => {
-                if (delta.type === 'text_delta') {
-                    combinedContent += delta.text;
-                }
-            });
-            content = combinedContent;
         }
         addResponseMessage(content);
         resFlag = true;
@@ -1715,10 +1682,7 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } else if (lowerModelName.includes("messages-api") || lowerModelName.includes("message-api") || lowerModelName.includes("v1/messages") ) { // 增加对 "messages-api" 模型的判断
-        targetApiPath = '/v1/messages';
-    }
-     else {
+    } else {
         targetApiPath = '/v1/chat/completions'; // Default path
     }
 
