@@ -1212,20 +1212,21 @@ if (!response.ok) {
 // --- Google API Support: Response Handling ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
-    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) {
-        let combinedContent = '';
-        responseData.candidates[0].content.parts.forEach(part => {
+    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
+        let combinedMessage = "";
+        for (const part of responseData.candidates[0].content.parts) {
             if (part.text) {
-                combinedContent += part.text;
-            } else if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
-                const base64ImageData = part.inlineData.data;
-                const mimeType = part.inlineData.mimeType;
-                combinedContent += `<img src="data:${mimeType};base64,${base64ImageData}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
+                combinedMessage += part.text;
+            } else if (part.inlineData && part.inlineData.mimeType && part.inlineData.data) {
+                const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                addImageMessage(imageUrl);
             }
-        });
-        addResponseMessage(combinedContent);
+        }
+        if (combinedMessage) {
+            addResponseMessage(combinedMessage);
+        }
         resFlag = true;
-        return combinedContent;
+        return combinedMessage; // Return combined text if any
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
