@@ -21,7 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
-    localStorage.setItem('modelSearchInput', searchInput.value); // Store search input in localStorage
+    setCookie('modelSearchInputValue', searchInput.value, 30); // 存储搜索框内容
 });
 
 function resetImageUpload() {
@@ -441,6 +441,13 @@ $(document).ready(function () {
     }
     initializeDataDescription();
     updateTitle();
+
+    // 初始化模型搜索框内容
+    const modelSearchInputValue = getCookie('modelSearchInputValue');
+    if (modelSearchInputValue) {
+        searchInput.value = modelSearchInputValue;
+    }
+
 });
 
 
@@ -600,17 +607,6 @@ $(document).ready(function() {
     const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
 
-    // Load saved API Path from localStorage
-    const savedApiPath = localStorage.getItem('apiPath');
-    if (savedApiPath) {
-        apiPathSelect.val(savedApiPath);
-    }
-    // Load saved model search input from localStorage
-    const savedModelSearchInput = localStorage.getItem('modelSearchInput');
-    if (savedModelSearchInput) {
-        searchInput.value = savedModelSearchInput;
-    }
-
 
   // 存储对话信息,实现连续对话
   var messages = [];
@@ -647,16 +643,19 @@ $(document).ready(function() {
   }
 
 // 添加图片消息到窗口
-function addImageMessage(imageUrl) {
+function addImageMessage(imageUrl, text = '') { // 修改：addImageMessage 接受 text 参数
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    let messageContent = '';
+    if (text) {
+        messageContent += `<div class="message-text">${marked.parse(escapeHtml(text))}</div>`; // 使用 marked 处理文本
+    }
+    messageContent += `<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
+    lastResponseElement.append(messageContent + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
-        const imageUrl = $(this).data('url');
-        console.log("View button clicked, image URL:", imageUrl); // DEBUG: Log URL
         window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
@@ -664,48 +663,6 @@ function addImageMessage(imageUrl) {
         $(this).closest('.message-bubble').remove(); // 删除该条响应消息
     });
 }
-
-// 添加富媒体消息到窗口，可以包含文本和图片
-function addRichMediaMessage(parts) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    let messageContentHTML = '';
-    let viewButtons = [];
-
-    parts.forEach(part => {
-        if (part.text) {
-            messageContentHTML += marked.parse(escapeHtml(part.text));
-        } else if (part.inlineData && part.inlineData.data && part.inlineData.mimeType) {
-            const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            messageContentHTML += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%; margin-top: 10px;" alt="Generated Image"><br>`;
-            let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-            viewButton.data('url', imageUrl);
-            viewButtons.push(viewButton);
-        }
-    });
-
-    lastResponseElement.append(`<div class="message-text">${messageContentHTML}</div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>');
-    viewButtons.forEach(button => {
-        lastResponseElement.append(button);
-    });
-    lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-
-    // 绑定查看按钮事件
-    lastResponseElement.find('.view-button').on('click', function() {
-        const urlToOpen = $(this).data('url');
-        console.log("View button clicked, rich media image URL:", urlToOpen); // DEBUG: Log URL
-        window.open(urlToOpen, '_blank');
-    });
-    // 绑定复制按钮点击事件
-    lastResponseElement.find('.copy-button').click(function() {
-        copyMessage($(this).prev().text().trim());
-    });
-    // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
-        $(this).closest('.message-bubble').remove();
-    });
-}
-
 
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
@@ -867,13 +824,13 @@ function addResponseMessage(message) {
     }
 
 
-    if (String(message).startsWith('"//')) { // Force string conversion here
+    if (message.startsWith('"//')) {
         // 处理包含base64编码的音频
-        const base64Data = String(message).replace(/"/g, ''); // And here
+        const base64Data = message.replace(/"/g, '');
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (String(message).startsWith('//')) { // Force string conversion here
+    } else if (message.startsWith('//')) {
         // 处理包含base64编码的音频
-        const base64Data = String(message); // And here
+        const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
         lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
@@ -951,7 +908,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1046,10 +1003,10 @@ let requestBody = {
 const selectedApiPath = apiPathSelect.val();
 if (selectedApiPath) {
     apiUrl = datas.api_url + selectedApiPath;
-    localStorage.setItem('apiPath', selectedApiPath); // Store selected API Path in localStorage
+    setCookie('apiPath', selectedApiPath, 30); // 存储 API Path 到 Cookie
 } else {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
-    localStorage.removeItem('apiPath'); // Remove apiPath from localStorage if default is used
+    setCookie('apiPath', '/v1/chat/completions', 30); // 存储默认 API Path 到 Cookie
 }
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
@@ -1271,9 +1228,24 @@ if (!response.ok) {
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        addRichMediaMessage(responseData.candidates[0].content.parts); // Use addRichMediaMessage for Gemini image/text responses
+        let messageText = '';
+        let imageBase64 = null;
+        responseData.candidates[0].content.parts.forEach(part => {
+            if (part.text) {
+                messageText += part.text + '\n';
+            } else if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+                imageBase64 = 'data:' + part.inlineData.mimeType + ';base64,' + part.inlineData.data;
+                // 存储图片到 Cookie (注意：Cookie 不适合存储大数据，这里仅为演示，实际应用建议使用 localStorage 或 IndexedDB)
+                setCookie('geminiImage', imageBase64, 1); // 存储 1 天
+            }
+        });
+        if (imageBase64) {
+            addImageMessage(imageBase64, messageText.trim()); // 传递 text
+        } else {
+            addResponseMessage(messageText.trim());
+        }
         resFlag = true;
-        return responseData; // Return full response data for potential further processing
+        return messageText.trim();
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1389,7 +1361,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 try {
                     jsonObj = JSON.parse(line);
                 } catch (e) {
-                    continue; // 如果解析失败，跳过 current line
+                    continue; // 如果解析失败，跳过当前行
                 }
 
                 if (jsonObj && jsonObj.choices) {
@@ -1416,7 +1388,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                         }
                     }
 
-                    if(str) {  // 只有当str不为空时才添加
+                    if(str) {  //只有当str不为空时才添加
                       addResponseMessage(str);
                       resFlag = true;
                     }
@@ -1658,14 +1630,13 @@ chatInput.on("keydown", handleEnter);
   // 是否保存历史对话
   var archiveSession = localStorage.getItem('archiveSession');
 
-  // Initialize archiveSession and localStorage at the beginning of $(document).ready
-  if(archiveSession === null){ // Use === for strict comparison
+  // 初始化archiveSession
+  if(archiveSession == null){
     archiveSession = "true";
     localStorage.setItem('archiveSession', archiveSession);
   }
 
-
-  if(archiveSession === "true"){ // Use === for strict comparison
+  if(archiveSession == "true"){
     $("#chck-1").prop("checked", true);
   }else{
     $("#chck-1").prop("checked", false);
@@ -1686,37 +1657,19 @@ chatInput.on("keydown", handleEnter);
   });
 
   // 加载历史保存会话
-  if(archiveSession === "true"){ // Use === for strict comparison
-    const messagesListString = localStorage.getItem("session");
-    console.log("Session data from localStorage (string):", messagesListString); // DEBUG: Log raw string
-
-    if(messagesListString){
-        try {
-            const messagesList = JSON.parse(messagesListString);
-            console.log("Parsed session data (array):", messagesList); // DEBUG: Log parsed array
-            if(messagesList && Array.isArray(messagesList)){ // Add checks for valid array
-              messages = messagesList;
-              $.each(messages, function(index, item) {
-                console.log("Loading message item:", item); // DEBUG: Log each item before addResponseMessage
-                console.log("Type of item.content before conversion:", typeof item.content); // DEBUG: Check type
-                console.log("Value of item.content before conversion:", item.content);     // DEBUG: Check value
-                item.content = String(item.content); // Force string conversion here!
-                if (item.role === 'user') {
-                  addRequestMessage(item.content)
-                } else if (item.role === 'assistant') {
-                  addResponseMessage(item.content)
-                }
-              });
-              // 添加复制
-              copy();
-            } else {
-                console.error("Loaded session data is not a valid array:", messagesList);
-                localStorage.removeItem("session"); // Clear invalid session data
-            }
-        } catch (e) {
-            console.error("Error parsing session data from localStorage:", e);
-            localStorage.removeItem("session"); // Clear corrupted session data
+  if(archiveSession == "true"){
+    const messagesList = JSON.parse(localStorage.getItem("session"));
+    if(messagesList){
+      messages = messagesList;
+      $.each(messages, function(index, item) {
+        if (item.role === 'user') {
+          addRequestMessage(item.content)
+        } else if (item.role === 'assistant') {
+          addResponseMessage(item.content)
         }
+      });
+      // 添加复制
+      copy();
     }
   }
 
@@ -1828,8 +1781,8 @@ function updateModelSettings(modelName) {
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = modelName.toLowerCase().includes("suno");
-    const hadKo = modelName.toLowerCase().includes("kolors");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
     const hadKl = previousModel.toLowerCase().includes("kling");
 
 
@@ -2003,7 +1956,7 @@ $(".delete a").click(function(){
 
     $('pre').on('click', '.copy-btn', function() {
       let text = $(this).siblings('code').text();
-      // 创建一个临时的 textarea 元素 
+      // 创建一个临时的 textarea 元素
       let textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
@@ -2028,22 +1981,16 @@ $(".delete a").click(function(){
     });
   }
     // 读取apiPath
-    const apiPath = localStorage.getItem('apiPath');
+    const apiPath = getCookie('apiPath');
     if (apiPath) {
         apiPathSelect.val(apiPath);
+    } else {
+        apiPathSelect.val('/v1/chat/completions'); // 默认值
     }
 
     // apiPath select event
     apiPathSelect.change(function() {
         const selectedApiPath = $(this).val();
-        localStorage.setItem('apiPath', selectedApiPath);
-    });
-
-    // Load saved model search input from localStorage on DOMContentLoaded
-    document.addEventListener('DOMContentLoaded', function() {
-        const savedModelSearchInput = localStorage.getItem('modelSearchInput');
-        if (savedModelSearchInput) {
-            searchInput.value = savedModelSearchInput;
-        }
+        setCookie('apiPath', selectedApiPath, 30);
     });
 });
