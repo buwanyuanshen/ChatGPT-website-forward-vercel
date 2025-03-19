@@ -1079,8 +1079,8 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if ((selectedApiPath === '/v1beta') {
-    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+} else if (selectedApiPath === '/v1beta') { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]
@@ -1098,7 +1098,6 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "n": 1,
         "stream": getCookie('streamOutput') !== 'false'
     };
-}
 }
     if (data.model.includes("o1") && !data.model.includes("all")) {
     apiUrl = datas.api_url + "/v1/chat/completions";
@@ -1676,12 +1675,12 @@ function updateModelSettings(modelName) {
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
     const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
-    const hadKl = previousModel.toLowerCase().includes("kling");
+    const hasKo = previousModel.toLowerCase().includes("kolors");
+    const hasKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
@@ -1702,10 +1701,21 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } 
+    } else if (lowerModelName.includes("gemini")) {
+        targetApiPath = '/v1/chat/completions'; // Gemini uses a special path, don't override apiPathSelect
+    }
     else {
         targetApiPath = '/v1/chat/completions'; // Default path
     }
+
+    if (targetApiPath && !lowerModelName.includes("gemini")) { // Do not set apiPath if Gemini model is selected, as it uses specific path
+        apiPathSelect.val(targetApiPath);
+        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
+    } else if (lowerModelName.includes("gemini")) {
+        apiPathSelect.val(targetApiPath); // Clear apiPathSelect for Gemini to avoid conflicts
+        localStorage.removeItem('apiPath'); // Optionally clear localStorage for apiPath
+    }
+    // --- End of Path Auto-Switching Logic ---
 }
 
 
