@@ -1248,81 +1248,46 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
         str = '';
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        const lines = res.trim().split(/[\n]+(?=\{)/);
+        const lines = res.trim().split(/[\n]+(?=event: |data: )/); // Split by event: or data: to handle event-based SSE
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let jsonObj;
-            try {
-                jsonObj = JSON.parse(line);
-            } catch (e) {
-                break;
-            }
-    if (jsonObj.choices) {
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-            const content = jsonObj.choices[0].delta.content;
-
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-            str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-            const message = jsonObj.choices[0].message;
-            const reasoningContent = message.reasoning_content;
-            const content = message.content;
-
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        }
-                addResponseMessage(str);
-                resFlag = true;
-            } else if (apiUrl === datas.api_url + "/v1/messages") { // New: Handle /v1/messages stream format
-                if (line.startsWith('event: content_block_delta')) {
-                    try {
-                        const dataLine = lines[i+1]; // Get the next line which should be 'data: ...'
-                        if (dataLine && dataLine.startsWith('data:')) {
-                            const jsonData = JSON.parse(dataLine.substring(5).trim()); // Remove 'data: ' and parse JSON
-                            if (jsonData.delta && jsonData.delta.text) {
-                                responseText += jsonData.delta.text; // Accumulate text
-                                addResponseMessage(responseText); // Update response with accumulated text
-                                resFlag = true;
-                            }
+            const line = lines[i].trim();
+            if (line.startsWith('event: content_block_delta')) {
+                try {
+                    const dataLine = lines[i + 1];
+                    if (dataLine && dataLine.startsWith('data:')) {
+                        const jsonData = JSON.parse(dataLine.substring(5).trim());
+                        if (jsonData.delta && jsonData.delta.text) {
+                            responseText += jsonData.delta.text;
+                            addResponseMessage(responseText);
+                            resFlag = true;
                         }
-                        i++; // Skip the next line ('data: ...') as we've processed it
-                    } catch (e) {
-                        console.error('Error parsing /v1/messages stream data:', e);
-                        break; // Exit loop on parse error
                     }
-                } else if (line.startsWith('event: message_stop') || line.startsWith('event: content_block_stop')) {
-                    break; // Stop processing on message/content stop event
-                } else if (line.startsWith('data: {"error":')) { // Error handling within stream
-                    try {
-                        const errorData = JSON.parse(line.substring(5).trim());
-                        if (errorData.error) {
-                            addFailMessage(errorData.error.message);
-                            resFlag = false;
-                            break; // Exit loop after error message
-                        }
-                    } catch (e) {
-                        console.error('Error parsing error data:', e);
+                    i++; // Skip next line as it's data
+                } catch (e) {
+                    console.error('Error parsing /v1/messages stream data:', e);
+                    break;
+                }
+            } else if (line.startsWith('event: message_stop') || line.startsWith('event: content_block_stop')) {
+                responseText = ''; // Reset for next message if needed - or handle message boundaries differently
+                continue; // Or break if message_stop means end of whole response
+            } else if (line.startsWith('data: {"error":')) {
+                try {
+                    const errorData = JSON.parse(line.substring(5).trim());
+                    if (errorData.error) {
+                        addFailMessage(errorData.error.message);
+                        resFlag = false;
                         break;
                     }
+                } catch (e) {
+                    console.error('Error parsing error data:', e);
+                    break;
                 }
-
-            } else {
-                if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                    resFlag = false;
-                }
+            } else if (line.startsWith('data:')) {
+                // Handle generic data lines if needed, though for /v1/messages, content_block_delta is key
             }
         }
     }
+
 
     // **新增代码 - 流式响应结束后判断是否滚动到底部**
     if (wasScrolledToBottomBeforeRequest) {
