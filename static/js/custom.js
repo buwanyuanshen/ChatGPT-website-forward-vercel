@@ -841,7 +841,7 @@ function addResponseMessage(message) {
         $(this).closest('.message-bubble').remove();
     });
 }
-    
+
 // 复制按钮点击事件
 $(document).on('click', '.copy-button', function() {
   let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
@@ -895,7 +895,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -989,14 +989,102 @@ let requestBody = {
 // Use selected API path if it's not the default one
 const selectedApiPath = apiPathSelect.val();
 if (selectedApiPath) {
-    apiUrl = datas.api_url + selectedApiPath;
-} else {
-    apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
+    if (selectedApiPath === '/v1/messages') {
+        apiUrl = datas.api_url + "/v1/messages";
+        requestBody = {
+            "messages": data.prompts,
+            "model": data.model,
+            "max_tokens": data.max_tokens,
+            "temperature": data.temperature,
+            "top_p": 1,
+            "n": 1,
+            "stream": getCookie('streamOutput') !== 'false' // 从 Cookie 获取流式输出设置
+        };
+    } else if (selectedApiPath === '/v1/completions' ) {
+        apiUrl = datas.api_url + "/v1/completions";
+        requestBody = {
+            "prompt": data.prompts[0].content,
+            "model": data.model,
+            "max_tokens": data.max_tokens,
+            "temperature": data.temperature,
+            "top_p": 1,
+            "n": 1,
+            "stream": getCookie('streamOutput') !== 'false'
+        };
+    } else if (selectedApiPath === '/v1/images/generations') {
+        apiUrl = datas.api_url + "/v1/images/generations";
+        let size = "1024x1024";
+        let quality = "standard";
+        let style = "natural";
+
+        const model = data.model.toLowerCase();
+        if (model.includes("256x256")) size = "256x256";
+        if (model.includes("512x512")) size = "512x512";
+        if (model.includes("1792x1024")) size = "1792x1024";
+        if (model.includes("1024x1792")) size = "1024x1792";
+        if (model.includes("-hd")) quality = "hd";
+        if (model.includes("-v") || model.includes("-p")) style = "vivid";
+
+
+        requestBody = {
+            "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
+            "model": data.model,
+            "n": 1,
+            "size": size,
+            "quality": quality,
+            "style": style,
+        };
+        if (model.includes("cogview-3")) {
+            requestBody = {
+                "prompt": data.prompts[0].content,
+                "model": data.model,
+                "size": "1024x1024",
+            };
+        }
+    } else if (selectedApiPath === '/v1/moderations') {
+        apiUrl = datas.api_url + "/v1/moderations";
+        requestBody = {
+            "input": data.prompts[0].content, // Moderation uses the last message as input
+            "model": data.model,
+        };
+    } else if (selectedApiPath === '/v1/embeddings') {
+        apiUrl = datas.api_url + "/v1/embeddings";
+        requestBody = {
+            "input": data.prompts[0].content, // Embedding uses the last message as input
+            "model": data.model,
+        };
+    } else if (selectedApiPath === '/v1/audio/speech') {
+        apiUrl = datas.api_url + "/v1/audio/speech";
+        requestBody = {
+            "input": data.prompts[0].content, // TTS uses the last message as input
+            "model": data.model,
+            "voice": "alloy",
+        };
+    } else { // Default to /v1/chat/completions if path is not recognized
+        apiUrl = datas.api_url + "/v1/chat/completions";
+        requestBody = {
+            "messages": data.prompts,
+            "model": data.model,
+            "max_tokens": data.max_tokens,
+            "temperature": data.temperature,
+            "top_p": 1,
+            "n": 1,
+            "stream": getCookie('streamOutput') !== 'false'
+        };
+    }
+} else { // If no API path is selected, default to /v1/chat/completions
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+        "messages": data.prompts,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": getCookie('streamOutput') !== 'false'
+    };
 }
-
-
-const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
-
+    const model = data.model.toLowerCase();
 if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
@@ -1008,7 +1096,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "n": 1,
         "stream": getCookie('streamOutput') !== 'false'
     };
-} else if (data.image_base64 && data.image_base64.trim() !== '' && (selectedApiPath === '/v1/chat/completions' || apiPathSelect.val() === null )) {
+} else if (data.image_base64 && data.image_base64.trim() !== '' && (selectedApiPath === '/v1/chat/completions' || apiPathSelect.val() === null || selectedApiPath === '/v1/messages')) {
     apiUrl = datas.api_url + "/v1/chat/completions";
    requestBody = {
     "messages": [
