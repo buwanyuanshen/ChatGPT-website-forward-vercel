@@ -338,6 +338,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         }
+        // Load saved Model Select value from cookie
+        const savedModelSelect = getCookie('selectedModel');
+        if (savedModelSelect) {
+            $('.settings-common .model').val(savedModelSelect);
+            updateModelSettings(savedModelSelect);
+            $(".title h2").text($(".settings-common .model option:selected").data('description'));
+        }
     });
 
 
@@ -781,7 +788,7 @@ function editMessage(message) {
 }
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
-function addResponseMessage(message) {
+function addResponseMessage(messageContent) { // Changed parameter name to messageContent
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -789,30 +796,7 @@ function addResponseMessage(message) {
         $(".answer .others .center").css("display", "flex");
     }
 
-    let escapedMessage;
 
-    // 处理流式消息中的代码块
-    let codeMarkCount = 0;
-    let index = message.indexOf('```');
-
-    while (index !== -1) {
-        codeMarkCount++;
-        index = message.indexOf('```', index + 3);
-    }
-
-    if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-        escapedMessage = marked.parse(message + '\n\n```');
-    } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-        if (message.includes('`')) {
-            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-        } else {
-            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
-        }
-    }
-
-    let messageContent = escapedMessage;
     let viewButtons = [];
 
     // Parse the message content as HTML to find <a> tags
@@ -835,13 +819,13 @@ function addResponseMessage(message) {
     }
 
 
-    if (message.startsWith('"//')) {
+    if (messageContent.startsWith('"//')) {
         // 处理包含base64编码的音频
-        const base64Data = message.replace(/"/g, '');
+        const base64Data = messageContent.replace(/"/g, '');
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (message.startsWith('//')) {
+    } else if (messageContent.startsWith('//')) {
         // 处理包含base64编码的音频
-        const base64Data = message;
+        const base64Data = messageContent;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
         lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
@@ -1250,7 +1234,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
                 messageContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
             }
         }
-        addResponseMessage(messageContent); // Now add the combined content
+        addResponseMessage(messageContent); // Now add the combined content as HTML
         resFlag = true;
         return messageContent;
     } else if (responseData.error) {
@@ -1352,7 +1336,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 }
             }
             if (str) {  //只有当str不为空时才添加
-              addResponseMessage(str);
+              addResponseMessage(str); // Pass str directly as it's already HTML if needed
               resFlag = true;
               res = ''; // 清空 res，避免重复处理
             }
@@ -1396,7 +1380,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                     }
 
                     if(str) {  //只有当str不为空时才添加
-                      addResponseMessage(str);
+                      addResponseMessage(str); // Pass str directly as it's already HTML if needed
                       resFlag = true;
                     }
                 } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
@@ -1421,7 +1405,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     if (apiUrl === datas.api_url + "/v1/messages") {
         if (responseData.content && responseData.content.length > 0 && responseData.content[0].text) {
             let content = responseData.content[0].text;
-            addResponseMessage(content);
+            addResponseMessage(content); // Pass content directly as it's already HTML if needed
             resFlag = true;
             return content;
         } else if (responseData.error) {
@@ -1439,7 +1423,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
         }
-        addResponseMessage(content);
+        addResponseMessage(content); // Pass content directly as it's already HTML if needed
         resFlag = true;
         return content;
     } else if (responseData.error) {
@@ -1833,7 +1817,13 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(".settings-common .model option:selected").data('description'));
+            setCookie('selectedModel', selectedModel, 30); // Store selected model in cookie
+        } else {
+            const defaultModel = $('.settings-common .model').val(); // Get default model from select
+            updateModelSettings(defaultModel);
+            setCookie('selectedModel', defaultModel, 30); // Store default model in cookie if no cookie is set
         }
+
 
         // 监听model选择的变化
         $('.settings-common .model').change(function() {
@@ -1842,6 +1832,7 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(this).find("option:selected").data('description'));
+            setCookie('selectedModel', selectedModel, 30); // Store selected model in cookie
         });
 
 // 删除对话
