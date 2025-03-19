@@ -1459,9 +1459,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 function addImageMessageInline(imageUrl, lastResponseElement) {
     // Append image element directly to the lastResponseElement
     const imageElement = $(`<div class="message-text inline-image"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%; cursor: pointer;" alt="Generated Image"></div>`);
-    const viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
 
-    imageElement.append(viewButton); // Only append view button, not delete button
     lastResponseElement.append(imageElement);
 
 
