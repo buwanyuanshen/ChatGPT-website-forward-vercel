@@ -21,7 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
-    setCookie('modelSearchInputValue', searchInput.value, 30); // 存储搜索框内容
+    setCookie('modelSearchInput', searchInput.value, 30); // Store search input in cookie
 });
 
 function resetImageUpload() {
@@ -315,6 +315,29 @@ document.addEventListener('DOMContentLoaded', function() {
     // Ensure DOM is fully loaded before adding event listeners
     document.addEventListener('DOMContentLoaded', function () {
         initListeners();
+
+        // Load saved API Path from cookie
+        const savedApiPath = getCookie('apiPath');
+        if (savedApiPath) {
+            $('#apiPathSelect').val(savedApiPath);
+        }
+
+        // Load saved Model Search Input from cookie
+        const savedModelSearchInput = getCookie('modelSearchInput');
+        if (savedModelSearchInput) {
+            searchInput.value = savedModelSearchInput;
+            const searchTerm = savedModelSearchInput.toLowerCase();
+            if (selectElement) {
+                Array.from(selectElement.options).forEach(option => {
+                    const description = option.getAttribute('data-description').toLowerCase();
+                    if (description.includes(searchTerm)) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            }
+        }
     });
 
 
@@ -441,13 +464,6 @@ $(document).ready(function () {
     }
     initializeDataDescription();
     updateTitle();
-
-    // 初始化模型搜索框内容
-    const modelSearchInputValue = getCookie('modelSearchInputValue');
-    if (modelSearchInputValue) {
-        searchInput.value = modelSearchInputValue;
-    }
-
 });
 
 
@@ -643,15 +659,10 @@ $(document).ready(function() {
   }
 
 // 添加图片消息到窗口
-function addImageMessage(imageUrl, text = '') { // 修改：addImageMessage 接受 text 参数
+function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    let messageContent = '';
-    if (text) {
-        messageContent += `<div class="message-text">${marked.parse(escapeHtml(text))}</div>`; // 使用 marked 处理文本
-    }
-    messageContent += `<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
-    lastResponseElement.append(messageContent + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
@@ -1003,10 +1014,10 @@ let requestBody = {
 const selectedApiPath = apiPathSelect.val();
 if (selectedApiPath) {
     apiUrl = datas.api_url + selectedApiPath;
-    setCookie('apiPath', selectedApiPath, 30); // 存储 API Path 到 Cookie
+    setCookie('apiPath', selectedApiPath, 30); // Store selected API Path in cookie
 } else {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
-    setCookie('apiPath', '/v1/chat/completions', 30); // 存储默认 API Path 到 Cookie
+    setCookie('apiPath', null, 30); // Clear cookie if default is used
 }
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
@@ -1228,24 +1239,20 @@ if (!response.ok) {
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        let messageText = '';
-        let imageBase64 = null;
-        responseData.candidates[0].content.parts.forEach(part => {
+        let messageContent = '';
+        for (const part of responseData.candidates[0].content.parts) {
             if (part.text) {
-                messageText += part.text + '\n';
-            } else if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
-                imageBase64 = 'data:' + part.inlineData.mimeType + ';base64,' + part.inlineData.data;
-                // 存储图片到 Cookie (注意：Cookie 不适合存储大数据，这里仅为演示，实际应用建议使用 localStorage 或 IndexedDB)
-                setCookie('geminiImage', imageBase64, 1); // 存储 1 天
+                messageContent += marked.parse(escapeHtml(part.text)); // Parse text as markdown
+            } else if (part.inlineData && part.inlineData.data && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
+                const imageData = part.inlineData.data;
+                const mimeType = part.inlineData.mimeType;
+                const imageUrl = `data:${mimeType};base64,${imageData}`;
+                messageContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
             }
-        });
-        if (imageBase64) {
-            addImageMessage(imageBase64, messageText.trim()); // 传递 text
-        } else {
-            addResponseMessage(messageText.trim());
         }
+        addResponseMessage(messageContent); // Now add the combined content
         resFlag = true;
-        return messageText.trim();
+        return messageContent;
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1981,16 +1988,14 @@ $(".delete a").click(function(){
     });
   }
     // 读取apiPath
-    const apiPath = getCookie('apiPath');
+    const apiPath = localStorage.getItem('apiPath');
     if (apiPath) {
         apiPathSelect.val(apiPath);
-    } else {
-        apiPathSelect.val('/v1/chat/completions'); // 默认值
     }
 
     // apiPath select event
     apiPathSelect.change(function() {
         const selectedApiPath = $(this).val();
-        setCookie('apiPath', selectedApiPath, 30);
+        localStorage.setItem('apiPath', selectedApiPath);
     });
 });
