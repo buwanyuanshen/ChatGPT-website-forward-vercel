@@ -757,7 +757,7 @@ function editMessage(message) {
 }
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
-function addResponseMessage(message) {
+function addResponseMessage(message, imageDataUrl) { // Modified to accept imageDataUrl
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -820,7 +820,12 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+        let contentDiv = $('<div class="message-text">' + messageContent + '</div>');
+        if (imageDataUrl) { // Append image if imageDataUrl is provided
+            contentDiv.prepend(`<img src="${imageDataUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`);
+        }
+        lastResponseElement.append(contentDiv);
+        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button>');
         viewButtons.forEach(button => {
             lastResponseElement.append(button);
         });
@@ -1079,14 +1084,14 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta') { // Gemini models handling
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta') { // Gemini models handling for image generation
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta') { // Gemini models handling
+}else if (selectedApiPath === '/v1beta') { // Gemini models handling for text
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
@@ -1326,10 +1331,18 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         resFlag = true;
         return content;
     } else if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) { // Gemini non-stream response handling
-        const content = responseData.candidates[0].content.parts[0].text;
-        addResponseMessage(content);
+        let messageText = '';
+        let imageDataUrl = null;
+        responseData.candidates[0].content.parts.forEach(part => {
+            if (part.text) {
+                messageText += part.text;
+            } else if (part.inlineData) {
+                imageDataUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            }
+        });
+        addResponseMessage(messageText, imageDataUrl); // Pass imageDataUrl to addResponseMessage
         resFlag = true;
-        return content;
+        return messageText;
     }
      else if (responseData.error) {
         addFailMessage(responseData.error.message);
