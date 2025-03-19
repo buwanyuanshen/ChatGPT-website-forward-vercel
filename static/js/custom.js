@@ -1164,14 +1164,16 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
-const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-    },
-    body: JSON.stringify(requestBody)
-});
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: selectedApiPath === '/v1beta' ? { // Conditional headers
+            'Content-Type': 'application/json'
+        } : {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify(requestBody)
+    });
 
 if (!response.ok) {
     const errorData = await response.json();
