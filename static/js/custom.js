@@ -1079,7 +1079,15 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (selectedApiPath === '/v1beta') { // Gemini models handling
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta') { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+    requestBody = {
+        "contents": [{
+            "parts": [{"text": data.prompts[0].content}],
+            "generationConfig":{"responseModalities":["Text","Image"]}
+        }]
+    };
+}else if (selectedApiPath === '/v1beta') { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
