@@ -1,4 +1,3 @@
-
 // 找到 select 元素
 const selectElement = document.querySelector('.form-control.ipt-common.model');
 const searchInput = document.querySelector('.model-search-input');
@@ -842,7 +841,7 @@ function addResponseMessage(message) {
         $(this).closest('.message-bubble').remove();
     });
 }
-    
+
 // 复制按钮点击事件
 $(document).on('click', '.copy-button', function() {
   let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
@@ -896,7 +895,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -995,9 +994,23 @@ if (selectedApiPath) {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
 }
 
-
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
+// --- Google API Support Start ---
+if (selectedApiPath === '/v1beta/models/model:generateContent?') { 
+    apiUrl = 'https://generativeai.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    requestBody = {
+        "contents": [{
+            "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
+        }],
+        "generationConfig": {
+            "maxOutputTokens": data.max_tokens,
+            "temperature": data.temperature,
+            "topP": 1
+        }
+    };
+} else
+// --- Google API Support End ---
 if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
@@ -1172,7 +1185,10 @@ const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
+        // --- Google API Support: Conditional Header ---
+        'Authorization': selectedApiPath === '/v1beta/models/model:generateContent?' ? undefined : 'Bearer ' + apiKey // Don't send Bearer token for Google API, adjust if Google Auth is different
+        // --- Google API Support: Conditional Header End ---
+        || 'Bearer ' + apiKey // Default OpenAI Auth
     },
     body: JSON.stringify(requestBody)
 });
@@ -1183,6 +1199,25 @@ if (!response.ok) {
     return;
 }
 
+// --- Google API Support: Response Handling ---
+if (selectedApiPath === '/v1beta/models/model:generateContent?') {
+    const responseData = await response.json();
+    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) {
+        let content = responseData.candidates[0].content.parts[0].text;
+        addResponseMessage(content);
+        resFlag = true;
+        return content;
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+        return;
+    } else {
+        addFailMessage("Google Gemini API 返回数据格式不正确");
+        resFlag = false;
+        return;
+    }
+} else
+// --- Google API Support: Response Handling End ---
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
@@ -1708,12 +1743,12 @@ function updateModelSettings(modelName) {
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
     const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
-    const hadKl = previousModel.toLowerCase().includes("kling");
+    const hasKo = previousModel.toLowerCase().includes("kolors");
+    const hasKl = previousModel.toLowerCase().includes("kling");
 
 
     // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
-    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hasKo || hasKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
