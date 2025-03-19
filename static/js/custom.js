@@ -1210,23 +1210,51 @@ if (!response.ok) {
 }
 
 // --- Google API Support: Response Handling ---
-if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
+if (selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        let combinedMessage = "";
-        for (const part of responseData.candidates[0].content.parts) {
+        let combinedTextContent = "";
+        let hasImage = false;
+        let lastResponseElement = $(".message-bubble .response").last();
+        lastResponseElement.empty(); // Clear previous loading icon
+
+        responseData.candidates[0].content.parts.forEach(part => {
             if (part.text) {
-                combinedMessage += part.text;
-            } else if (part.inlineData && part.inlineData.mimeType && part.inlineData.data) {
-                const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                addImageMessage(imageUrl);
+                combinedTextContent += part.text;
+            } else if (part.inlineData) {
+                hasImage = true;
+                const mimeType = part.inlineData.mimeType;
+                const imageData = part.inlineData.data;
+                const imageUrl = `data:${mimeType};base64,${imageData}`;
+                // Directly append image element for inline images
+                lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+                 // 绑定查看按钮事件 (inside loop for each image if needed, but better to bind once after loop if all images are in one response)
+                lastResponseElement.find('.view-button').off('click').on('click', function() { // Off to prevent multiple bindings
+                    window.open(imageUrl, '_blank');
+                });
+                // 绑定删除按钮点击事件
+                lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Off to prevent multiple bindings
+                    $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+                });
+            }
+        });
+
+        if (combinedTextContent) {
+            // Append text content if any text parts are present
+            lastResponseElement.append('<div class="message-text">' + marked.parse(escapeHtml(combinedTextContent)) + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + (hasImage ? '' : '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>')); // Conditionally add delete button if no image already adds it
+
+            lastResponseElement.find('.copy-button').off('click').on('click', function() { // Off to prevent multiple bindings
+                copyMessage($(this).prev().text().trim());
+            });
+            if (!hasImage) { // Only bind delete if not already bound by image part
+                lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Off to prevent multiple bindings
+                    $(this).closest('.message-bubble').remove();
+                });
             }
         }
-        if (combinedMessage) {
-            addResponseMessage(combinedMessage);
-        }
+
         resFlag = true;
-        return combinedMessage; // Return combined text if any
+        return combinedTextContent; // Or modify to return something more meaningful if needed
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
