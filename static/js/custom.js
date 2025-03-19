@@ -392,7 +392,7 @@ $(document).ready(function () {
     });
 
     // 监听删除自定义模型按钮点击事件
-    $(".delete-custom-model").on("click", function () {
+    $(".delete-custom-model").on("click", function() {
         // 获取用户输入的自定义模型名称
         var customModelName = $(".custom-model").val().trim();
 
@@ -1262,7 +1262,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
 
             if (selectedApiPath === '/v1/messages') { // New parsing logic for /v1/messages
-                if (jsonObj.type === 'content_block_delta' && jsonObj.delta && jsonObj.delta.type === 'text_delta') {
+                if (jsonObj.type === 'content_block_delta') {
                     str += jsonObj.delta.text; // Accumulate text
                     addResponseMessage(str); // Update response with accumulated text
                     resFlag = true;
