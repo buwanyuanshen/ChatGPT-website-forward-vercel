@@ -1375,7 +1375,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                              console.error("Failed to parse JSON:", dataLine.substring(6), e);
                          }
                      }
-                 }
+    
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
