@@ -1345,88 +1345,53 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str; // 初始化 str
+    let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
             break;
         }
         str = '';
-        res += new TextDecoder().decode(value);
-
-        if (apiUrl === datas.api_url + "/v1/messages") {
-            // /v1/messages 流式响应处理
-            const stream_res = res.trim().split(/[\n\n]/); // 使用双换行符分割
-            str = ''; // 重置 str
-            for (let i = 0; i < stream_res.length; i++) {
-                const stream_line = stream_res[i];
-                if (stream_line.startsWith("event: content_block_delta")) {
-                    const dataLine = stream_res[i + 1]; // 获取下一行 data
-                    if (dataLine && dataLine.startsWith("data: ")) {
-                        try {
-                            const json_data = JSON.parse(dataLine.substring(6)); // 从 "data: " 后开始解析
-                            if (json_data.type === "content_block_delta" && json_data.delta.type === "text_delta") {
-                                str += json_data.delta.text;
-                            }
-                        } catch (e) {
-                            console.error("Failed to parse JSON:", dataLine.substring(6), e);
-                        }
-                    }
-                }
+        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const lines = res.trim().split(/[\n]+(?=\{)/);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+            } catch (e) {
+                break;
             }
-            if (str) {  //只有当str不为空时才添加
-              addResponseMessage(str);
-              resFlag = true;
-              res = ''; // 清空 res，避免重复处理
+    if (jsonObj.choices) {
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
+
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
             }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
 
-        } else {
-          // 其他路径的流式响应处理 (原逻辑)
-          str = ''; //reset str
-          const lines = res.trim().split(/[\n]+(?=\{)/).filter(line => line.trim() !== ''); // 过滤空行
-            for (let i = 0; i < lines.length; i++) {
-                const line = lines[i].replace(/^data: /, '').replace("[DONE]", ''); // 移除 "data: " 和 "[DONE]"
-
-                let jsonObj;
-                try {
-                    jsonObj = JSON.parse(line);
-                } catch (e) {
-                    continue; // 如果解析失败，跳过当前行
-                }
-
-                if (jsonObj && jsonObj.choices) {
-                    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-                        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-                        const content = jsonObj.choices[0].delta.content;
-
-                        if (reasoningContent && reasoningContent.trim() !== "") {
-                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
-                        } else if (content && content.trim() !== "") {
-                            str += content;
-                        }
-                    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                        str += jsonObj.choices[0].text;
-                    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-                        const message = jsonObj.choices[0].message;
-                        const reasoningContent = message.reasoning_content;
-                        const content = message.content;
-
-                        if (reasoningContent && reasoningContent.trim() !== "") {
-                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
-                        } else if (content && content.trim() !== "") {
-                            str += content;
-                        }
-                    }
-
-                    if(str) {  //只有当str不为空时才添加
-                      addResponseMessage(str);
-                      resFlag = true;
-                    }
-                } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + (jsonObj.error.code ? " " + jsonObj.error.code : ""));
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        }
+                addResponseMessage(str);
+                resFlag = true;
+            } else {
+                if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
                 }
             }
@@ -1435,11 +1400,12 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
     // **新增代码 - 流式响应结束后判断是否滚动到底部**
     if (wasScrolledToBottomBeforeRequest) {
-        // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
+      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
-    return str;
 
-} else { // 非流式输出处理
+
+    return str;
+}else { // 非流式输出处理
     const responseData = await response.json();
 
     // /v1/messages 非流式响应
