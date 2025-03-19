@@ -21,7 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
-    localStorage.setItem('modelSearchInputValue', searchInput.value); // 保存搜索框内容
+    localStorage.setItem('modelSearchInput', searchInput.value); // Store search input in localStorage
 });
 
 function resetImageUpload() {
@@ -95,13 +95,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化时检查一次
     checkModelAndShowUpload();
-
-    // 加载模型搜索框内容
-    const savedModelSearchValue = localStorage.getItem('modelSearchInputValue');
-    if (savedModelSearchValue) {
-        searchInput.value = savedModelSearchValue;
-    }
-
 });
 
 
@@ -607,6 +600,17 @@ $(document).ready(function() {
     const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
 
+    // Load saved API Path from localStorage
+    const savedApiPath = localStorage.getItem('apiPath');
+    if (savedApiPath) {
+        apiPathSelect.val(savedApiPath);
+    }
+    // Load saved model search input from localStorage
+    const savedModelSearchInput = localStorage.getItem('modelSearchInput');
+    if (savedModelSearchInput) {
+        searchInput.value = savedModelSearchInput;
+    }
+
 
   // 存储对话信息,实现连续对话
   var messages = [];
@@ -643,27 +647,62 @@ $(document).ready(function() {
   }
 
 // 添加图片消息到窗口
-function addImageMessage(imageUrl, isBase64 = false) {
+function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    let imageElement;
-    if (isBase64) {
-        imageElement = `<img src="data:image/png;base64,${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
-    } else {
-        imageElement = `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
-    }
-    lastResponseElement.append(`<div class="message-text">${imageElement}</div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
-        window.open(isBase64 ? `data:image/png;base64,${imageUrl}` : imageUrl, '_blank');
+        window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
         $(this).closest('.message-bubble').remove(); // 删除该条响应消息
     });
 }
+
+// 添加富媒体消息到窗口，可以包含文本和图片
+function addRichMediaMessage(parts) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    let messageContentHTML = '';
+    let viewButtons = [];
+
+    parts.forEach(part => {
+        if (part.text) {
+            messageContentHTML += marked.parse(escapeHtml(part.text));
+        } else if (part.inlineData && part.inlineData.data && part.inlineData.mimeType) {
+            const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+            messageContentHTML += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%; margin-top: 10px;" alt="Generated Image"><br>`;
+            let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+            viewButton.data('url', imageUrl);
+            viewButtons.push(viewButton);
+        }
+    });
+
+    lastResponseElement.append(`<div class="message-text">${messageContentHTML}</div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+    viewButtons.forEach(button => {
+        lastResponseElement.append(button);
+    });
+    lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+
+    // 绑定查看按钮事件
+    lastResponseElement.find('.view-button').on('click', function() {
+        const urlToOpen = $(this).data('url');
+        window.open(urlToOpen, '_blank');
+    });
+    // 绑定复制按钮点击事件
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim());
+    });
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').on('click', function() {
+        $(this).closest('.message-bubble').remove();
+    });
+}
+
 
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
@@ -1004,15 +1043,17 @@ let requestBody = {
 const selectedApiPath = apiPathSelect.val();
 if (selectedApiPath) {
     apiUrl = datas.api_url + selectedApiPath;
+    localStorage.setItem('apiPath', selectedApiPath); // Store selected API Path in localStorage
 } else {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
+    localStorage.removeItem('apiPath'); // Remove apiPath from localStorage if default is used
 }
 
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
 // --- Google API Support Start ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1021,11 +1062,11 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
             "maxOutputTokens": data.max_tokens,
             "temperature": data.temperature,
             "topP": 1,
-            "responseModalities":["TEXT","Image"]
+            "responseModalities":["Text","Image"]
         }
     };
 }else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1227,19 +1268,9 @@ if (!response.ok) {
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        let messageText = "";
-        for (const part of responseData.candidates[0].content.parts) {
-            if (part.text) {
-                messageText += part.text;
-            } else if (part.inlineData && part.inlineData.mimeType === "image/png" && part.inlineData.data) {
-                addImageMessage(part.inlineData.data, true); // Indicate it's base64
-            }
-        }
-        if (messageText) {
-            addResponseMessage(messageText); // Add remaining text message part
-        }
+        addRichMediaMessage(responseData.candidates[0].content.parts); // Use addRichMediaMessage for Gemini image/text responses
         resFlag = true;
-        return messageText;
+        return responseData; // Return full response data for potential further processing
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1688,7 +1719,10 @@ chatInput.on("keydown", handleEnter);
     } else {
       localStorage.setItem('continuousDialogue', false);
     }
-
+// 删除输入框中的消息
+function deleteInputMessage() {
+  chatInput.val('');
+}
   });
 // 读取model配置
 const selectedModel = localStorage.getItem('selectedModel');
@@ -1879,6 +1913,19 @@ $(".delete a").click(function(){
     localStorage.setItem('max_tokens ', max_tokens );
       })
 
+// 删除输入框中的消息
+function deleteInputMessage() {
+  chatInput.val('');
+}
+
+// 删除功能
+$(".delete a").click(function(){
+  chatWindow.empty();
+  deleteInputMessage();
+  $(".answer .tips").css({"display":"flex"});
+  messages = [];
+  localStorage.removeItem("session");
+});
 
 // 删除功能
 $(".delete a").click(function(){
@@ -1968,5 +2015,13 @@ $(".delete a").click(function(){
     apiPathSelect.change(function() {
         const selectedApiPath = $(this).val();
         localStorage.setItem('apiPath', selectedApiPath);
+    });
+
+    // Load saved model search input from localStorage on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedModelSearchInput = localStorage.getItem('modelSearchInput');
+        if (savedModelSearchInput) {
+            searchInput.value = savedModelSearchInput;
+        }
     });
 });
