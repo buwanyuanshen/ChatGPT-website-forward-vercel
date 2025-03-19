@@ -1079,7 +1079,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if ((selectedApiPath === '/v1beta') { // Gemini models handling
+} else if ((selectedApiPath === '/v1beta') {
     apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
@@ -1098,6 +1098,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "n": 1,
         "stream": getCookie('streamOutput') !== 'false'
     };
+}
 }
     if (data.model.includes("o1") && !data.model.includes("all")) {
     apiUrl = datas.api_url + "/v1/chat/completions";
