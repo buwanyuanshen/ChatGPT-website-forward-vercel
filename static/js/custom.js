@@ -634,22 +634,22 @@ $(document).ready(function() {
     return div.innerHTML;
   }
 
-// 添加图片消息到窗口
+// 添加图片消息到窗口 (独立图片消息，例如 DALL-E)
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
-    // lastResponseElement.empty(); // No need to empty here, append instead
+    // lastResponseElement.empty(); //  Don't empty here, append to existing content if needed
     lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
-    lastResponseElement.find('.view-button').off('click').on('click', function() { // Use .off() to avoid duplicate bindings
+    lastResponseElement.find('.view-button').off('click').on('click', function() {
         window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Use .off() to avoid duplicate bindings
-        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+    lastResponseElement.find('.delete-message-btn').off('click').on('click', function() {
+        $(this).closest('.message-bubble').remove();
     });
 }
+
 
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
@@ -820,11 +820,11 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+        lastResponseElement.append('<div class="message-text text-content">' + messageContent + '</div>'); // Wrap text in text-content div
         viewButtons.forEach(button => {
             lastResponseElement.append(button);
         });
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Add copy and delete buttons at the end
     }
 
 
@@ -834,8 +834,12 @@ function addResponseMessage(message) {
         console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
-    lastResponseElement.find('.copy-button').click(function() {
-        copyMessage($(this).prev().text().trim());
+    lastResponseElement.find('.copy-button').off('click').on('click', function() { // Rebind copy button to fix copy issue
+        let fullText = '';
+        $(this).closest('.response').find('.message-text.text-content').each(function() { // Select all text-content divs within the response
+            fullText += $(this).text().trim() + '\n'; // Append each text part with a newline
+        });
+        copyMessage(fullText.trim()); // Copy the combined text
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
@@ -1218,24 +1222,30 @@ if (selectedApiPath === '/v1beta/models/model:generateContent?') {
 
         responseData.candidates[0].content.parts.forEach(part => {
             if (part.text) {
-                // Append text content if any text parts are present
-                lastResponseElement.append('<div class="message-text">' + marked.parse(escapeHtml(part.text)) + '</div>');
+                // Append text content if any text parts are present, wrapped in text-content div
+                lastResponseElement.append('<div class="message-text text-content">' + marked.parse(escapeHtml(part.text)) + '</div>');
             } else if (part.inlineData) {
                 const mimeType = part.inlineData.mimeType;
                 const imageData = part.inlineData.data;
                 const imageUrl = `data:${mimeType};base64,${imageData}`;
-                // Directly append image element for inline images
-                addImageMessageInline(imageUrl, lastResponseElement); // Use inline add image function
+                // Directly append image element for inline images, using dedicated function
+                addImageMessageInline(imageUrl, lastResponseElement);
             }
         });
 
+        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Add copy and delete buttons after all parts
 
-        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
-        lastResponseElement.find('.copy-button').off('click').on('click', function() { // Off to prevent multiple bindings
-            copyMessage($(this).prev().text().trim()); // Copy text of the *previous* element which should be text message
+        lastResponseElement.find('.copy-button').off('click').on('click', function() {
+            let fullText = '';
+            $(this).closest('.response').find('.message-text.text-content').each(function() { // Select all text-content divs within the response
+                fullText += $(this).text().trim() + '\n'; // Append each text part with a newline
+            });
+            copyMessage(fullText.trim()); // Copy the combined text
         });
-        lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Off to prevent multiple bindings
+
+
+        lastResponseElement.find('.delete-message-btn').off('click').on('click', function() {
             $(this).closest('.message-bubble').remove();
         });
 
@@ -1445,15 +1455,13 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
   }
 
-  // Function to add image message inline with text (for Gemini API response parts)
+  // Function to add inline image message (for Gemini API response parts)
 function addImageMessageInline(imageUrl, lastResponseElement) {
     // Append image element directly to the lastResponseElement
     const imageElement = $(`<div class="message-text inline-image"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%; cursor: pointer;" alt="Generated Image"></div>`);
     const viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-    const deleteButton = $('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
-    imageElement.append(viewButton);
-    imageElement.append(deleteButton);
+    imageElement.append(viewButton); // Only append view button, not delete button
     lastResponseElement.append(imageElement);
 
 
@@ -1461,12 +1469,8 @@ function addImageMessageInline(imageUrl, lastResponseElement) {
     viewButton.off('click').on('click', function() {
         window.open(imageUrl, '_blank');
     });
-    // 绑定删除按钮点击事件
-    deleteButton.off('click').on('click', function() {
-        $(this).closest('.inline-image').remove(); // Remove the inline image container
-    });
 
-    // Image click to view (alternative to button, or in addition)
+    // Image click to view (alternative to button, or in addition) - keep this for direct image click
     imageElement.find('img').off('click').on('click', function() {
         window.open(imageUrl, '_blank');
     });
