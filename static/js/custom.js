@@ -1213,58 +1213,50 @@ if (!response.ok) {
 if (selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0) {
-        let lastResponseElement = $(".message-bubble .response").last();
-        lastResponseElement.empty();
-        let responseContent = "";
-        let hasImage = false; // Flag to track if an image was processed
+        let messageContent = "";
+        let hasImage = false;
+        let imageUrl = "";
 
-        for (const part of responseData.candidates[0].content.parts) {
+        responseData.candidates[0].content.parts.forEach(part => {
             if (part.text) {
-                responseContent += part.text;
-            } else if (part.inlineData) {
-                hasImage = true;
-                const mimeType = part.inlineData.mimeType;
-                const imageData = part.inlineData.data;
-                const imageUrl = `data:${mimeType};base64,${imageData}`;
-                // Directly append image and buttons to lastResponseElement
-                lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+                messageContent += part.text;
+            } else if (part.inlineData && part.inlineData.mimeType && part.inlineData.data) {
+                if (part.inlineData.mimeType.startsWith('image/')) {
+                            imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                            hasImage = true;
+                        }
+                    }
+                });
 
-                // 绑定查看按钮事件 (inside the loop to handle multiple images if needed, though unlikely in this example)
-                lastResponseElement.find('.view-button').off('click').on('click', function() { //off to prevent multiple bindings
-                    window.open(imageUrl, '_blank');
-                });
-                // 绑定删除按钮点击事件 (inside the loop for consistency)
-                lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { //off to prevent multiple bindings
-                    $(this).closest('.message-bubble').remove(); // 删除该条响应消息
-                });
+                if (hasImage) {
+                    addResponseMessage(messageContent); // Add text content first if any
+                    addImageMessage(imageUrl); // Then add the image
+                    resFlag = true;
+                    return messageContent + imageUrl; // Return both for message logging if needed
+                } else if (messageContent) {
+                    addResponseMessage(messageContent);
+                    resFlag = true;
+                    return messageContent;
+                }
+                else if (responseData.error) {
+                    addFailMessage(responseData.error.message);
+                    resFlag = false;
+                    return;
+                } else {
+                    addFailMessage("Google Gemini API 返回数据格式不正确");
+                    resFlag = false;
+                    return;
+                }
+            } else if (responseData.error) {
+                addFailMessage(responseData.error.message);
+                resFlag = false;
+                return;
+            } else {
+                addFailMessage("Google Gemini API 返回数据格式不正确");
+                resFlag = false;
+                return;
             }
-        }
-
-        if (responseContent && !hasImage) {
-            addResponseMessage(responseContent); // If only text content and no image, use addResponseMessage for formatting
-        } else if (responseContent && hasImage) {
-            // If there's text and image, append text too, maybe before image? or after?  Let's append text before image related elements.
-            lastResponseElement.prepend(`<div class="message-text">${marked.parse(escapeHtml(responseContent))}</div>`);
-             // Add copy button for text part
-            lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button>');
-            lastResponseElement.find('.copy-button').off('click').on('click', function() { //off to prevent multiple bindings
-                copyMessage($(this).prev().text().trim());
-            });
-        }
-
-
-        resFlag = true;
-        return responseContent; // Or handle return value as needed
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-        return;
-    } else {
-        addFailMessage("Google Gemini API 返回数据格式不正确");
-        resFlag = false;
-        return;
-    }
-} else
+        } else
 // --- Google API Support: Response Handling End ---
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
