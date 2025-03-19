@@ -67,7 +67,7 @@ function resetImageUpload() {
     });
 function checkModelAndShowUpload() {
     var modelSelect = document.querySelector('.model');
-    var selectedModel = modelSelect.value.toLowerCase();
+    var selectedModel = modelSelect.value.toLowerCase();  
     var uploadArea = document.getElementById('uploadArea');
 
     if (
@@ -842,7 +842,7 @@ function addResponseMessage(message) {
         $(this).closest('.message-bubble').remove();
     });
 }
-
+    
 // 复制按钮点击事件
 $(document).on('click', '.copy-button', function() {
   let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
@@ -896,7 +896,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -995,34 +995,10 @@ if (selectedApiPath) {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
 }
 
+
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
-// --- Google API Support Start ---
-if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') { 
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
-    requestBody = {
-        "contents": [{
-            "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
-        }],
-        "generationConfig": {
-            "maxOutputTokens": data.max_tokens,
-            "temperature": data.temperature,
-            "topP": 1,
-            "responseModalities":["Text","Image"]
-        }
-    };
-}else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') { 
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
-    requestBody = {
-        "contents": [{
-            "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
-        }],
-        "generationConfig": {
-            "maxOutputTokens": data.max_tokens,
-            "temperature": data.temperature,
-            "topP": 1        }
-    };
-}else if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
+if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
         "prompt": data.prompts[0].content,
@@ -1196,10 +1172,7 @@ const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
-        // --- Google API Support: Conditional Header ---
-        'Authorization': selectedApiPath === '/v1beta/models/model:generateContent?' ? undefined : 'Bearer ' + apiKey // Don't send Bearer token for Google API, adjust if Google Auth is different
-        // --- Google API Support: Conditional Header End ---
-        || 'Bearer ' + apiKey // Default OpenAI Auth
+        'Authorization': 'Bearer ' + apiKey
     },
     body: JSON.stringify(requestBody)
 });
@@ -1210,25 +1183,6 @@ if (!response.ok) {
     return;
 }
 
-// --- Google API Support: Response Handling ---
-if (selectedApiPath === '/v1beta/models/model:generateContent?') {
-    const responseData = await response.json();
-    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) {
-        let content = responseData.candidates[0].content.parts[0].text;
-        addResponseMessage(content);
-        resFlag = true;
-        return content;
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-        return;
-    } else {
-        addFailMessage("Google Gemini API 返回数据格式不正确");
-        resFlag = false;
-        return;
-    }
-} else
-// --- Google API Support: Response Handling End ---
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
