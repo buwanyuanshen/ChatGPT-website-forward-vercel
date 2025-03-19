@@ -759,7 +759,13 @@ function editMessage(message) {
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
     let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
+    if(lastResponseElement.find('.message-text').length > 0) {
+        lastResponseElement = lastResponseElement.find('.message-text').last(); // For stream output append to the last message-text
+    } else {
+        lastResponseElement.empty(); // Ensure it's empty for the first chunk in non-stream or initial stream
+        lastResponseElement = $(".message-bubble .response").last(); // Re-select in case of empty
+    }
+
 
     if ($(".answer .others .center").css("display") === "none") {
         $(".answer .others .center").css("display", "flex");
@@ -820,24 +826,25 @@ function addResponseMessage(message) {
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+        lastResponseElement.append(messageContent);
+        lastResponseElement.parent().append('<button class="copy-button"><i class="far fa-copy"></i></button>'); // Append to parent .response
         viewButtons.forEach(button => {
-            lastResponseElement.append(button);
+            lastResponseElement.parent().append(button); // Append to parent .response
         });
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        lastResponseElement.parent().append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Append to parent .response
     }
 
 
     // 绑定按钮事件
-    lastResponseElement.find('.view-button').on('click', function() {
+    lastResponseElement.parent().find('.view-button').on('click', function() { // Bind to parent
         const urlToOpen = $(this).data('url');
         console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
-    lastResponseElement.find('.copy-button').click(function() {
+    lastResponseElement.parent().find('.copy-button').click(function() { // Bind to parent
         copyMessage($(this).prev().text().trim());
     });
-    lastResponseElement.find('.delete-message-btn').click(function() {
+    lastResponseElement.parent().find('.delete-message-btn').click(function() { // Bind to parent
         $(this).closest('.message-bubble').remove();
     });
 }
@@ -952,8 +959,9 @@ async function getApiKey() {
   }
 }
 
+let ajaxRequest = null; // 用于存储当前的 AJAX 请求
+
 // 发送请求获得响应
-let ajaxRequest = null; // 用于存储当前的 Ajax 请求
 async function sendRequest(data) {
   await getConfig();
   const apiKey = await getApiKey();
@@ -1080,7 +1088,19 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+} else if (selectedApiPath === '/v1/messages') { // New API path for /v1/messages
+    apiUrl = datas.api_url + "/v1/messages";
+    requestBody = {
+        "messages": data.prompts,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": getCookie('streamOutput') !== 'false'
+    };
+}
+else { // Default to /v1/chat/completions for other models or if path is not explicitly set
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "messages": data.prompts,
@@ -1157,7 +1177,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
-ajaxRequest = fetch(apiUrl, { // Store the fetch request in ajaxRequest
+ajaxRequest = fetch(apiUrl, { // Assign fetch to ajaxRequest
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
@@ -1166,7 +1186,8 @@ ajaxRequest = fetch(apiUrl, { // Store the fetch request in ajaxRequest
     body: JSON.stringify(requestBody)
 });
 
-const response = await ajaxRequest; // Await the stored request
+const response = await ajaxRequest; // Await the fetch promise
+
 
 if (!response.ok) {
     const errorData = await response.json();
@@ -1241,71 +1262,47 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            let events = line.split('\nevent: '); // Split by event: to handle different events
-            for (let j = 0; j < events.length; j++) {
-                let eventData = events[j];
-                if (!eventData) continue; // Skip empty event data
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+            } catch (e) {
+                break;
+            }
+    if (jsonObj) {
+        if (selectedApiPath === '/v1/messages' && jsonObj.type === 'content_block_delta' && jsonObj.delta.type === 'text_delta') {
+            str = jsonObj.delta.text; // For /v1/messages, directly use delta.text
+            addResponseMessage(str);
+            resFlag = true;
 
-                let eventTypeMatch = eventData.match(/^(\w+)\n/); // Match event type at the beginning
-                if (!eventTypeMatch) continue; // Skip if no event type is found
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices) {
+            if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+                const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+                const content = jsonObj.choices[0].delta.content;
 
-                let eventType = eventTypeMatch[1];
-                let dataStr = eventData.substring(eventTypeMatch[0].length).trim(); // Get data part
-
-                if (dataStr.startsWith('data:')) {
-                    dataStr = dataStr.substring(5).trim(); // Remove 'data:' prefix
+                if (reasoningContent && reasoningContent.trim() !== "") {
+                    str = "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+                } else if (content && content.trim() !== "") {
+                    str = content;
                 }
+            } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+                str = jsonObj.choices[0].text;
+            } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+                const message = jsonObj.choices[0].message;
+                const reasoningContent = message.reasoning_content;
+                const content = message.content;
 
-                let jsonObj;
-                try {
-                    jsonObj = JSON.parse(dataStr);
-                } catch (e) {
-                    console.warn("JSON parse error:", e, "on line:", dataStr);
-                    continue;
+                if (reasoningContent && reasoningContent.trim() !== "") {
+                    str = "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+                } else if (content && content.trim() !== "") {
+                    str = content;
                 }
-
-                if (selectedApiPath === '/v1/messages' || apiPathSelect.val() === '/v1/messages') { // Handle /v1/messages response format
-                    if (eventType === 'content_block_delta' && jsonObj.delta && jsonObj.delta.text) {
-                        str += jsonObj.delta.text;
-                        addResponseMessage(str);
-                        resFlag = true;
-                    } else if (eventType === 'content_block_stop' || eventType === 'message_stop') {
-                        // content_block_stop or message_stop event, handle if needed, for now, do nothing.
-                    } else if (jsonObj.error) {
+            }
+                    addResponseMessage(str);
+                    resFlag = true;
+                } else {
+                    if (jsonObj.error) {
                         addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                         resFlag = false;
-                    }
-                } else { // Handle /v1/chat/completions and other formats
-                    if (jsonObj.choices) {
-                        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-                            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-                            const content = jsonObj.choices[0].delta.content;
-
-                            if (reasoningContent && reasoningContent.trim() !== "") {
-                                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-                            } else if (content && content.trim() !== "") {
-                                str += content;
-                            }
-                        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                            str += jsonObj.choices[0].text;
-                        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-                            const message = jsonObj.choices[0].message;
-                            const reasoningContent = message.reasoning_content;
-                            const content = message.content;
-
-                            if (reasoningContent && reasoningContent.trim() !== "") {
-                                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-                            } else if (content && content.trim() !== "") {
-                                str += content;
-                            }
-                        }
-                        addResponseMessage(str);
-                        resFlag = true;
-                    } else {
-                        if (jsonObj.error) {
-                            addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                            resFlag = false;
-                        }
                     }
                 }
             }
@@ -1327,16 +1324,14 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             content = responseData.choices[0].message.content;
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/messages' || apiPathSelect.val() === '/v1/messages") { // Handle /v1/messages non-streaming response if different
-            // Assuming the non-streaming response for /v1/messages is similar to /v1/chat/completions in structure.
-            // You might need to adjust this based on the actual non-streaming response format of /v1/messages.
-            if (responseData.content_block && responseData.content_block.content) {
-                content = responseData.content_block.content;
-            } else if (responseData.message && responseData.message.content) { // Fallback if content_block is not present, adjust as needed
-                content = responseData.message.content;
-            } else if (typeof responseData.content === 'string') { // Another fallback if content is directly in response
-                content = responseData.content;
-            }
+        } else if (selectedApiPath === '/v1/messages' && responseData.content_block_deltas && responseData.content_block_deltas.length > 0) { // Handle /v1/messages non-stream response if needed - adapt based on actual non-stream response structure if different
+            let combinedContent = '';
+            responseData.content_block_deltas.forEach(delta => {
+                if (delta.type === 'text_delta') {
+                    combinedContent += delta.text;
+                }
+            });
+            content = combinedContent;
         }
         addResponseMessage(content);
         resFlag = true;
@@ -1720,7 +1715,7 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } else if (lowerModelName.includes("messages")){ // Add condition for /v1/messages path auto-switch
+    } else if (lowerModelName.includes("messages-api") || lowerModelName.includes("message-api") || lowerModelName.includes("v1/messages") ) { // 增加对 "messages-api" 模型的判断
         targetApiPath = '/v1/messages';
     }
      else {
