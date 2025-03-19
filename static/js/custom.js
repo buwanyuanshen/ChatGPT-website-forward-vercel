@@ -1079,7 +1079,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if ((selectedApiPath === '/v1/messages' || apiPathSelect.val() === null )) {
+} else if ((selectedApiPath === '/v1/messages' || apiPathSelect.val() === null )) { // New: Handle /v1/messages path
     apiUrl = datas.api_url + "/v1/messages";
     requestBody = {
         "messages": data.prompts,
@@ -1090,9 +1090,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "n": 1,
         "stream": getCookie('streamOutput') !== 'false'
     };
-}
-
- else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "messages": data.prompts,
@@ -1239,7 +1237,8 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str = ''; // Initialize str here to accumulate response text
+    let str = ''; // Initialize str here
+    let responseText = ''; // Accumulate response text for /v1/messages
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
@@ -1247,6 +1246,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         if (done) {
             break;
         }
+        str = '';
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
@@ -1282,18 +1282,40 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
                 addResponseMessage(str);
                 resFlag = true;
-            } else if (selectedApiPath === '/v1/messages') { // New streaming response handling for /v1/messages
-                if (jsonObj.type === 'content_block_delta' && jsonObj.delta && jsonObj.delta.type === 'text_delta' && jsonObj.delta.text) {
-                    str += jsonObj.delta.text; // Accumulate text
-                    addResponseMessage(str); // Update response message with accumulated text
-                    resFlag = true;
-                } else if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                    resFlag = false;
+            } else if (apiUrl === datas.api_url + "/v1/messages") { // New: Handle /v1/messages stream format
+                if (line.startsWith('event: content_block_delta')) {
+                    try {
+                        const dataLine = lines[i+1]; // Get the next line which should be 'data: ...'
+                        if (dataLine && dataLine.startsWith('data:')) {
+                            const jsonData = JSON.parse(dataLine.substring(5).trim()); // Remove 'data: ' and parse JSON
+                            if (jsonData.delta && jsonData.delta.text) {
+                                responseText += jsonData.delta.text; // Accumulate text
+                                addResponseMessage(responseText); // Update response with accumulated text
+                                resFlag = true;
+                            }
+                        }
+                        i++; // Skip the next line ('data: ...') as we've processed it
+                    } catch (e) {
+                        console.error('Error parsing /v1/messages stream data:', e);
+                        break; // Exit loop on parse error
+                    }
+                } else if (line.startsWith('event: message_stop') || line.startsWith('event: content_block_stop')) {
+                    break; // Stop processing on message/content stop event
+                } else if (line.startsWith('data: {"error":')) { // Error handling within stream
+                    try {
+                        const errorData = JSON.parse(line.substring(5).trim());
+                        if (errorData.error) {
+                            addFailMessage(errorData.error.message);
+                            resFlag = false;
+                            break; // Exit loop after error message
+                        }
+                    } catch (e) {
+                        console.error('Error parsing error data:', e);
+                        break;
+                    }
                 }
-            }
 
-            else {
+            } else {
                 if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
@@ -1317,6 +1339,13 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             content = responseData.choices[0].message.content;
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/messages") { // New: Handle /v1/messages non-stream response (if applicable)
+            // Assuming the non-stream response format for /v1/messages is similar to /v1/chat/completions
+            if (responseData.choices[0].message && responseData.choices[0].message.content) {
+                content = responseData.choices[0].message.content;
+            } else if (responseData.choices[0].text) {
+                content = responseData.choices[0].text;
+            }
         }
         addResponseMessage(content);
         resFlag = true;
@@ -1700,10 +1729,9 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } else if (lowerModelName.includes("messages")) { // Add logic for /v1/messages path
+    } else if (lowerModelName.includes("messages")) { // New: Auto-switch to /v1/messages if model implies it
         targetApiPath = '/v1/messages';
     }
-
      else {
         targetApiPath = '/v1/chat/completions'; // Default path
     }
