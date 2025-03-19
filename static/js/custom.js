@@ -1274,21 +1274,21 @@ if (!response.ok) {
 // --- Google API Support: Response Handling ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
-    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content) {
-        const parts = responseData.candidates[0].content.parts;
-        addRichTextMessage(parts); // 使用新的函数处理富文本消息
-        resFlag = true;
-        return parts; // 返回 parts 用于后续处理，如果需要的话
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-        return;
-    } else {
-        addFailMessage("Google Gemini API 返回数据格式不正确");
-        resFlag = false;
-        return;
-    }
-} else
+     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) {
+         let content = responseData.candidates[0].content.parts[0].text;
+         addResponseMessage(content);
+         resFlag = true;
+         return content;
+     } else if (responseData.error) {
+         addFailMessage(responseData.error.message);
+         resFlag = false;
+         return;
+     } else {
+         addFailMessage("Google Gemini API 返回数据格式不正确");
+         resFlag = false;
+         return;
+     }
+ } else
 // --- Google API Support: Response Handling End ---
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
@@ -1353,7 +1353,29 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         if (done) {
             break;
         }
+        
         str = '';
+                res += new TextDecoder().decode(value);
+ 
+         if (apiUrl === datas.api_url + "/v1/messages") {
+             // /v1/messages 流式响应处理
+             const stream_res = res.trim().split(/[\n\n]/); // 使用双换行符分割
+             str = ''; // 重置 str
+             for (let i = 0; i < stream_res.length; i++) {
+                 const stream_line = stream_res[i];
+                 if (stream_line.startsWith("event: content_block_delta")) {
+                     const dataLine = stream_res[i + 1]; // 获取下一行 data
+                     if (dataLine && dataLine.startsWith("data: ")) {
+                         try {
+                             const json_data = JSON.parse(dataLine.substring(6)); // 从 "data: " 后开始解析
+                             if (json_data.type === "content_block_delta" && json_data.delta.type === "text_delta") {
+                                 str += json_data.delta.text;
+                             }
+                         } catch (e) {
+                             console.error("Failed to parse JSON:", dataLine.substring(6), e);
+                         }
+                     }
+                 }
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
