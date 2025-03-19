@@ -21,7 +21,6 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
-    setCookie('modelSearchTerm', searchInput.value, 30); // 保存搜索词到 cookie
 });
 
 function resetImageUpload() {
@@ -95,13 +94,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // 初始化时检查一次
     checkModelAndShowUpload();
-
-    // 初始化模型搜索框内容
-    const modelSearchTerm = getCookie('modelSearchTerm');
-    if (modelSearchTerm) {
-        searchInput.value = modelSearchTerm;
-        searchInput.dispatchEvent(new Event('input')); // 触发 input 事件以应用筛选
-    }
 });
 
 
@@ -181,13 +173,6 @@ document.addEventListener('DOMContentLoaded', function() {
     maxDialogueMessagesInput.addEventListener('change', function() {
         setCookie('maxDialogueMessages', this.value, 30);
     });
-
-    // 初始化 API Path 选择器
-    const apiPathSelect = document.getElementById('apiPathSelect');
-    const savedApiPath = getCookie('apiPath');
-    if (savedApiPath) {
-        apiPathSelect.value = savedApiPath;
-    }
 });
 
 
@@ -666,32 +651,6 @@ function addImageMessage(imageUrl) {
     });
 }
 
-// 添加Gemini 图片消息到窗口 (处理 base64 编码的图片)
-function addGeminiImageMessage(base64Image, mimeType, textContent) {
-    let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
-    let imageElement = '';
-    if (base64Image && mimeType) {
-        const imageUrl = `data:${mimeType};base64,${base64Image}`;
-        imageElement = `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">` + '<button class="view-button"><i class="fas fa-search"></i></button>';
-         // 绑定查看按钮事件
-        lastResponseElement.find('.view-button').on('click', function() {
-            window.open(imageUrl, '_blank');
-        });
-    }
-    let textElement = '';
-    if (textContent) {
-        textElement = `<p>${marked.parse(escapeHtml(textContent))}</p>`; // 使用 marked.parse 和 escapeHtml 处理文本内容
-    }
-
-    lastResponseElement.append(`<div class="message-text">${textElement}${imageElement}</div>` + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-
-    // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
-        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
-    });
-}
-
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
     let lastResponseElement = $(".message-bubble .response").last();
@@ -1039,7 +998,7 @@ const model = data.model.toLowerCase(); // Convert model name to lowercase for e
 
 // --- Google API Support Start ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1052,7 +1011,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
         }
     };
 }else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1253,25 +1212,18 @@ if (!response.ok) {
 // --- Google API Support: Response Handling ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
-    if (responseData.candidates && responseData.candidates.length > 0) {
-        let combinedContent = '';
-        let hasImage = false;
-        responseData.candidates.forEach(candidate => {
-            if (candidate.content && candidate.content.parts) {
-                candidate.content.parts.forEach(part => {
-                    if (part.text) {
-                        combinedContent += part.text + '\n';
-                    } else if (part.inlineData) {
-                        addGeminiImageMessage(part.inlineData.data, part.inlineData.mimeType, combinedContent);
-                        combinedContent = ''; // Reset text content after image
-                        hasImage = true;
-                    }
-                });
+    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
+        let combinedContent = "";
+        for (const part of responseData.candidates[0].content.parts) {
+            if (part.text) {
+                combinedContent += part.text;
+            } else if (part.inlineData && part.inlineData.mimeType.startsWith('image/')) {
+                const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                combinedContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
+                // You might need to adjust addResponseMessage to handle HTML content correctly.
             }
-        });
-        if (!hasImage && combinedContent.trim() !== '') {
-            addResponseMessage(combinedContent.trim()); // Display remaining text if no image was processed
         }
+        addResponseMessage(combinedContent); // Send combined content to addResponseMessage
         resFlag = true;
         return combinedContent;
     } else if (responseData.error) {
@@ -1842,7 +1794,7 @@ function updateModelSettings(modelName) {
 
     if (targetApiPath) {
         apiPathSelect.val(targetApiPath);
-        setCookie('apiPath', targetApiPath, 30); // 保存 API Path 到 Cookie
+        setCookie('apiPath', targetApiPath, 30); // Update cookie for API Path
     }
     // --- End of Path Auto-Switching Logic ---
 }
@@ -2008,15 +1960,26 @@ $(".delete a").click(function(){
       }, 2000);
     });
   }
-    // 读取apiPath
+    // 读取apiPath from cookie
     const apiPath = getCookie('apiPath');
     if (apiPath) {
         apiPathSelect.val(apiPath);
     }
 
-    // apiPath select event
+    // apiPath select event, store in cookie
     apiPathSelect.change(function() {
         const selectedApiPath = $(this).val();
         setCookie('apiPath', selectedApiPath, 30);
+    });
+
+    // Read modelSearchTerm from cookie and set input value
+    const modelSearchTerm = getCookie('modelSearchTerm');
+    if (modelSearchTerm) {
+        searchInput.value = modelSearchTerm;
+    }
+
+    // Store modelSearchTerm in cookie on blur
+    searchInput.addEventListener('blur', function() {
+        setCookie('modelSearchTerm', searchInput.value, 30);
     });
 });
