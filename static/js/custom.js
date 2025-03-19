@@ -1655,13 +1655,14 @@ chatInput.on("keydown", handleEnter);
   // 是否保存历史对话
   var archiveSession = localStorage.getItem('archiveSession');
 
-  // 初始化archiveSession
-  if(archiveSession == null){
+  // Initialize archiveSession and localStorage at the beginning of $(document).ready
+  if(archiveSession === null){ // Use === for strict comparison
     archiveSession = "true";
     localStorage.setItem('archiveSession', archiveSession);
   }
 
-  if(archiveSession == "true"){
+
+  if(archiveSession === "true"){ // Use === for strict comparison
     $("#chck-1").prop("checked", true);
   }else{
     $("#chck-1").prop("checked", false);
@@ -1682,19 +1683,30 @@ chatInput.on("keydown", handleEnter);
   });
 
   // 加载历史保存会话
-  if(archiveSession == "true"){
-    const messagesList = JSON.parse(localStorage.getItem("session"));
-    if(messagesList){
-      messages = messagesList;
-      $.each(messages, function(index, item) {
-        if (item.role === 'user') {
-          addRequestMessage(item.content)
-        } else if (item.role === 'assistant') {
-          addResponseMessage(item.content)
+  if(archiveSession === "true"){ // Use === for strict comparison
+    const messagesListString = localStorage.getItem("session");
+    if(messagesListString){
+        try {
+            const messagesList = JSON.parse(messagesListString);
+            if(messagesList && Array.isArray(messagesList)){ // Add checks for valid array
+              messages = messagesList;
+              $.each(messages, function(index, item) {
+                if (item.role === 'user') {
+                  addRequestMessage(item.content)
+                } else if (item.role === 'assistant') {
+                  addResponseMessage(item.content)
+                }
+              });
+              // 添加复制
+              copy();
+            } else {
+                console.error("Loaded session data is not a valid array:", messagesList);
+                localStorage.removeItem("session"); // Clear invalid session data
+            }
+        } catch (e) {
+            console.error("Error parsing session data from localStorage:", e);
+            localStorage.removeItem("session"); // Clear corrupted session data
         }
-      });
-      // 添加复制
-      copy();
     }
   }
 
