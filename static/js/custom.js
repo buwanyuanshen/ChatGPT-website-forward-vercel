@@ -1262,7 +1262,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
 
             if (selectedApiPath === '/v1/messages') { // New parsing logic for /v1/messages
-                if (jsonObj.type === 'content_block_delta' && jsonObj.data && jsonObj.data.delta && jsonObj.data.delta.type === 'text_delta') {
+                if (jsonObj.type === 'content_block_delta' && jsonObj.delta && jsonObj.delta.type === 'text_delta') {
                     str += jsonObj.delta.text; // Accumulate text
                     addResponseMessage(str); // Update response with accumulated text
                     resFlag = true;
