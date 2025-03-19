@@ -648,16 +648,14 @@ $(document).ready(function() {
 
 // 添加图片消息到窗口
 function addImageMessage(imageUrl) {
-    console.log("addImageMessage imageUrl:", imageUrl); // Debugging log
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button" data-url="${imageUrl}"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Added data-url here
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
-        const urlToOpen = $(this).data('url');
-        console.log("view-button clicked, opening imageUrl:", urlToOpen); // Debugging log
+        const urlToOpen = $(this).data('url'); // Retrieve data-url here
         window.open(urlToOpen, '_blank');
     });
     // 绑定删除按钮点击事件
@@ -678,10 +676,8 @@ function addRichMediaMessage(parts) {
             messageContentHTML += marked.parse(escapeHtml(part.text));
         } else if (part.inlineData && part.inlineData.data && part.inlineData.mimeType) {
             const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-            console.log("addRichMediaMessage imageUrl:", imageUrl); // Debugging log
             messageContentHTML += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%; margin-top: 10px;" alt="Generated Image"><br>`;
-            let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-            viewButton.data('url', imageUrl);
+            let viewButton = $('<button class="view-button" data-url="' + imageUrl + '"><i class="fas fa-search"></i></button>'); // Added data-url here
             viewButtons.push(viewButton);
         }
     });
@@ -695,7 +691,6 @@ function addRichMediaMessage(parts) {
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
-        console.log("view-button clicked, opening richMedia imageUrl:", urlToOpen); // Debugging log
         window.open(urlToOpen, '_blank');
     });
     // 绑定复制按钮点击事件
@@ -825,16 +820,29 @@ function addResponseMessage(message) {
 
     let escapedMessage;
 
-    // **Type check for message before using indexOf**
-    if (typeof message !== 'string') {
-        console.error("Error in addResponseMessage: message is not a string. Type:", typeof message, "Value:", message);
-        lastResponseElement.append('<div class="message-text"><p class="error">Error displaying response. Please clear conversation and try again.</p></div>');
-        return; // Exit the function to prevent further errors
+    // Check if message is an object (likely Gemini response)
+    if (typeof message === 'object' && message !== null) {
+        if (message.candidates && message.candidates[0].content && message.candidates[0].content.parts) {
+            console.log("Detected Gemini-style response object in addResponseMessage. Calling addRichMediaMessage instead.");
+            addRichMediaMessage(message.candidates[0].content.parts);
+            return; // Important to return to prevent further string processing
+        } else {
+            console.error("Error in addResponseMessage: message is not a string and not a recognized object. Type: object Value:", message);
+            lastResponseElement.append('<p class="error">Error: Unexpected response format.</p>');
+            return; // Exit if object is not handled
+        }
     }
 
-    // 处理流式消息中的代码块
+    if (typeof message !== 'string') {
+        console.error("Error in addResponseMessage: message is not a string. Type:", typeof message, "Value:", message);
+        lastResponseElement.append('<p class="error">Error: Unexpected response format (not a string).</p>');
+        return;
+    }
+
+
+    // Process as string if it's not an object or handled object
     let codeMarkCount = 0;
-    let index = message.indexOf('```'); // Line 825 - Error was happening here if message was not a string
+    let index = message.indexOf('```');
 
     while (index !== -1) {
         codeMarkCount++;
@@ -860,7 +868,6 @@ function addResponseMessage(message) {
     let tempElement = $('<div>').html(messageContent);
     let links = tempElement.find('a');
 
-    console.log("Links found in HTML:", links); // DEBUG: Log found links
 
     if (links.length > 0) {
         links.each(function() {
@@ -869,7 +876,6 @@ function addResponseMessage(message) {
                 let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
                 viewButton.data('url', url);
                 viewButtons.push(viewButton);
-                console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
             }
         });
          messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
@@ -896,7 +902,6 @@ function addResponseMessage(message) {
     // 绑定按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
-        console.log("view-button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
@@ -1416,7 +1421,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                     } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
                         const message = jsonObj.choices[0].message;
                         const reasoningContent = message.reasoning_content;
-                        const content = message.content;
+                        const content = jsonObj.choices[0].content;
 
                         if (reasoningContent && reasoningContent.trim() !== "") {
                             str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
@@ -1551,7 +1556,6 @@ let imageSrc = document.getElementById('imagePreview').src;
         messages.push({"role": "assistant", "content": res});
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
-            console.log("Saving session to localStorage:", messages); // Debugging log
           localStorage.setItem("session",JSON.stringify(messages));
         }
       }
@@ -1686,7 +1690,6 @@ chatInput.on("keydown", handleEnter);
       // 开启状态的操作
       localStorage.setItem('archiveSession', true);
       if(messages.length != 0){
-          console.log("Saving session to localStorage on checkbox click:", messages); // Debugging log
         localStorage.setItem("session",JSON.stringify(messages));
       }
     } else {
@@ -1702,14 +1705,13 @@ chatInput.on("keydown", handleEnter);
     if(messagesListString){
         try {
             const messagesList = JSON.parse(messagesListString);
-            console.log("Loaded session from localStorage:", messagesList); // Debugging log
             if(messagesList && Array.isArray(messagesList)){ // Add checks for valid array
               messages = messagesList;
               $.each(messages, function(index, item) {
                 if (item.role === 'user') {
                   addRequestMessage(item.content)
                 } else if (item.role === 'assistant') {
-                  addResponseMessage(item.content)
+                  addResponseMessage(item.content) // <---- Potential issue here, now handled in addResponseMessage
                 }
               });
               // 添加复制
@@ -1800,7 +1802,7 @@ function updateModelSettings(modelName) {
     const hasMj = modelName.toLowerCase().includes("midjourney");
     const hasSD = modelName.toLowerCase().includes("stable");
     const hasFlux = modelName.toLowerCase().includes("flux");
-    const hasVd = modelName.toLowerCase().includes("video");
+    const hasVd = previousModel.toLowerCase().includes("video");
     const hasSora = modelName.toLowerCase().includes("sora");
     const hasSuno = modelName.toLowerCase().includes("suno");
     const hasKo = modelName.toLowerCase().includes("kolors");
