@@ -998,7 +998,7 @@ const model = data.model.toLowerCase(); // Convert model name to lowercase for e
 
 // --- Google API Support Start ---
 if (selectedApiPath === '/v1beta/models/model:generateContent?') { 
-    apiUrl = 'https://generativeai.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
