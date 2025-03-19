@@ -1269,8 +1269,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
         } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
             str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/messages" && jsonObj.type === 'content_block_delta') {
-            str += jsonObj.delta.text;
         } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
             const message = jsonObj.choices[0].message;
             const reasoningContent = message.reasoning_content;
@@ -1306,9 +1304,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         let content = '';
         if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
             content = responseData.choices[0].message.content;
-        } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices[0].message) {
-            content = responseData.content[0].text;
-        }else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
+        } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
         }
         addResponseMessage(content);
@@ -1323,7 +1319,55 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         resFlag = false;
         return null;
     }
+  if (selectedApiPath === '/v1/messages') {
+    if (getCookie('streamOutput') !== 'false') {
+      // 流式响应处理
+      const reader = response.body.getReader();
+      let decoder = new TextDecoder();
+      let buffer = '';
+      let accumulatedText = '';
 
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        let events = buffer.split('\n\n');
+
+        for (let event of events) {
+          if (!event) continue;
+          
+          try {
+            const [header, body] = event.split('\n');
+            if (!body) continue;
+            
+            const jsonData = JSON.parse(body.replace('data: ', ''));
+            
+            if (jsonData.type === 'content_block_delta') {
+              accumulatedText += jsonData.delta.text;
+              addResponseMessage(accumulatedText);
+            }
+          } catch (e) {
+            console.error('Error parsing event:', e);
+          }
+        }
+        
+        buffer = events.pop() || '';
+      }
+      return accumulatedText;
+    } else {
+      // 非流式响应处理
+      const responseData = await response.json();
+      if (responseData.content && responseData.content[0].text) {
+        const content = responseData.content[0].text;
+        addResponseMessage(content);
+        return content;
+      } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        return null;
+      }
+    }
+  }
     // **新增代码 - 非流式响应结束后判断是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     if (wasScrolledToBottomBeforeRequest) {
