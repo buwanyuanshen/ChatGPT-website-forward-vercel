@@ -1284,6 +1284,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     const reader = response.body.getReader();
     let res = '';
     let str = ''; // 初始化 str
+    let lastStr = ''; // 新增：保存上一次添加的消息内容，用于比较
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
 
@@ -1315,9 +1316,10 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                     }
                 }
             }
-            if (str) {  //只有当str不为空时才添加
+            if (str && str !== lastStr) {  // 只有当str不为空且与上次内容不同时才添加
               addResponseMessage(str);
               resFlag = true;
+              lastStr = str; // 更新 lastStr 为当前 str
               res = ''; // 清空 res，避免重复处理
             }
 
@@ -1359,9 +1361,10 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                         }
                     }
 
-                    if(str) {  //只有当str不为空时才添加
+                    if(str && str !== lastStr) {  // 只有当str不为空且与上次内容不同时才添加
                       addResponseMessage(str);
                       resFlag = true;
+                      lastStr = str; // 更新 lastStr 为当前 str
                     }
                 } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + (jsonObj.error.code ? " " + jsonObj.error.code : ""));
@@ -1378,7 +1381,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     }
     return str;
 
-} else { // 非流式输出处理
+}
+   else { // 非流式输出处理
     const responseData = await response.json();
 
     // /v1/messages 非流式响应
