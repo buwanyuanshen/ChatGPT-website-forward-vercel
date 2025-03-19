@@ -796,11 +796,12 @@ function addResponseMessage(messageContent) { // Changed parameter name to messa
         $(".answer .others .center").css("display", "flex");
     }
 
+    let escapedMessage = marked.parse(escapeHtml(messageContent)); // Default to markdown parsing for text
 
     let viewButtons = [];
 
     // Parse the message content as HTML to find <a> tags
-    let tempElement = $('<div>').html(messageContent);
+    let tempElement = $('<div>').html(escapedMessage); // Use escapedMessage here for HTML parsing
     let links = tempElement.find('a');
 
     console.log("Links found in HTML:", links); // DEBUG: Log found links
@@ -815,7 +816,7 @@ function addResponseMessage(messageContent) { // Changed parameter name to messa
                 console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
             }
         });
-         messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
+         escapedMessage = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
     }
 
 
@@ -828,7 +829,7 @@ function addResponseMessage(messageContent) { // Changed parameter name to messa
         const base64Data = messageContent;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+        lastResponseElement.append('<div class="message-text">' + escapedMessage + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>'); // Use escapedMessage here
         viewButtons.forEach(button => {
             lastResponseElement.append(button);
         });
@@ -903,7 +904,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1226,7 +1227,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
         let messageContent = '';
         for (const part of responseData.candidates[0].content.parts) {
             if (part.text) {
-                messageContent += marked.parse(escapeHtml(part.text)); // Parse text as markdown
+                messageContent += part.text; // No markdown parse here, handled in addResponseMessage
             } else if (part.inlineData && part.inlineData.data && part.inlineData.mimeType && part.inlineData.mimeType.startsWith('image/')) {
                 const imageData = part.inlineData.data;
                 const mimeType = part.inlineData.mimeType;
@@ -1234,7 +1235,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
                 messageContent += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image">`;
             }
         }
-        addResponseMessage(messageContent); // Now add the combined content as HTML
+        addResponseMessage(messageContent); // Now add the combined content as HTML, markdown parse in addResponseMessage
         resFlag = true;
         return messageContent;
     } else if (responseData.error) {
@@ -1336,7 +1337,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 }
             }
             if (str) {  //只有当str不为空时才添加
-              addResponseMessage(str); // Pass str directly as it's already HTML if needed
+              addResponseMessage(str); // Pass str directly, markdown parsing in addResponseMessage
               resFlag = true;
               res = ''; // 清空 res，避免重复处理
             }
@@ -1380,7 +1381,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                     }
 
                     if(str) {  //只有当str不为空时才添加
-                      addResponseMessage(str); // Pass str directly as it's already HTML if needed
+                      addResponseMessage(str); // Pass str directly, markdown parsing in addResponseMessage
                       resFlag = true;
                     }
                 } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
@@ -1405,7 +1406,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     if (apiUrl === datas.api_url + "/v1/messages") {
         if (responseData.content && responseData.content.length > 0 && responseData.content[0].text) {
             let content = responseData.content[0].text;
-            addResponseMessage(content); // Pass content directly as it's already HTML if needed
+            addResponseMessage(content); // Pass content directly, markdown parsing in addResponseMessage
             resFlag = true;
             return content;
         } else if (responseData.error) {
@@ -1423,7 +1424,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
         }
-        addResponseMessage(content); // Pass content directly as it's already HTML if needed
+        addResponseMessage(content); // Pass content directly, markdown parsing in addResponseMessage
         resFlag = true;
         return content;
     } else if (responseData.error) {
