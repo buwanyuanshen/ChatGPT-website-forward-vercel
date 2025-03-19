@@ -1343,7 +1343,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str = ''; // 初始化 str
+    let str = ''; // 初始化 str  <-- 移动到循环外部
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
 
@@ -1358,7 +1358,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         if (apiUrl === datas.api_url + "/v1/messages") {
             // /v1/messages 流式响应处理
             const stream_res = res.trim().split(/[\n\n]/); // 使用双换行符分割
-            str = ''; // 重置 str
+            // str = ''; // 重置 str  <-- 移除这行
             for (let i = 0; i < stream_res.length; i++) {
                 const stream_line = stream_res[i];
                 if (stream_line.startsWith("event: content_block_delta")) {
@@ -1379,11 +1379,12 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
               addResponseMessage(str);
               resFlag = true;
               res = ''; // 清空 res，避免重复处理
+              str = ''; //  如果您希望每处理完一次消息就重置 str，可以放在这里
             }
 
         } else {
           // 其他路径的流式响应处理 (原逻辑)
-          str = ''; //reset str
+          // str = ''; //reset str  <-- 移除这行
           const lines = res.trim().split(/[\n]+(?=\{)/).filter(line => line.trim() !== ''); // 过滤空行
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].replace(/^data: /, '').replace("[DONE]", ''); // 移除 "data: " 和 "[DONE]"
@@ -1422,6 +1423,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                     if(str) {  //只有当str不为空时才添加
                       addResponseMessage(str);
                       resFlag = true;
+                      str = ''; //  如果您希望每处理完一行 JSON 就重置 str，可以放在这里
                     }
                 } else if (jsonObj && jsonObj.error) { // 错误处理也在循环内
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + (jsonObj.error.code ? " " + jsonObj.error.code : ""));
