@@ -650,13 +650,14 @@ $(document).ready(function() {
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button" data-url="${imageUrl}"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>'); // Added data-url here
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
-        const urlToOpen = $(this).data('url'); // Retrieve data-url here
-        window.open(urlToOpen, '_blank');
+        const imageUrl = $(this).data('url');
+        console.log("View button clicked, image URL:", imageUrl); // DEBUG: Log URL
+        window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
@@ -677,7 +678,8 @@ function addRichMediaMessage(parts) {
         } else if (part.inlineData && part.inlineData.data && part.inlineData.mimeType) {
             const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
             messageContentHTML += `<img src="${imageUrl}" style="max-width: 30%; max-height: 30%; margin-top: 10px;" alt="Generated Image"><br>`;
-            let viewButton = $('<button class="view-button" data-url="' + imageUrl + '"><i class="fas fa-search"></i></button>'); // Added data-url here
+            let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+            viewButton.data('url', imageUrl);
             viewButtons.push(viewButton);
         }
     });
@@ -691,6 +693,7 @@ function addRichMediaMessage(parts) {
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
+        console.log("View button clicked, rich media image URL:", urlToOpen); // DEBUG: Log URL
         window.open(urlToOpen, '_blank');
     });
     // 绑定复制按钮点击事件
@@ -730,7 +733,7 @@ function addModerationMessage(moderationResult) {
         copyMessage($(this).prev().text().trim());
     });
     // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
+    lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
     });
 }
@@ -820,27 +823,7 @@ function addResponseMessage(message) {
 
     let escapedMessage;
 
-    // Check if message is an object (likely Gemini response)
-    if (typeof message === 'object' && message !== null) {
-        if (message.candidates && message.candidates[0].content && message.candidates[0].content.parts) {
-            console.log("Detected Gemini-style response object in addResponseMessage. Calling addRichMediaMessage instead.");
-            addRichMediaMessage(message.candidates[0].content.parts);
-            return; // Important to return to prevent further string processing
-        } else {
-            console.error("Error in addResponseMessage: message is not a string and not a recognized object. Type: object Value:", message);
-            lastResponseElement.append('<p class="error">Error: Unexpected response format.</p>');
-            return; // Exit if object is not handled
-        }
-    }
-
-    if (typeof message !== 'string') {
-        console.error("Error in addResponseMessage: message is not a string. Type:", typeof message, "Value:", message);
-        lastResponseElement.append('<p class="error">Error: Unexpected response format (not a string).</p>');
-        return;
-    }
-
-
-    // Process as string if it's not an object or handled object
+    // 处理流式消息中的代码块
     let codeMarkCount = 0;
     let index = message.indexOf('```');
 
@@ -868,6 +851,7 @@ function addResponseMessage(message) {
     let tempElement = $('<div>').html(messageContent);
     let links = tempElement.find('a');
 
+    console.log("Links found in HTML:", links); // DEBUG: Log found links
 
     if (links.length > 0) {
         links.each(function() {
@@ -876,19 +860,20 @@ function addResponseMessage(message) {
                 let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
                 viewButton.data('url', url);
                 viewButtons.push(viewButton);
+                console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
             }
         });
          messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
     }
 
 
-    if (message.startsWith('"//')) {
+    if (String(message).startsWith('"//')) { // Force string conversion here
         // 处理包含base64编码的音频
-        const base64Data = message.replace(/"/g, '');
+        const base64Data = String(message).replace(/"/g, ''); // And here
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (message.startsWith('//')) {
+    } else if (String(message).startsWith('//')) { // Force string conversion here
         // 处理包含base64编码的音频
-        const base64Data = message;
+        const base64Data = String(message); // And here
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
         lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
@@ -902,6 +887,7 @@ function addResponseMessage(message) {
     // 绑定按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
+        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
@@ -965,7 +951,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1420,8 +1406,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                         str += jsonObj.choices[0].text;
                     } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
                         const message = jsonObj.choices[0].message;
-                        const reasoningContent = jsonObj.choices[0].content; // Corrected path
-                        const content = jsonObj.choices[0].message.content;
+                        const reasoningContent = message.reasoning_content;
+                        const content = message.content;
 
                         if (reasoningContent && reasoningContent.trim() !== "") {
                             str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
@@ -1603,7 +1589,7 @@ chatInput.on("keydown", handleEnter);
   }
 
   let theme = localStorage.getItem('theme');
-  // 如果之前选择了主题，则将其应用 to 网站中
+  // 如果之前选择了主题，则将其应用到网站中
   if (theme) {
     setBgColor(theme);
   }else{
@@ -1702,16 +1688,20 @@ chatInput.on("keydown", handleEnter);
   // 加载历史保存会话
   if(archiveSession === "true"){ // Use === for strict comparison
     const messagesListString = localStorage.getItem("session");
+    console.log("Session data from localStorage (string):", messagesListString); // DEBUG: Log raw string
+
     if(messagesListString){
         try {
             const messagesList = JSON.parse(messagesListString);
+            console.log("Parsed session data (array):", messagesList); // DEBUG: Log parsed array
             if(messagesList && Array.isArray(messagesList)){ // Add checks for valid array
               messages = messagesList;
               $.each(messages, function(index, item) {
+                console.log("Loading message item:", item); // DEBUG: Log each item before addResponseMessage
                 if (item.role === 'user') {
                   addRequestMessage(item.content)
                 } else if (item.role === 'assistant') {
-                  addResponseMessage(item.content) // <---- Potential issue here, now handled in addResponseMessage
+                  addResponseMessage(item.content)
                 }
               });
               // 添加复制
@@ -1802,7 +1792,7 @@ function updateModelSettings(modelName) {
     const hasMj = modelName.toLowerCase().includes("midjourney");
     const hasSD = modelName.toLowerCase().includes("stable");
     const hasFlux = modelName.toLowerCase().includes("flux");
-    const hasVd = previousModel.toLowerCase().includes("video");
+    const hasVd = modelName.toLowerCase().includes("video");
     const hasSora = modelName.toLowerCase().includes("sora");
     const hasSuno = modelName.toLowerCase().includes("suno");
     const hasKo = modelName.toLowerCase().includes("kolors");
@@ -1834,9 +1824,9 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = modelName.toLowerCase().includes("sora");
-    const hadSuno = modelName.toLowerCase().includes("suno");
-    const hadKo = modelName.toLowerCase().includes("kolors");
+    const hadSora = previousModel.toLowerCase().includes("sora");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
     const hadKl = previousModel.toLowerCase().includes("kling");
 
 
@@ -1898,7 +1888,6 @@ function clearConversation() {
     $(".answer .tips").css({"display":"flex"});
     messages = [];
     localStorage.removeItem("session");
-    localStorage.removeItem("previousModel"); // Add this line to also clear previousModel
 }
 
 // 删除功能
@@ -2011,7 +2000,7 @@ $(".delete a").click(function(){
 
     $('pre').on('click', '.copy-btn', function() {
       let text = $(this).siblings('code').text();
-      // 创建一个临时的 textarea 元素 
+      // 创建一个临时的 textarea 元素
       let textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
