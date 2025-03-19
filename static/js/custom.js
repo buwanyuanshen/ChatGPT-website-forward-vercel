@@ -756,6 +756,7 @@ function editMessage(message) {
   chatInput.val(message);
 }
 
+
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
     let lastResponseElement = $(".message-bubble .response").last();
@@ -779,12 +780,12 @@ function addResponseMessage(message) {
     if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
         escapedMessage = marked.parse(message + '\n\n```');
     } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);  // 响应消息 markdown 实时转换为 html
-    } else if (codeMarkCount == 0) {  // 输出的代码没有 markdown 代码块
+        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
         if (message.includes('`')) {
-            escapedMessage = marked.parse(message);  // 没有 markdown 代码块，但有代码段，依旧是 markdown 格式
+            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
         } else {
-            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是 markdown 格式，都用 escapeHtml 处理后再转换，防止非 markdown 格式 html 紊乱页面
+            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
         }
     }
 
@@ -812,11 +813,11 @@ function addResponseMessage(message) {
 
 
     if (message.startsWith('"//')) {
-        // 处理包含 base64 编码的音频
+        // 处理包含base64编码的音频
         const base64Data = message.replace(/"/g, '');
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else if (message.startsWith('//')) {
-        // 处理包含 base64 编码的音频
+        // 处理包含base64编码的音频
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     } else {
@@ -842,25 +843,6 @@ function addResponseMessage(message) {
     });
 }
 
-// 复制按钮点击事件
-$(document).on('click', '.copy-button', function() {
-  let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
-  // 创建一个临时文本框用于复制内容
-  let tempTextarea = $('<textarea>');
-  tempTextarea.val(messageText).css({position: 'absolute', left: '-9999px'}).appendTo('body').select();
-  document.execCommand('copy');
-  tempTextarea.remove();
-
-  // 将复制按钮显示为 √
-  let checkMark = $('<i class="far fa-check-circle"></i>'); // 创建 √ 图标元素
-  $(this).html(checkMark); // 替换按钮内容为 √ 图标
-
-  // 延时一段时间后恢复原始复制按钮
-  let originalButton = $(this);
-  setTimeout(function() {
-    originalButton.html('<i class="far fa-copy"></i>'); // 恢复原始复制按钮内容
-  }, 2000); // 设置延时时间为 2 秒
-});
 
   // 添加失败信息到窗口
   function addFailMessage(message) {
@@ -1168,6 +1150,99 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
+if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
+    const reader = response.body.getReader();
+    let res = '';
+    let str;
+    // **新增代码 - 在请求前记录是否滚动到底部**
+    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+            break;
+        }
+        str = '';
+        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const lines = res.trim().split(/[\n]+(?=\{)/);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+                 console.log("Parsed JSON Object:", jsonObj); // DEBUG: Log parsed JSON object
+            } catch (e) {
+                console.error("JSON Parse Error:", e, "Line:", line); // DEBUG: Log JSON parse error
+                break;
+            }
+    if (jsonObj.data) { // Modified: Check for jsonObj.data instead of jsonObj.choices
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices && jsonObj.choices[0].delta) { // Keep existing logic for /v1/chat/completions
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
+
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices && jsonObj.choices[0].text) { // Keep existing logic for /v1/completions
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices && jsonObj.choices[0].message) { // Keep existing logic for /v1/chat/completions with message
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
+
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        } else if (apiUrl === datas.api_url + "/v1/messages" ) { // ADDED: Handle /v1/messages response - broader check
+            console.log("Processing /v1/messages response data:", jsonObj.data); // DEBUG: Log jsonObj.data for /v1/messages
+             if (jsonObj.data.delta && jsonObj.data.delta.text) {
+                 console.log("Delta Text found:", jsonObj.data.delta.text); // DEBUG: Log delta text
+                str += jsonObj.data.delta.text;
+            } else if (jsonObj.data.content && jsonObj.data.content.text) {
+                 console.log("Content Text found:", jsonObj.data.content.text); // DEBUG: Log content text (alternative)
+                str += jsonObj.data.content.text;
+            } else {
+                console.log("No text found in delta or content, jsonObj.data:", jsonObj.data); // DEBUG: Log when no text is found
+            }
+        }
+                addResponseMessage(str);
+                resFlag = true;
+            } else {
+                if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                    resFlag = false;
+                }
+            }
+        }
+    } else { // 非流式输出处理
+        const responseData = await response.json();
+        if (responseData.choices && responseData.choices.length > 0) {
+            let content = '';
+            if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
+                content = responseData.choices[0].message.content;
+            } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
+                content = responseData.choices[0].text;
+            } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices && responseData.choices[0].message && responseData.choices[0].message.content) { // ADDED: Handle /v1/messages non-stream
+                content = responseData.choices[0].message.content;
+            }
+            addResponseMessage(content);
+            resFlag = true;
+            return content;
+        } else if (responseData.error) {
+            addFailMessage(responseData.error.message);
+            resFlag = false;
+            return null;
+        } else {
+            addFailMessage("Unexpected response format.");
+            resFlag = false;
+            return null;
+        }
+    }
+
+
 const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
@@ -1182,6 +1257,7 @@ if (!response.ok) {
     addFailMessage(`请求失败，状态码: ${response.status}, 错误信息: ${errorData.error ? errorData.error.message : responseData.statusText}`);
     return;
 }
+
 
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
@@ -1233,104 +1309,6 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     resFlag = true;
     return; // For TTS, handle response and return
 }
-
-
-if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
-    const reader = response.body.getReader();
-    let res = '';
-    let str;
-    // **新增代码 - 在请求前记录是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) {
-            break;
-        }
-        str = '';
-        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        const lines = res.trim().split(/[\n]+(?=\{)/);
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let jsonObj;
-            try {
-                jsonObj = JSON.parse(line);
-            } catch (e) {
-                break;
-            }
-    if (jsonObj.data) { // Modified: Check for jsonObj.data instead of jsonObj.choices
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices && jsonObj.choices[0].delta) { // Keep existing logic for /v1/chat/completions
-            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-            const content = jsonObj.choices[0].delta.content;
-
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices && jsonObj.choices[0].text) { // Keep existing logic for /v1/completions
-            str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices && jsonObj.choices[0].message) { // Keep existing logic for /v1/chat/completions with message
-            const message = jsonObj.choices[0].message;
-            const reasoningContent = message.reasoning_content;
-            const content = message.content;
-
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
-                str += content;
-            }
-        } else if (apiUrl === datas.api_url + "/v1/messages" && jsonObj.data.delta && jsonObj.data.delta.text) { // ADDED: Handle /v1/messages response
-            str += jsonObj.data.delta.text;
-        }
-                addResponseMessage(str);
-                resFlag = true;
-            } else {
-                if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                    resFlag = false;
-                }
-            }
-        }
-    }
-
-    // **新增代码 - 流式响应结束后判断是否滚动到底部**
-    if (wasScrolledToBottomBeforeRequest) {
-      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
-    }
-
-
-    return str;
-} else { // 非流式输出处理
-    const responseData = await response.json();
-    if (responseData.choices && responseData.choices.length > 0) {
-        let content = '';
-        if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
-            content = responseData.choices[0].message.content;
-        } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
-            content = responseData.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices && responseData.choices[0].message && responseData.choices[0].message.content) { // ADDED: Handle /v1/messages non-stream
-            content = responseData.choices[0].message.content;
-        }
-        addResponseMessage(content);
-        resFlag = true;
-        return content;
-    } else if (responseData.error) {
-        addFailMessage(responseData.error.message);
-        resFlag = false;
-        return null;
-    } else {
-        addFailMessage("Unexpected response format.");
-        resFlag = false;
-        return null;
-    }
-
-    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    if (wasScrolledToBottomBeforeRequest) {
-      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
-    }
-}
-
 
   }
 
