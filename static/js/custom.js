@@ -953,6 +953,7 @@ async function getApiKey() {
 }
 
 // 发送请求获得响应
+let ajaxRequest = null; // 用于存储当前的 AJAX 请求对象，以便可以中止请求
 async function sendRequest(data) {
   await getConfig();
   const apiKey = await getApiKey();
@@ -1079,8 +1080,8 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if ((selectedApiPath === '/v1/messages' || apiPathSelect.val() === null )) { // New: Handle /v1/messages path
-    apiUrl = datas.api_url + "/v1/messages";
+} else if (selectedApiPath === '/v1/messages') { // New path for /v1/messages
+    apiUrl = datas.api_url + '/v1/messages';
     requestBody = {
         "messages": data.prompts,
         "model": data.model,
@@ -1090,7 +1091,8 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "n": 1,
         "stream": getCookie('streamOutput') !== 'false'
     };
-} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+}
+else { // Default to /v1/chat/completions for other models or if path is not explicitly set
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "messages": data.prompts,
@@ -1167,7 +1169,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
     };
 }
 
-const response = await fetch(apiUrl, {
+ajaxRequest = fetch(apiUrl, { // Store the fetch request in ajaxRequest
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
@@ -1175,6 +1177,8 @@ const response = await fetch(apiUrl, {
     },
     body: JSON.stringify(requestBody)
 });
+
+const response = await ajaxRequest; // Await the stored request
 
 if (!response.ok) {
     const errorData = await response.json();
@@ -1237,8 +1241,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str = ''; // Initialize str here
-    let responseText = ''; // Accumulate response text for /v1/messages
+    let str = ''; // Initialize str outside the loop
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
@@ -1248,46 +1251,66 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
         str = '';
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        const lines = res.trim().split(/[\n]+(?=event: |data: )/); // Split by event: or data: to handle event-based SSE
+        const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
-            const line = lines[i].trim();
-            if (line.startsWith('event: content_block_delta')) {
-                try {
-                    const dataLine = lines[i + 1];
-                    if (dataLine && dataLine.startsWith('data:')) {
-                        const jsonData = JSON.parse(dataLine.substring(5).trim());
-                        if (jsonData.delta && jsonData.delta.text) {
-                            responseText += jsonData.delta.text;
-                            addResponseMessage(responseText);
-                            resFlag = true;
+            const line = lines[i];
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+            } catch (e) {
+                break;
+            }
+
+            if (selectedApiPath === '/v1/messages') { // New parsing logic for /v1/messages
+                if (jsonObj.type === 'content_block_delta' && jsonObj.data && jsonObj.data.delta && jsonObj.data.delta.type === 'text_delta') {
+                    str += jsonObj.data.delta.text; // Accumulate text
+                    addResponseMessage(str); // Update response with accumulated text
+                    resFlag = true;
+                } else if (jsonObj.type === 'content_block_stop') {
+                    // content block stopped, no further action needed for text content
+                } else if (jsonObj.type === 'message_delta') {
+                    // Usage info or other message delta, can be ignored for text content
+                } else if (jsonObj.type === 'message_stop') {
+                    // message stopped, stream finished
+                } else if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                    resFlag = false;
+                }
+            } else { // Existing parsing logic for other paths (like /v1/chat/completions)
+                if (jsonObj.choices) {
+                    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+                        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+                        const content = jsonObj.choices[0].delta.content;
+
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
+                        }
+                    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+                        str += jsonObj.choices[0].text;
+                    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+                        const message = jsonObj.choices[0].message;
+                        const reasoningContent = message.reasoning_content;
+                        const content = message.content;
+
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
                         }
                     }
-                    i++; // Skip next line as it's data
-                } catch (e) {
-                    console.error('Error parsing /v1/messages stream data:', e);
-                    break;
-                }
-            } else if (line.startsWith('event: message_stop') || line.startsWith('event: content_block_stop')) {
-                responseText = ''; // Reset for next message if needed - or handle message boundaries differently
-                continue; // Or break if message_stop means end of whole response
-            } else if (line.startsWith('data: {"error":')) {
-                try {
-                    const errorData = JSON.parse(line.substring(5).trim());
-                    if (errorData.error) {
-                        addFailMessage(errorData.error.message);
+                    addResponseMessage(str);
+                    resFlag = true;
+                } else {
+                    if (jsonObj.error) {
+                        addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                         resFlag = false;
-                        break;
                     }
-                } catch (e) {
-                    console.error('Error parsing error data:', e);
-                    break;
                 }
-            } else if (line.startsWith('data:')) {
-                // Handle generic data lines if needed, though for /v1/messages, content_block_delta is key
             }
         }
     }
-
 
     // **新增代码 - 流式响应结束后判断是否滚动到底部**
     if (wasScrolledToBottomBeforeRequest) {
@@ -1304,13 +1327,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             content = responseData.choices[0].message.content;
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/messages") { // New: Handle /v1/messages non-stream response (if applicable)
-            // Assuming the non-stream response format for /v1/messages is similar to /v1/chat/completions
-            if (responseData.choices[0].message && responseData.choices[0].message.content) {
-                content = responseData.choices[0].message.content;
-            } else if (responseData.choices[0].text) {
-                content = responseData.choices[0].text;
-            }
         }
         addResponseMessage(content);
         resFlag = true;
@@ -1694,7 +1710,7 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } else if (lowerModelName.includes("messages")) { // New: Auto-switch to /v1/messages if model implies it
+    } else if (lowerModelName.includes("messages")) { // Add condition for /v1/messages path auto-selection
         targetApiPath = '/v1/messages';
     }
      else {
