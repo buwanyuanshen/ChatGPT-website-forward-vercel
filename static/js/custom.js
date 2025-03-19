@@ -1269,7 +1269,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
         } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
             str += jsonObj.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/messages" && jsonObj.type === 'content_block_delta' && jsonObj.delta.type === 'text_delta') {
+        } else if (apiUrl === datas.api_url + "/v1/messages" && jsonObj.type === 'content_block_delta') {
             str += jsonObj.delta.text;
         } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
             const message = jsonObj.choices[0].message;
@@ -1307,7 +1307,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
             content = responseData.choices[0].message.content;
         } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices[0].message) {
-            content = responseData.choices[0].message.content;
+            content = responseData.content[0].text;
         }else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
         }
