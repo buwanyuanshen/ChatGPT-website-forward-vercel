@@ -1,322 +1,3 @@
-// 找到 select 元素
-const selectElement = document.querySelector('.form-control.ipt-common.model');
-const searchInput = document.querySelector('.model-search-input');
-
-if (selectElement) {
-    // 遍历 select 元素下的所有 option 元素
-    Array.from(selectElement.options).forEach(option => {
-        const originalText = option.textContent; // 保存原始文本
-        option.setAttribute('data-description', originalText); // 设置 data-description
-        option.textContent = option.value; // 设置 textContent 为 value
-    });
-}
-
-searchInput.addEventListener('input', function() {
-    const searchTerm = searchInput.value.toLowerCase();
-    Array.from(selectElement.options).forEach(option => {
-        const description = option.getAttribute('data-description').toLowerCase();
-        if (description.includes(searchTerm)) {
-            option.style.display = 'block'; // 或者 option.hidden = false;
-        } else {
-            option.style.display = 'none'; // 或者 option.hidden = true;
-        }
-    });
-});
-
-function resetImageUpload() {
-    imageUpload.value = '';
-    base64Image = '';
-    imagePreviewContainer.style.display = 'none';
-    imagePreview.src = '';
-    // 可选：触发 change 事件以更新状态
-    var event = new Event('change', { bubbles: true });
-    imageUpload.dispatchEvent(event);
-}
-
-    var base64Image = "";
-    var imageUpload = document.getElementById('imageUpload');
-    var imagePreviewContainer = document.getElementById('imagePreviewContainer');
-    var closeButton = document.getElementById('closeButton');
-
-    imageUpload.addEventListener('change', function(event) {
-        var file = event.target.files[0];
-        if (file) {
-            var reader = new FileReader();
-            reader.onload = function(e) {
-                base64Image = e.target.result.split(',')[1];
-                imagePreviewContainer.style.display = 'block';
-                document.getElementById('imagePreview').src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        } else {
-            base64Image = '';
-            imagePreviewContainer.style.display = 'none';
-            document.getElementById('imagePreview').src = '';
-        }
-    });
-
-    closeButton.addEventListener('click', function() {
-        imageUpload.value = '';
-        base64Image = '';
-        imagePreviewContainer.style.display = 'none';
-        document.getElementById('imagePreview').src = '';
-
-        var event = new Event('change', { bubbles: true });
-        imageUpload.dispatchEvent(event);
-    });
-function checkModelAndShowUpload() {
-    var modelSelect = document.querySelector('.model');
-    var selectedModel = modelSelect.value.toLowerCase();
-    var uploadArea = document.getElementById('uploadArea');
-
-    if (
-        selectedModel.includes("gpt-4") ||
-        selectedModel.includes("glm-4v") ||
-        selectedModel.includes("claude-3") ||
-        selectedModel.includes("gemini-1.5") ||
-        selectedModel.includes("gemini-2.0") ||
-        selectedModel.includes("gemini-exp") ||
-        selectedModel.includes("learnlm-1.5-pro-experimental") ||
-        selectedModel.includes("vision") ||
-        selectedModel.includes("o1") ||
-        selectedModel.includes("o3")
-
-    ) {
-        uploadArea.style.display = 'block';
-    } else {
-        uploadArea.style.display = 'none';
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    var modelSelect = document.querySelector('.model');
-    modelSelect.addEventListener('change', checkModelAndShowUpload);
-
-    // 初始化时检查一次
-    checkModelAndShowUpload();
-});
-
-
-
-
-// Helper functions to set and get cookies
-function setCookie(name, value, days) {
-    var expires = "";
-    if (days) {
-        var date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));  // Calculate expiration time
-        expires = "; expires=" + date.toUTCString();  // Convert to UTC string
-    }
-    document.cookie = name + "=" + (value || "") + expires + "; path=/";  // Set cookie
-}
-
-function getCookie(name) {
-    var nameEQ = name + "=";
-    var ca = document.cookie.split(';');
-    for (var i = 0; i < ca.length; i++) {
-        var c = ca[i].trim();  // Use trim() to clean up any extra spaces
-        if (c.indexOf(nameEQ) === 0) {
-            return c.substring(nameEQ.length, c.length);  // Return the cookie value
-        }
-    }
-    return null;  // If cookie is not found, return null
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // 余额显示/隐藏功能
-    var toggleBalance = document.getElementById('toggleBalance');
-    var balanceInfo = document.getElementById('balanceInfo');
-
-    // 读取Cookie并设置初始状态
-    var balanceVisibility = getCookie('balanceVisibility');
-    if (balanceVisibility === 'hidden') {
-        toggleBalance.checked = false;
-        balanceInfo.style.display = 'none';
-    } else {
-        toggleBalance.checked = true;
-        balanceInfo.style.display = 'block';
-    }
-
-    // 监听开关变化
-    toggleBalance.addEventListener('change', function() {
-        if (this.checked) {
-            balanceInfo.style.display = 'block';
-            setCookie('balanceVisibility', 'visible', 30); // 保存30天
-        } else {
-            balanceInfo.style.display = 'none';
-            setCookie('balanceVisibility', 'hidden', 30); // 保存30天
-        }
-    });
-
-    // 模型输出方式是否流式
-    var streamOutputCheckbox = document.getElementById('streamOutput');
-    var streamOutput = getCookie('streamOutput');
-    if (streamOutput === 'false') {
-        streamOutputCheckbox.checked = false;
-    } else {
-        streamOutputCheckbox.checked = true; // default true or cookie is not set
-    }
-
-    streamOutputCheckbox.addEventListener('change', function() {
-        setCookie('streamOutput', this.checked ? 'true' : 'false', 30);
-    });
-
-    // 连续对话消息上限
-    var maxDialogueMessagesInput = document.getElementById('maxDialogueMessages');
-    var maxDialogueMessages = getCookie('maxDialogueMessages');
-    if (maxDialogueMessages) {
-        maxDialogueMessagesInput.value = maxDialogueMessages;
-    } else {
-        maxDialogueMessagesInput.value = 150; // Default value if no cookie is set, aligning with original js comment
-    }
-
-    maxDialogueMessagesInput.addEventListener('change', function() {
-        setCookie('maxDialogueMessages', this.value, 30);
-    });
-});
-
-
-    // Helper function to clean up API URL
-    function cleanApiUrl(apiUrl) {
-        if (!apiUrl) {
-            return apiUrl;
-        }
-        let cleanedUrl = apiUrl.trim();
-        cleanedUrl = cleanedUrl.replace(/\s/g, ''); // Remove spaces
-        cleanedUrl = cleanedUrl.replace(/\/+$/, ''); // Remove trailing slashes
-        cleanedUrl = cleanedUrl.replace(/\/v1(\/chat\/completions)?$/i, ''); // Remove /v1 or /v1/chat/completions at the end
-        return cleanedUrl;
-    }
-
-
-    async function fetchBalance(apiUrl, apiKey) {
-        const headers = new Headers({
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-        });
-
-        try {
-            // Clean the apiUrl before using it
-            const cleanedApiUrl = cleanApiUrl(apiUrl);
-
-            // Get the total balance (quota)
-            let subscriptionResponse = await fetch(`${cleanedApiUrl}/v1/dashboard/billing/subscription`, { headers });
-            if (!subscriptionResponse.ok) {
-                throw new Error('Failed to fetch subscription data');
-            }
-            let subscriptionData = await subscriptionResponse.json();
-            let total = subscriptionData.hard_limit_usd;
-
-            // Get the usage information
-            let startDate = new Date();
-            startDate.setDate(startDate.getDate() - 99);
-            let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
-
-            let usageResponse = await fetch(usageUrl, { headers });
-            if (!usageResponse.ok) {
-                throw new Error('Failed to fetch usage data');
-            }
-            let usageData = await usageResponse.json();
-            let totalUsage = usageData.total_usage / 100;
-
-            let remaining = total - totalUsage;
-
-            // Update the balance display
-            document.getElementById('totalBalance').innerText = `总额: ${total.toFixed(4)} $`;
-            document.getElementById('usedBalance').innerText = `已用: ${totalUsage.toFixed(4)} $`;
-            document.getElementById('remainingBalance').innerText = `剩余: ${remaining.toFixed(4)} $`;
-
-        } catch (error) {
-            console.error('Error fetching balance:', error);
-            document.getElementById('totalBalance').innerText = '总额: 加载失败';
-            document.getElementById('usedBalance').innerText = '已用: 加载失败';
-            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
-        }
-    }
-
-    // Function to fetch default balance from the backend
-    let defaultApiUrl = ''; // Variable to store default apiUrl from backend
-    async function fetchDefaultBalance() {
-        try {
-            let response = await fetch('/default_balance');
-            if (!response.ok) {
-                throw new Error('Failed to fetch default balance data');
-            }
-            let data = await response.json();
-            if (data.error) {
-                throw new Error(data.error.message);
-            }
-
-            // Store default apiUrl
-            defaultApiUrl = data.url; // Assuming the backend returns url in data
-
-            // Update the balance display with default balance
-            document.getElementById('totalBalance').innerText = `总额: ${data.total_balance.toFixed(4)} $`;
-            document.getElementById('usedBalance').innerText = `已用: ${data.used_balance.toFixed(4)} $`;
-            document.getElementById('remainingBalance').innerText = `剩余: ${data.remaining_balance.toFixed(4)} $`;
-
-        } catch (error) {
-            console.error('Error fetching default balance:', error);
-            document.getElementById('totalBalance').innerText = '总额: 加载失败';
-            document.getElementById('usedBalance').innerText = '已用: 加载失败';
-            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
-        }
-    }
-
-    // Function to initialize the listeners
-    function initListeners() {
-        const apiKeyField = document.querySelector('.api-key');
-        const apiUrlField = document.querySelector('.api_url');
-
-        // Initial check
-        if (apiKeyField.value.trim()) {
-            let apiUrl = apiUrlField.value.trim();
-            if (!apiUrl) {
-                apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
-            }
-            fetchBalance(apiUrl, apiKeyField.value.trim());
-        } else {
-            fetchDefaultBalance();
-        }
-
-        // Event listeners
-        apiKeyField.addEventListener('input', function () {
-            const apiKey = apiKeyField.value.trim();
-            if (apiKey) {
-                let apiUrl = apiUrlField.value.trim();
-                if (!apiUrl) {
-                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
-                }
-                fetchBalance(apiUrl, apiKey);
-            } else {
-                fetchDefaultBalance();
-            }
-        });
-
-        apiUrlField.addEventListener('input', function () {
-            const apiKey = apiKeyField.value.trim();
-            if (apiKey) {
-                let apiUrl = apiUrlField.value.trim();
-                if (!apiUrl) {
-                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty, but in this case apiUrl is not empty because it's triggered by apiUrlField input event. So no need to check again.
-                        apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
-                } else {
-                    apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
-                }
-                fetchBalance(apiUrl, apiKey);
-            } else {
-                fetchDefaultBalance();
-            }
-        });
-    }
-
-    // Ensure DOM is fully loaded before adding event listeners
-    document.addEventListener('DOMContentLoaded', function () {
-        initListeners();
-    });
-
-
 $(document).ready(function () {
         // Function to detect links
     function containsLink(input) {
@@ -757,7 +438,7 @@ function editMessage(message) {
 }
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
-function addResponseMessage(message) {
+function addResponseMessage(messageParts) { // Modified to accept messageParts
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -765,73 +446,84 @@ function addResponseMessage(message) {
         $(".answer .others .center").css("display", "flex");
     }
 
-    let escapedMessage;
-
-    // 处理流式消息中的代码块
-    let codeMarkCount = 0;
-    let index = message.indexOf('```');
-
-    while (index !== -1) {
-        codeMarkCount++;
-        index = message.indexOf('```', index + 3);
-    }
-
-    if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-        escapedMessage = marked.parse(message + '\n\n```');
-    } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-        if (message.includes('`')) {
-            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-        } else {
-            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
-        }
-    }
-
-    let messageContent = escapedMessage;
+    let messageContentHTML = ''; // To accumulate HTML for message content
     let viewButtons = [];
 
-    // Parse the message content as HTML to find <a> tags
-    let tempElement = $('<div>').html(messageContent);
-    let links = tempElement.find('a');
+    if (typeof messageParts === 'string') { // Handle plain text messages as before
+        let message = messageParts;
+        let escapedMessage;
 
-    console.log("Links found in HTML:", links); // DEBUG: Log found links
+        // 处理流式消息中的代码块
+        let codeMarkCount = 0;
+        let index = message.indexOf('```');
 
-    if (links.length > 0) {
-        links.each(function() {
-            let url = $(this).attr('href');
-            if (url) {
+        while (index !== -1) {
+            codeMarkCount++;
+            index = message.indexOf('```', index + 3);
+        }
+
+        if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+            escapedMessage = marked.parse(message + '\n\n```');
+        } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+            escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+        } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+            if (message.includes('`')) {
+                escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+            } else {
+                escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+            }
+        }
+        messageContentHTML += escapedMessage;
+
+         // Parse the message content as HTML to find <a> tags
+        let tempElement = $('<div>').html(messageContentHTML);
+        let links = tempElement.find('a');
+
+        if (links.length > 0) {
+            links.each(function() {
+                let url = $(this).attr('href');
+                if (url) {
+                    let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+                    viewButton.data('url', url);
+                    viewButtons.push(viewButton);
+                }
+            });
+             messageContentHTML = tempElement.html(); // Update messageContentHTML
+        }
+
+
+        if (message.startsWith('"//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message.replace(/"/g, '');
+            messageContentHTML = '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ';
+        } else if (message.startsWith('//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message;
+            messageContentHTML = '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ';
+        }
+    } else if (Array.isArray(messageParts)) { // Handle array of parts (for Gemini)
+        messageParts.forEach(part => {
+            if (part.type === 'text') {
+                messageContentHTML += marked.parse(escapeHtml(part.content));
+            } else if (part.type === 'image') {
+                messageContentHTML += `<div class="message-text"><img src="${part.url}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
                 let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-                viewButton.data('url', url);
+                viewButton.data('url', part.url);
                 viewButtons.push(viewButton);
-                console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
             }
         });
-         messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
     }
 
-
-    if (message.startsWith('"//')) {
-        // 处理包含base64编码的音频
-        const base64Data = message.replace(/"/g, '');
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (message.startsWith('//')) {
-        // 处理包含base64编码的音频
-        const base64Data = message;
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
-        viewButtons.forEach(button => {
-            lastResponseElement.append(button);
-        });
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    }
+    lastResponseElement.append('<div class="message-text">' + messageContentHTML + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+    viewButtons.forEach(button => {
+        lastResponseElement.append(button);
+    });
+    lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
 
     // 绑定按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
-        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
@@ -997,7 +689,7 @@ if (selectedApiPath) {
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
 // --- Google API Support Start ---
-if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') { 
+if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
@@ -1010,7 +702,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
             "responseModalities":["Text","Image"]
         }
     };
-}else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') { 
+}else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
@@ -1210,13 +902,23 @@ if (!response.ok) {
 }
 
 // --- Google API Support: Response Handling ---
-if (selectedApiPath === '/v1beta/models/model:generateContent?') {
+if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
-    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) {
-        let content = responseData.candidates[0].content.parts[0].text;
-        addResponseMessage(content);
+    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
+        const messageParts = [];
+        responseData.candidates[0].content.parts.forEach(part => {
+            if (part.text) {
+                messageParts.push({ type: 'text', content: part.text });
+            } else if (part.inlineData) {
+                const mimeType = part.inlineData.mimeType;
+                const base64Data = part.inlineData.data;
+                const imageUrl = 'data:' + mimeType + ';base64,' + base64Data;
+                messageParts.push({ type: 'image', url: imageUrl });
+            }
+        });
+        addResponseMessage(messageParts); // Pass messageParts to addResponseMessage
         resFlag = true;
-        return content;
+        return messageParts; // Return messageParts if needed
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1963,3 +1665,321 @@ $(".delete a").click(function(){
         localStorage.setItem('apiPath', selectedApiPath);
     });
 });
+
+// 找到 select 元素
+const selectElement = document.querySelector('.form-control.ipt-common.model');
+const searchInput = document.querySelector('.model-search-input');
+
+if (selectElement) {
+    // 遍历 select 元素下的所有 option 元素
+    Array.from(selectElement.options).forEach(option => {
+        const originalText = option.textContent; // 保存原始文本
+        option.setAttribute('data-description', originalText); // 设置 data-description
+        option.textContent = option.value; // 设置 textContent 为 value
+    });
+}
+
+searchInput.addEventListener('input', function() {
+    const searchTerm = searchInput.value.toLowerCase();
+    Array.from(selectElement.options).forEach(option => {
+        const description = option.getAttribute('data-description').toLowerCase();
+        if (description.includes(searchTerm)) {
+            option.style.display = 'block'; // 或者 option.hidden = false;
+        } else {
+            option.style.display = 'none'; // 或者 option.hidden = true;
+        }
+    });
+});
+
+function resetImageUpload() {
+    imageUpload.value = '';
+    base64Image = '';
+    imagePreviewContainer.style.display = 'none';
+    imagePreview.src = '';
+    // 可选：触发 change 事件以更新状态
+    var event = new Event('change', { bubbles: true });
+    imageUpload.dispatchEvent(event);
+}
+
+    var base64Image = "";
+    var imageUpload = document.getElementById('imageUpload');
+    var imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    var closeButton = document.getElementById('closeButton');
+
+    imageUpload.addEventListener('change', function(event) {
+        var file = event.target.files[0];
+        if (file) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                base64Image = e.target.result.split(',')[1];
+                imagePreviewContainer.style.display = 'block';
+                document.getElementById('imagePreview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            base64Image = '';
+            imagePreviewContainer.style.display = 'none';
+            document.getElementById('imagePreview').src = '';
+        }
+    });
+
+    closeButton.addEventListener('click', function() {
+        imageUpload.value = '';
+        base64Image = '';
+        imagePreviewContainer.style.display = 'none';
+        document.getElementById('imagePreview').src = '';
+
+        var event = new Event('change', { bubbles: true });
+        imageUpload.dispatchEvent(event);
+    });
+function checkModelAndShowUpload() {
+    var modelSelect = document.querySelector('.model');
+    var selectedModel = modelSelect.value.toLowerCase();
+    var uploadArea = document.getElementById('uploadArea');
+
+    if (
+        selectedModel.includes("gpt-4") ||
+        selectedModel.includes("glm-4v") ||
+        selectedModel.includes("claude-3") ||
+        selectedModel.includes("gemini-1.5") ||
+        selectedModel.includes("gemini-2.0") ||
+        selectedModel.includes("gemini-exp") ||
+        selectedModel.includes("learnlm-1.5-pro-experimental") ||
+        selectedModel.includes("vision") ||
+        selectedModel.includes("o1") ||
+        selectedModel.includes("o3")
+
+    ) {
+        uploadArea.style.display = 'block';
+    } else {
+        uploadArea.style.display = 'none';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var modelSelect = document.querySelector('.model');
+    modelSelect.addEventListener('change', checkModelAndShowUpload);
+
+    // 初始化时检查一次
+    checkModelAndShowUpload();
+});
+
+
+
+
+// Helper functions to set and get cookies
+function setCookie(name, value, days) {
+    var expires = "";
+    if (days) {
+        var date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));  // Calculate expiration time
+        expires = "; expires=" + date.toUTCString();  // Convert to UTC string
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";  // Set cookie
+}
+
+function getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i].trim();  // Use trim() to clean up any extra spaces
+        if (c.indexOf(nameEQ) === 0) {
+            return c.substring(nameEQ.length, c.length);  // Return the cookie value
+        }
+    }
+    return null;  // If cookie is not found, return null
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 余额显示/隐藏功能
+    var toggleBalance = document.getElementById('toggleBalance');
+    var balanceInfo = document.getElementById('balanceInfo');
+
+    // 读取Cookie并设置初始状态
+    var balanceVisibility = getCookie('balanceVisibility');
+    if (balanceVisibility === 'hidden') {
+        toggleBalance.checked = false;
+        balanceInfo.style.display = 'none';
+    } else {
+        toggleBalance.checked = true;
+        balanceInfo.style.display = 'block';
+    }
+
+    // 监听开关变化
+    toggleBalance.addEventListener('change', function() {
+        if (this.checked) {
+            balanceInfo.style.display = 'block';
+            setCookie('balanceVisibility', 'visible', 30); // 保存30天
+        } else {
+            balanceInfo.style.display = 'none';
+            setCookie('balanceVisibility', 'hidden', 30); // 保存30天
+        }
+    });
+
+    // 模型输出方式是否流式
+    var streamOutputCheckbox = document.getElementById('streamOutput');
+    var streamOutput = getCookie('streamOutput');
+    if (streamOutput === 'false') {
+        streamOutputCheckbox.checked = false;
+    } else {
+        streamOutputCheckbox.checked = true; // default true or cookie is not set
+    }
+
+    streamOutputCheckbox.addEventListener('change', function() {
+        setCookie('streamOutput', this.checked ? 'true' : 'false', 30);
+    });
+
+    // 连续对话消息上限
+    var maxDialogueMessagesInput = document.getElementById('maxDialogueMessages');
+    var maxDialogueMessages = getCookie('maxDialogueMessages');
+    if (maxDialogueMessages) {
+        maxDialogueMessagesInput.value = maxDialogueMessages;
+    } else {
+        maxDialogueMessagesInput.value = 150; // Default value if no cookie is set, aligning with original js comment
+    }
+
+    maxDialogueMessagesInput.addEventListener('change', function() {
+        setCookie('maxDialogueMessages', this.value, 30);
+    });
+});
+
+
+    // Helper function to clean up API URL
+    function cleanApiUrl(apiUrl) {
+        if (!apiUrl) {
+            return apiUrl;
+        }
+        let cleanedUrl = apiUrl.trim();
+        cleanedUrl = cleanedUrl.replace(/\s/g, ''); // Remove spaces
+        cleanedUrl = cleanedUrl.replace(/\/+$/, ''); // Remove trailing slashes
+        cleanedUrl = cleanedUrl.replace(/\/v1(\/chat\/completions)?$/i, ''); // Remove /v1 or /v1/chat/completions at the end
+        return cleanedUrl;
+    }
+
+
+    async function fetchBalance(apiUrl, apiKey) {
+        const headers = new Headers({
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        });
+
+        try {
+            // Clean the apiUrl before using it
+            const cleanedApiUrl = cleanApiUrl(apiUrl);
+
+            // Get the total balance (quota)
+            let subscriptionResponse = await fetch(`${cleanedApiUrl}/v1/dashboard/billing/subscription`, { headers });
+            if (!subscriptionResponse.ok) {
+                throw new Error('Failed to fetch subscription data');
+            }
+            let subscriptionData = await subscriptionResponse.json();
+            let total = subscriptionData.hard_limit_usd;
+
+            // Get the usage information
+            let startDate = new Date();
+            startDate.setDate(startDate.getDate() - 99);
+            let endDate = new Date();
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+
+            let usageResponse = await fetch(usageUrl, { headers });
+            if (!usageResponse.ok) {
+                throw new Error('Failed to fetch usage data');
+            }
+            let usageData = await usageResponse.json();
+            let totalUsage = usageData.total_usage / 100;
+
+            let remaining = total - totalUsage;
+
+            // Update the balance display
+            document.getElementById('totalBalance').innerText = `总额: ${total.toFixed(4)} $`;
+            document.getElementById('usedBalance').innerText = `已用: ${totalUsage.toFixed(4)} $`;
+            document.getElementById('remainingBalance').innerText = `剩余: ${remaining.toFixed(4)} $`;
+
+        } catch (error) {
+            console.error('Error fetching balance:', error);
+            document.getElementById('totalBalance').innerText = '总额: 加载失败';
+            document.getElementById('usedBalance').innerText = '已用: 加载失败';
+            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
+        }
+    }
+
+    // Function to fetch default balance from the backend
+    let defaultApiUrl = ''; // Variable to store default apiUrl from backend
+    async function fetchDefaultBalance() {
+        try {
+            let response = await fetch('/default_balance');
+            if (!response.ok) {
+                throw new Error('Failed to fetch default balance data');
+            }
+            let data = await response.json();
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            // Store default apiUrl
+            defaultApiUrl = data.url; // Assuming the backend returns url in data
+
+            // Update the balance display with default balance
+            document.getElementById('totalBalance').innerText = `总额: ${data.total_balance.toFixed(4)} $`;
+            document.getElementById('usedBalance').innerText = `已用: ${data.used_balance.toFixed(4)} $`;
+            document.getElementById('remainingBalance').innerText = `剩余: ${data.remaining_balance.toFixed(4)} $`;
+
+        } catch (error) {
+            console.error('Error fetching default balance:', error);
+            document.getElementById('totalBalance').innerText = '总额: 加载失败';
+            document.getElementById('usedBalance').innerText = '已用: 加载失败';
+            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
+        }
+    }
+
+    // Function to initialize the listeners
+    function initListeners() {
+        const apiKeyField = document.querySelector('.api-key');
+        const apiUrlField = document.querySelector('.api_url');
+
+        // Initial check
+        if (apiKeyField.value.trim()) {
+            let apiUrl = apiUrlField.value.trim();
+            if (!apiUrl) {
+                apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
+            }
+            fetchBalance(apiUrl, apiKeyField.value.trim());
+        } else {
+            fetchDefaultBalance();
+        }
+
+        // Event listeners
+        apiKeyField.addEventListener('input', function () {
+            const apiKey = apiKeyField.value.trim();
+            if (apiKey) {
+                let apiUrl = apiUrlField.value.trim();
+                if (!apiUrl) {
+                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
+                }
+                fetchBalance(apiUrl, apiKey);
+            } else {
+                fetchDefaultBalance();
+            }
+        });
+
+        apiUrlField.addEventListener('input', function () {
+            const apiKey = apiKeyField.value.trim();
+            if (apiKey) {
+                let apiUrl = apiUrlField.value.trim();
+                if (!apiUrl) {
+                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty, but in this case apiUrl is not empty because it's triggered by apiUrlField input event. So no need to check again.
+                        apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
+                } else {
+                    apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
+                }
+                fetchBalance(apiUrl, apiKey);
+            } else {
+                fetchDefaultBalance();
+            }
+        });
+    }
+
+    // Ensure DOM is fully loaded before adding event listeners
+    document.addEventListener('DOMContentLoaded', function () {
+        initListeners();
+    });
