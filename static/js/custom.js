@@ -1079,34 +1079,15 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-}
-// Gemini API Support START - Updated API Path and Request Body
-else if (selectedApiPath === '/v1beta') {
-    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`; // Updated Gemini API endpoint with API Key in URL
+} else if ((selectedApiPath === '/v1beta') { // Gemini models handling
+    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
-        "contents": [{ // Updated request body structure for Gemini
-            "parts": data.prompts.map(p => ({ "text": p.content })) // Map messages to parts with text
-        }],
+        "contents": [{
+            "parts": [{"text": data.prompts[0].content}]
+        }]
     };
-     if (data.image_base64 && data.image_base64.trim() !== '' ) { // Gemini Vision (Multimodal)
-        apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`; // Vision API path is the same as chat for Gemini
-        requestBody = {
-            "contents": [{
-                "parts": [ // Gemini uses "parts" instead of "content" array
-                    {"text": data.prompts[0].content},
-                    {
-                        "inline_data": { // Gemini uses "inline_data" for base64 images
-                            "mime_type": "image/jpeg", // Adjust mime type if necessary
-                            "data": data.image_base64
-                        }
-                    },
-                ],
-            }],
-        };
-    }
 }
-// Gemini API Support END - Updated API Path and Request Body
-else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+ else { // Default to /v1/chat/completions for other models or if path is not explicitly set
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "messages": data.prompts,
@@ -1187,8 +1168,7 @@ const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
         'Content-Type': 'application/json',
-        // Removed Authorization header for Gemini, API Key is in URL
-        // 'Authorization': 'Bearer ' + apiKey
+        'Authorization': 'Bearer ' + apiKey
     },
     body: JSON.stringify(requestBody)
 });
@@ -1296,13 +1276,19 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 str += content;
             }
         }
-        // Gemini stream response handling (adjust based on actual Gemini stream format) - Assuming similar to previous logic, adjust if needed based on actual stream response
-        else if (apiUrl.startsWith(`https://gemini.baipiao.io/v1beta/models/gemini`) && jsonObj.candidates && jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-             str += jsonObj.candidates[0].content.parts[0].text;
-        }
                 addResponseMessage(str);
                 resFlag = true;
-            } else {
+            } else if (jsonObj.candidates) { // Gemini stream response handling
+                let geminiContent = '';
+                if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+                    geminiContent = jsonObj.candidates[0].content.parts[0].text;
+                }
+                str += geminiContent;
+                addResponseMessage(str);
+                resFlag = true;
+            }
+
+             else {
                 if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
@@ -1330,10 +1316,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         addResponseMessage(content);
         resFlag = true;
         return content;
-    }
-    // Gemini non-stream response handling (adjust based on actual Gemini response format) - Assuming similar to previous logic, adjust if needed based on actual non-stream response
-    else if (apiUrl.startsWith(`https://gemini.baipiao.io/v1beta/models/gemini`) && responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts[0].text) {
-        let content = responseData.candidates[0].content.parts[0].text;
+    } else if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) { // Gemini non-stream response handling
+        const content = responseData.candidates[0].content.parts[0].text;
         addResponseMessage(content);
         resFlag = true;
         return content;
@@ -1689,9 +1673,9 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = modelName.toLowerCase().includes("sora");
-    const hadSuno = modelName.toLowerCase().includes("suno");
-    const hadKo = modelName.toLowerCase().includes("kolors");
+    const hadSora = previousModel.toLowerCase().includes("sora");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
     const hadKl = previousModel.toLowerCase().includes("kling");
 
 
@@ -1717,18 +1701,10 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } else if (lowerModelName.includes("gemini")) { // Add Gemini path auto-switching
-        targetApiPath = '/v1/chat/completions'; // Assuming Gemini chat completion path - will be updated in model change event
-    }
-     else {
+    } 
+    else {
         targetApiPath = '/v1/chat/completions'; // Default path
     }
-
-    if (targetApiPath) {
-        apiPathSelect.val(targetApiPath);
-        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
-    }
-    // --- End of Path Auto-Switching Logic ---
 }
 
 
@@ -1745,19 +1721,6 @@ function updateModelSettings(modelName) {
             const selectedModel = $(this).val();
             localStorage.setItem('selectedModel', selectedModel);
             updateModelSettings(selectedModel);
-
-             // Update API Path specifically for Gemini models on model change
-            const lowerModelName = selectedModel.toLowerCase();
-            if (lowerModelName.includes("gemini")) {
-                apiPathSelect.val('/v1/chat/completions'); // Or keep it null and handle in sendRequest
-                localStorage.setItem('apiPath', '/v1/chat/completions'); // Update localStorage if needed
-            } else {
-                 // Reset to default or previous if not Gemini, or handle as needed
-                 // apiPathSelect.val(null); // Example to reset to default
-                 // localStorage.removeItem('apiPath'); // Example to clear from localStorage
-            }
-
-
             // Update the title to use the selected option's data-description
             $(".title h2").text($(this).find("option:selected").data('description'));
         });
