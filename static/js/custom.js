@@ -637,16 +637,16 @@ $(document).ready(function() {
 // 添加图片消息到窗口
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
-    lastResponseElement.empty();
+    // lastResponseElement.empty(); // No need to empty here, append instead
     lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
-    lastResponseElement.find('.view-button').on('click', function() {
+    lastResponseElement.find('.view-button').off('click').on('click', function() { // Use .off() to avoid duplicate bindings
         window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
+    lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Use .off() to avoid duplicate bindings
         $(this).closest('.message-bubble').remove(); // 删除该条响应消息
     });
 }
@@ -1213,48 +1213,35 @@ if (!response.ok) {
 if (selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        let combinedTextContent = "";
-        let hasImage = false;
         let lastResponseElement = $(".message-bubble .response").last();
         lastResponseElement.empty(); // Clear previous loading icon
 
         responseData.candidates[0].content.parts.forEach(part => {
             if (part.text) {
-                combinedTextContent += part.text;
+                // Append text content if any text parts are present
+                lastResponseElement.append('<div class="message-text">' + marked.parse(escapeHtml(part.text)) + '</div>');
             } else if (part.inlineData) {
-                hasImage = true;
                 const mimeType = part.inlineData.mimeType;
                 const imageData = part.inlineData.data;
                 const imageUrl = `data:${mimeType};base64,${imageData}`;
                 // Directly append image element for inline images
-                lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-                 // 绑定查看按钮事件 (inside loop for each image if needed, but better to bind once after loop if all images are in one response)
-                lastResponseElement.find('.view-button').off('click').on('click', function() { // Off to prevent multiple bindings
-                    window.open(imageUrl, '_blank');
-                });
-                // 绑定删除按钮点击事件
-                lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Off to prevent multiple bindings
-                    $(this).closest('.message-bubble').remove(); // 删除该条响应消息
-                });
+                addImageMessageInline(imageUrl, lastResponseElement); // Use inline add image function
             }
         });
 
-        if (combinedTextContent) {
-            // Append text content if any text parts are present
-            lastResponseElement.append('<div class="message-text">' + marked.parse(escapeHtml(combinedTextContent)) + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + (hasImage ? '' : '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>')); // Conditionally add delete button if no image already adds it
 
-            lastResponseElement.find('.copy-button').off('click').on('click', function() { // Off to prevent multiple bindings
-                copyMessage($(this).prev().text().trim());
-            });
-            if (!hasImage) { // Only bind delete if not already bound by image part
-                lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Off to prevent multiple bindings
-                    $(this).closest('.message-bubble').remove();
-                });
-            }
-        }
+        lastResponseElement.append('<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+
+        lastResponseElement.find('.copy-button').off('click').on('click', function() { // Off to prevent multiple bindings
+            copyMessage($(this).prev().text().trim()); // Copy text of the *previous* element which should be text message
+        });
+        lastResponseElement.find('.delete-message-btn').off('click').on('click', function() { // Off to prevent multiple bindings
+            $(this).closest('.message-bubble').remove();
+        });
+
 
         resFlag = true;
-        return combinedTextContent; // Or modify to return something more meaningful if needed
+        return responseData.candidates[0].content.parts.map(part => part.text || (part.inlineData ? "[Image]" : "")).join(" "); // Return combined text and image markers
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1457,6 +1444,33 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
 
   }
+
+  // Function to add image message inline with text (for Gemini API response parts)
+function addImageMessageInline(imageUrl, lastResponseElement) {
+    // Append image element directly to the lastResponseElement
+    const imageElement = $(`<div class="message-text inline-image"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%; cursor: pointer;" alt="Generated Image"></div>`);
+    const viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+    const deleteButton = $('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+
+    imageElement.append(viewButton);
+    imageElement.append(deleteButton);
+    lastResponseElement.append(imageElement);
+
+
+    // 绑定查看按钮事件
+    viewButton.off('click').on('click', function() {
+        window.open(imageUrl, '_blank');
+    });
+    // 绑定删除按钮点击事件
+    deleteButton.off('click').on('click', function() {
+        $(this).closest('.inline-image').remove(); // Remove the inline image container
+    });
+
+    // Image click to view (alternative to button, or in addition)
+    imageElement.find('img').off('click').on('click', function() {
+        window.open(imageUrl, '_blank');
+    });
+}
 
 
   // 处理用户输入
