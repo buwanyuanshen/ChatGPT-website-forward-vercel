@@ -730,7 +730,7 @@ function addModerationMessage(moderationResult) {
         copyMessage($(this).prev().text().trim());
     });
     // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').click(function() {
+    lastResponseElement.find('.delete-message-btn').on('click', function() {
         $(this).closest('.message-bubble').remove();
     });
 }
@@ -965,7 +965,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1420,8 +1420,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                         str += jsonObj.choices[0].text;
                     } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
                         const message = jsonObj.choices[0].message;
-                        const reasoningContent = message.reasoning_content;
-                        const content = jsonObj.choices[0].content;
+                        const reasoningContent = jsonObj.choices[0].content; // Corrected path
+                        const content = jsonObj.choices[0].message.content;
 
                         if (reasoningContent && reasoningContent.trim() !== "") {
                             str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content;
@@ -1603,7 +1603,7 @@ chatInput.on("keydown", handleEnter);
   }
 
   let theme = localStorage.getItem('theme');
-  // 如果之前选择了主题，则将其应用到网站中
+  // 如果之前选择了主题，则将其应用 to 网站中
   if (theme) {
     setBgColor(theme);
   }else{
@@ -1834,9 +1834,9 @@ function updateModelSettings(modelName) {
     const hadSD = previousModel.toLowerCase().includes("stable");
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
-    const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadSora = modelName.toLowerCase().includes("sora");
+    const hadSuno = modelName.toLowerCase().includes("suno");
+    const hadKo = modelName.toLowerCase().includes("kolors");
     const hadKl = previousModel.toLowerCase().includes("kling");
 
 
@@ -1898,6 +1898,7 @@ function clearConversation() {
     $(".answer .tips").css({"display":"flex"});
     messages = [];
     localStorage.removeItem("session");
+    localStorage.removeItem("previousModel"); // Add this line to also clear previousModel
 }
 
 // 删除功能
@@ -2010,7 +2011,7 @@ $(".delete a").click(function(){
 
     $('pre').on('click', '.copy-btn', function() {
       let text = $(this).siblings('code').text();
-      // 创建一个临时的 textarea 元素
+      // 创建一个临时的 textarea 元素 
       let textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
