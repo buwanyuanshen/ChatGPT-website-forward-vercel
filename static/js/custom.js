@@ -997,7 +997,7 @@ if (selectedApiPath) {
 const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
 // --- Google API Support Start ---
-if (selectedApiPath === '/v1beta/models/model:generateContent?') { 
+if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') { 
     apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
@@ -1006,12 +1006,22 @@ if (selectedApiPath === '/v1beta/models/model:generateContent?') {
         "generationConfig": {
             "maxOutputTokens": data.max_tokens,
             "temperature": data.temperature,
-            "topP": 1
+            "topP": 1,
+            "responseModalities":["Text","Image"]
         }
     };
-} else
-// --- Google API Support End ---
-if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
+}else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') { 
+    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    requestBody = {
+        "contents": [{
+            "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
+        }],
+        "generationConfig": {
+            "maxOutputTokens": data.max_tokens,
+            "temperature": data.temperature,
+            "topP": 1        }
+    };
+}else if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
     apiUrl = datas.api_url + "/v1/completions";
     requestBody = {
         "prompt": data.prompts[0].content,
