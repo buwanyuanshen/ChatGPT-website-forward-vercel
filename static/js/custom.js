@@ -934,7 +934,7 @@ async function getApiKey() {
       const data = await response.json();
 
       if (data.apiKey) {
-        // 解码 API 密钥
+        // 解码 API 密钥 
         apiKey = decodeApiKey(data.apiKey);
         return apiKey;
       } else {
@@ -1238,7 +1238,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str;
+    let str = ''; // Initialize str here
     // **新增代码 - 在请求前记录是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
@@ -1246,7 +1246,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         if (done) {
             break;
         }
-        str = '';
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
@@ -1257,7 +1256,26 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             } catch (e) {
                 break;
             }
-    if (jsonObj.choices) {
+        if (apiUrl === datas.api_url + "/v1/messages") { // ADDED THIS BLOCK FOR /v1/messages
+            if (jsonObj.type === 'content_block_delta') {
+                if (jsonObj.data && jsonObj.data.delta && jsonObj.data.delta.text) {
+                    str += jsonObj.data.delta.text;
+                    addResponseMessage(str); // Update response with accumulated text
+                    resFlag = true;
+                }
+            } else if (jsonObj.type === 'content_block_stop') {
+                // content_block_stop event, can handle if needed, for now just break;
+                break; // or continue if you expect more events after stop
+            } else if (jsonObj.type === 'message_stop') {
+                 break; // message_stop event, end of message
+            } else if (jsonObj.type === 'message_delta') {
+                // message_delta event, can handle usage info if needed
+            } else if (jsonObj.error) {
+                addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                resFlag = false;
+            }
+        }
+    else if (jsonObj.choices) { // Existing logic for other paths
         if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
             const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
             const content = jsonObj.choices[0].delta.content;
@@ -1279,8 +1297,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             } else if (content && content.trim() !== "") {
                 str += content;
             }
-        } else if (apiUrl === datas.api_url + "/v1/messages" && jsonObj.choices[0].content) { // ADDED THIS BLOCK FOR /v1/messages
-            str += jsonObj.choices[0].content;
         }
                 addResponseMessage(str);
                 resFlag = true;
@@ -1308,8 +1324,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             content = responseData.choices[0].message.content;
         } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
             content = responseData.choices[0].text;
-        } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices[0].choices[0].message.content) { // ADDED THIS BLOCK FOR /v1/messages
-            content = responseData.choices[0].choices[0].message.content;
+        } else if (apiUrl === datas.api_url + "/v1/messages" && responseData.choices && responseData.choices[0].message && responseData.choices[0].message.content) { // ADDED THIS BLOCK FOR /v1/messages for non-stream
+            content = responseData.choices[0].message.content;
         }
         addResponseMessage(content);
         resFlag = true;
