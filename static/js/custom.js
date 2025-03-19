@@ -1266,13 +1266,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                     str += jsonObj.delta.text; // Accumulate text
                     addResponseMessage(str); // Update response with accumulated text
                     resFlag = true;
-                } else if (jsonObj.type === 'content_block_stop') {
-                    // content block stopped, no further action needed for text content
-                } else if (jsonObj.type === 'message_delta') {
-                    // Usage info or other message delta, can be ignored for text content
-                } else if (jsonObj.type === 'message_stop') {
-                    // message stopped, stream finished
-                } else if (jsonObj.error) {
+                }else if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
                 }
