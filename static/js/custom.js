@@ -951,7 +951,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1389,7 +1389,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 try {
                     jsonObj = JSON.parse(line);
                 } catch (e) {
-                    continue; // 如果解析失败，跳过当前行
+                    continue; // 如果解析失败，跳过 current line
                 }
 
                 if (jsonObj && jsonObj.choices) {
@@ -1416,7 +1416,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                         }
                     }
 
-                    if(str) {  //只有当str不为空时才添加
+                    if(str) {  // 只有当str不为空时才添加
                       addResponseMessage(str);
                       resFlag = true;
                     }
@@ -1698,6 +1698,9 @@ chatInput.on("keydown", handleEnter);
               messages = messagesList;
               $.each(messages, function(index, item) {
                 console.log("Loading message item:", item); // DEBUG: Log each item before addResponseMessage
+                console.log("Type of item.content before conversion:", typeof item.content); // DEBUG: Check type
+                console.log("Value of item.content before conversion:", item.content);     // DEBUG: Check value
+                item.content = String(item.content); // Force string conversion here!
                 if (item.role === 'user') {
                   addRequestMessage(item.content)
                 } else if (item.role === 'assistant') {
@@ -1825,8 +1828,8 @@ function updateModelSettings(modelName) {
     const hadFlux = previousModel.toLowerCase().includes("flux");
     const hadVd = previousModel.toLowerCase().includes("video");
     const hadSora = previousModel.toLowerCase().includes("sora");
-    const hadSuno = previousModel.toLowerCase().includes("suno");
-    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadSuno = modelName.toLowerCase().includes("suno");
+    const hadKo = modelName.toLowerCase().includes("kolors");
     const hadKl = previousModel.toLowerCase().includes("kling");
 
 
@@ -2000,7 +2003,7 @@ $(".delete a").click(function(){
 
     $('pre').on('click', '.copy-btn', function() {
       let text = $(this).siblings('code').text();
-      // 创建一个临时的 textarea 元素
+      // 创建一个临时的 textarea 元素 
       let textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
