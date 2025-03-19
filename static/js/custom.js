@@ -1080,7 +1080,18 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+} else if (selectedApiPath === '/v1/messages') { // New API path for /v1/messages
+    apiUrl = datas.api_url + "/v1/messages";
+    requestBody = {
+        "messages": data.prompts,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": getCookie('streamOutput') !== 'false'
+    };
+}else { // Default to /v1/chat/completions for other models or if path is not explicitly set
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "messages": data.prompts,
