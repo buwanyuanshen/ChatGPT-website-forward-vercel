@@ -818,6 +818,7 @@ function addResponseMessage(message) {
 
 
     } else if (typeof message === 'object' && message.type === 'image') { // Handle image message
+        console.log('Image Message:', message); // Debugging log
         lastResponseElement.empty();
         lastResponseElement.append(`<div class="message-text"><img src="${message.url}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
          // 绑定查看按钮事件
@@ -1337,6 +1338,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 const imageData = part.inlineData.data;
                 const mimeType = part.inlineData.mimeType;
                 const imageUrl = `data:${mimeType};base64,${imageData}`;
+                console.log('Image URL:', imageUrl); // Debugging log - Check imageUrl format
                 // Instead of adding image directly to combinedMessage string, send image as separate message object
                 addResponseMessage({ type: 'image', url: imageUrl });
             }
