@@ -819,7 +819,39 @@ function addResponseMessage(message) {
         // 处理包含base64编码的音频
         const base64Data = message;
         lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else {
+    }
+     // --- Gemini Image Response Handling Start ---
+        else if (typeof message === 'object' && message.geminiImageResponse) {
+            const geminiResponse = message.geminiImageResponse;
+            lastResponseElement.empty(); // Clear any loading icon
+
+            let combinedContent = '';
+            if (geminiResponse.candidates && geminiResponse.candidates.length > 0 && geminiResponse.candidates[0].content && geminiResponse.candidates[0].content.parts) {
+                geminiResponse.candidates[0].content.parts.forEach(part => {
+                    if (part.text) {
+                        combinedContent += marked.parse(escapeHtml(part.text)); // Parse text parts as markdown
+                    } else if (part.inlineData && part.inlineData.mimeType && part.inlineData.data) {
+                        const imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                        lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>');
+                        // 绑定查看按钮事件 (duplicate from addImageMessage, consider refactoring if needed)
+                        lastResponseElement.find('.view-button').on('click', function() {
+                            window.open(imageUrl, '_blank');
+                        });
+                    }
+                });
+            }
+            if (combinedContent) {
+                lastResponseElement.append(`<div class="message-text">${combinedContent}</div>`);
+            }
+            lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+             // 绑定删除按钮点击事件 (duplicate from other addResponseMessage paths, consider refactoring if needed)
+            lastResponseElement.find('.delete-message-btn').click(function() {
+                $(this).closest('.message-bubble').remove();
+            });
+
+        }
+        // --- Gemini Image Response Handling End ---
+    else {
         lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
         viewButtons.forEach(button => {
             lastResponseElement.append(button);
@@ -998,7 +1030,7 @@ const model = data.model.toLowerCase(); // Convert model name to lowercase for e
 
 // --- Google API Support Start ---
 if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1011,7 +1043,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
         }
     };
 }else if (!model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?') {
-    apiUrl = 'https://gemini.baipiao.io/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
+    apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/' + model + ':generateContent?key=' + apiKey; // Google Gemini API endpoint (replace apiKey with actual Google API Key if needed differently)
     requestBody = {
         "contents": [{
             "parts": [{ "text": data.prompts[0].content }] // Assuming single prompt for now, adapt for multi-turn if needed
@@ -1212,51 +1244,28 @@ if (!response.ok) {
 // --- Google API Support: Response Handling ---
 if (selectedApiPath === '/v1beta/models/model:generateContent?') {
     const responseData = await response.json();
-    if (responseData.candidates && responseData.candidates.length > 0) {
-        let messageContent = "";
-        let hasImage = false;
-        let imageUrl = "";
-
-        responseData.candidates[0].content.parts.forEach(part => {
-            if (part.text) {
-                messageContent += part.text;
-            } else if (part.inlineData && part.inlineData.mimeType && part.inlineData.data) {
-                if (part.inlineData.mimeType.startsWith('image/')) {
-                            imageUrl = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                            hasImage = true;
-                        }
-                    }
-                });
-
-                if (hasImage) {
-                    addResponseMessage(messageContent); // Add text content first if any
-                    addImageMessage(imageUrl); // Then add the image
-                    resFlag = true;
-                    return messageContent + imageUrl; // Return both for message logging if needed
-                } else if (messageContent) {
-                    addResponseMessage(messageContent);
-                    resFlag = true;
-                    return messageContent;
-                }
-                else if (responseData.error) {
-                    addFailMessage(responseData.error.message);
-                    resFlag = false;
-                    return;
-                } else {
-                    addFailMessage("Google Gemini API 返回数据格式不正确");
-                    resFlag = false;
-                    return;
-                }
-            } else if (responseData.error) {
-                addFailMessage(responseData.error.message);
-                resFlag = false;
-                return;
-            } else {
-                addFailMessage("Google Gemini API 返回数据格式不正确");
-                resFlag = false;
-                return;
-            }
-        } else
+    if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
+        // --- Gemini Image Response Modification in sendRequest ---
+        const isImageModel = model.includes("gemini-2.0-flash-exp-image-generation");
+        if (isImageModel) {
+            addResponseMessage({ geminiImageResponse: responseData }); // Pass the entire responseData
+        } else {
+            let content = responseData.candidates[0].content.parts[0].text;
+            addResponseMessage(content);
+        }
+        // --- Gemini Image Response Modification End ---
+        resFlag = true;
+        return content;
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+        return;
+    } else {
+        addFailMessage("Google Gemini API 返回数据格式不正确");
+        resFlag = false;
+        return;
+    }
+} else
 // --- Google API Support: Response Handling End ---
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
     const responseData = await response.json();
