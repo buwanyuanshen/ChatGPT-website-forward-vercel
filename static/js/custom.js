@@ -1223,7 +1223,7 @@ if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath =
                 // You might need to adjust addResponseMessage to handle HTML content correctly.
             }
         }
-        addResponseMessage(combinedContent); // Send combined content to addResponseMessage
+        lastResponseElement.append(combinedContent); // Send combined content to addResponseMessage
         resFlag = true;
         return combinedContent;
     } else if (responseData.error) {
