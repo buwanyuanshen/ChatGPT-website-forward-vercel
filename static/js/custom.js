@@ -1237,6 +1237,31 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     reader.readAsDataURL(audioBlob);
     resFlag = true;
     return; // For TTS, handle response and return
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta') {
+    const responseData = await response.json();
+    if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
+        const parts = responseData.candidates[0].content.parts;
+        for (const part of parts) {
+            if (part.inlineData) {
+                const mimeType = part.inlineData.mimeType;
+                const base64Data = part.inlineData.data;
+                const imageUrl = `data:${mimeType};base64,${base64Data}`;
+                addImageMessage(imageUrl);
+                resFlag = true;
+                return; // Early return after handling image
+            } else if (part.text) {
+                addResponseMessage(part.text); // Handle text parts as well
+                resFlag = true;
+            }
+        }
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("图片生成失败，返回数据格式不正确");
+        resFlag = false;
+    }
+    return;
 }
 
 
