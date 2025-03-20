@@ -21,6 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
+    localStorage.setItem('modelSearchTerm', searchInput.value); // 存储搜索词
 });
 
 function resetImageUpload() {
@@ -440,6 +441,13 @@ $(document).ready(function () {
     }
     initializeDataDescription();
     updateTitle();
+
+    // 初始化模型搜索框内容
+    const storedModelSearchTerm = localStorage.getItem('modelSearchTerm');
+    if (storedModelSearchTerm) {
+        searchInput.value = storedModelSearchTerm;
+        searchInput.dispatchEvent(new Event('input')); // 触发 input 事件以应用搜索过滤
+    }
 });
 
 
@@ -1033,8 +1041,10 @@ let requestBody = {
 const selectedApiPath = apiPathSelect.val();
 if (selectedApiPath) {
     apiUrl = datas.api_url + selectedApiPath;
+    localStorage.setItem('apiPath', selectedApiPath); // 存储 API Path
 } else {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
+    localStorage.removeItem('apiPath'); // 移除 API Path 存储，表示使用默认路径
 }
 
 
@@ -1382,7 +1392,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         resFlag = true;
         return content;
     } else if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) { // Gemini non-stream response handling
-        const content = responseData.candidates[0].content.parts[0].text;
+        const content = responseData.candidates[0].content.parts; // Modified to pass the parts array
         addResponseMessage(content);
         resFlag = true;
         return content;
@@ -1469,7 +1479,13 @@ let imageSrc = document.getElementById('imagePreview').src;
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
       if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
-        messages.push({"role": "assistant", "content": res});
+          // For Gemini image/text responses, ensure the whole structured message is stored
+          if (Array.isArray(res)) {
+              messages.push({"role": "assistant", "content": res}); // Store the parts array directly
+          } else {
+              messages.push({"role": "assistant", "content": res});
+          }
+
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
           localStorage.setItem("session",JSON.stringify(messages));
@@ -1623,14 +1639,7 @@ chatInput.on("keydown", handleEnter);
         if (item.role === 'user') {
           addRequestMessage(item.content)
         } else if (item.role === 'assistant') {
-          // Modify here to handle Gemini multi-part responses correctly during session load
-          if (typeof item.content === 'string' || Array.isArray(item.content)) { // Check if content is string or array
-              addResponseMessage(item.content);
-          } else if (typeof item.content === 'object' && item.content !== null && item.content.parts) { // Handle structured content with parts (Gemini)
-              addResponseMessage(item.content.parts);
-          } else {
-              addResponseMessage(String(item.content)); // Fallback to string conversion if needed
-          }
+          addResponseMessage(item.content)
         }
       });
       // 添加复制
@@ -1962,18 +1971,4 @@ $(".delete a").click(function(){
         const selectedApiPath = $(this).val();
         localStorage.setItem('apiPath', selectedApiPath);
     });
-
-    // 读取模型搜索输入框内容
-    const modelSearchInputValue = localStorage.getItem('modelSearchInputValue');
-    if (modelSearchInputValue) {
-        searchInput.value = modelSearchInputValue;
-        // Trigger input event to filter options immediately after loading
-        searchInput.dispatchEvent(new Event('input'));
-    }
-
-    // 模型搜索输入框事件
-    searchInput.addEventListener('input', function() {
-        localStorage.setItem('modelSearchInputValue', this.value);
-    });
-
 });
