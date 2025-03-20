@@ -776,22 +776,22 @@ function addResponseMessage(message) {
                 let codeMarkCount = 0;
                 let index = textPart.indexOf('```');
 
-                while (index !== -1) {
-                    codeMarkCount++;
-                    index = textPart.indexOf('```', index + 3);
-                }
-
-                if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-                    escapedMessage = marked.parse(textPart + '\n\n```');
-                } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-                    escapedMessage = marked.parse(textPart);  // 响应消息markdown实时转换为html
-                } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-                    if (textPart.includes('`')) {
-                        escapedMessage = marked.parse(textPart);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-                    } else {
-                        escapedMessage = marked.parse(escapeHtml(textPart)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+                    while (index !== -1) {
+                        codeMarkCount++;
+                        index = textPart.indexOf('```', index + 3);
                     }
-                }
+
+                    if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+                        escapedMessage = marked.parse(textPart + '\n\n```');
+                    } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+                        escapedMessage = marked.parse(textPart);  // 响应消息markdown实时转换为html
+                    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+                        if (textPart.includes('`')) {
+                            escapedMessage = marked.parse(textPart);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+                        } else {
+                            escapedMessage = marked.parse(escapeHtml(textPart)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+                        }
+                    }
                 messageContentHTML += '<div class="message-text">' + escapedMessage + '</div><button class="copy-button"><i class="far fa-copy"></i></button>'; // 添加复制按钮到文字部分
 
             } else if (part.inlineData) {
@@ -938,7 +938,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -977,7 +977,7 @@ async function getApiKey() {
       const data = await response.json();
 
       if (data.apiKey) {
-        // 解码 API 密钥 
+        // 解码 API 密钥
         apiKey = decodeApiKey(data.apiKey);
         return apiKey;
       } else {
@@ -1285,6 +1285,11 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
         addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
         resFlag = true;
+        messages.push({"role": "assistant", "content": responseData.candidates[0].content.parts}); // Modified line to store parts array
+            // 判断是否本地存储历史会话
+            if(localStorage.getItem('archiveSession')=="true"){
+              localStorage.setItem("session",JSON.stringify(messages));
+            }
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
@@ -1475,6 +1480,13 @@ let imageSrc = document.getElementById('imagePreview').src;
           localStorage.setItem("session",JSON.stringify(messages));
         }
       }
+       if(resFlag && (selectedModel.includes("gemini-2.0-flash-exp-image-generation")) ){ // Gemini image model need to push message with parts array
+        // messages.push({"role": "assistant", "content": res}); // Already pushed in sendRequest function
+        // 判断是否本地存储历史会话
+        if(localStorage.getItem('archiveSession')=="true"){
+          localStorage.setItem("session",JSON.stringify(messages));
+        }
+      }
       // 添加复制
       copy();
     });
@@ -1616,20 +1628,25 @@ chatInput.on("keydown", handleEnter);
 
   // 加载历史保存会话
   if(archiveSession == "true"){
-    const messagesList = JSON.parse(localStorage.getItem("session"));
-    if(messagesList){
-      messages = messagesList;
-      $.each(messages, function(index, item) {
-        if (item.role === 'user') {
-          addRequestMessage(item.content)
-        } else if (item.role === 'assistant') {
-          addResponseMessage(item.content)
+        const messagesList = JSON.parse(localStorage.getItem("session"));
+        if(messagesList){
+            messages = messagesList;
+            $.each(messages, function(index, item) {
+                if (item.role === 'user') {
+                    addRequestMessage(item.content)
+                } else if (item.role === 'assistant') {
+                    // Check if content is an array (Gemini image response parts)
+                    if (Array.isArray(item.content)) {
+                        addResponseMessage(item.content); // Pass the parts array directly
+                    } else {
+                        addResponseMessage(item.content)
+                    }
+                }
+            });
+            // 添加复制
+            copy();
         }
-      });
-      // 添加复制
-      copy();
     }
-  }
 
   // 是否连续对话
   var continuousDialogue = localStorage.getItem('continuousDialogue');
