@@ -766,76 +766,115 @@ function addResponseMessage(message) {
     }
 
     let escapedMessage;
+    let messageContentHTML = ''; // Accumulate HTML content
 
-    // 处理流式消息中的代码块
-    let codeMarkCount = 0;
-    let index = message.indexOf('```');
+    if (Array.isArray(message)) { // Handle structured message parts (for Gemini image responses)
+        message.forEach(part => {
+            if (part.text) {
+                // Process text part as before
+                let textPart = part.text;
+                let codeMarkCount = 0;
+                let index = textPart.indexOf('```');
 
-    while (index !== -1) {
-        codeMarkCount++;
-        index = message.indexOf('```', index + 3);
-    }
+                while (index !== -1) {
+                    codeMarkCount++;
+                    index = textPart.indexOf('```', index + 3);
+                }
 
-    if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-        escapedMessage = marked.parse(message + '\n\n```');
-    } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-        escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-    } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-        if (message.includes('`')) {
-            escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-        } else {
-            escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
-        }
-    }
+                if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+                    escapedMessage = marked.parse(textPart + '\n\n```');
+                } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+                    escapedMessage = marked.parse(textPart);  // 响应消息markdown实时转换为html
+                } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+                    if (textPart.includes('`')) {
+                        escapedMessage = marked.parse(textPart);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+                    } else {
+                        escapedMessage = marked.parse(escapeHtml(textPart)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+                    }
+                }
+                messageContentHTML += '<div class="message-text">' + escapedMessage + '</div>';
 
-    let messageContent = escapedMessage;
-    let viewButtons = [];
-
-    // Parse the message content as HTML to find <a> tags
-    let tempElement = $('<div>').html(messageContent);
-    let links = tempElement.find('a');
-
-    console.log("Links found in HTML:", links); // DEBUG: Log found links
-
-    if (links.length > 0) {
-        links.each(function() {
-            let url = $(this).attr('href');
-            if (url) {
-                let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
-                viewButton.data('url', url);
-                viewButtons.push(viewButton);
-                console.log("View button created for URL (HTML Parsing):", url); // DEBUG: Log button creation
+            } else if (part.inlineData) {
+                // Handle image part
+                const mimeType = part.inlineData.mimeType;
+                const base64Data = part.inlineData.data;
+                const imageUrl = `data:${mimeType};base64,${base64Data}`;
+                messageContentHTML += `<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
             }
         });
-         messageContent = tempElement.html(); // Update messageContent to reflect changes from jQuery manipulation if needed (though not strictly necessary here)
+        lastResponseElement.append(messageContentHTML + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+
+    } else { // Handle regular text message
+        let codeMarkCount = 0;
+        let index = message.indexOf('```');
+
+        while (index !== -1) {
+            codeMarkCount++;
+            index = message.indexOf('```', index + 3);
+        }
+
+        if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+            escapedMessage = marked.parse(message + '\n\n```');
+        } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+            escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+        } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+            if (message.includes('`')) {
+                escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+            } else {
+                escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+            }
+        }
+
+        messageContent = escapedMessage;
+        let viewButtons = [];
+
+        // Parse the message content as HTML to find <a> tags
+        let tempElement = $('<div>').html(messageContent);
+        let links = tempElement.find('a');
+
+
+        if (links.length > 0) {
+            links.each(function() {
+                let url = $(this).attr('href');
+                if (url) {
+                    let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+                    viewButton.data('url', url);
+                    viewButtons.push(viewButton);
+                }
+            });
+             messageContent = tempElement.html(); // Update messageContent
+        }
+
+
+        if (message.startsWith('"//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message.replace(/"/g, '');
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        } else if (message.startsWith('//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message;
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        } else {
+            lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+            viewButtons.forEach(button => {
+                lastResponseElement.append(button);
+            });
+            lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        }
+        // ... (rest of button bindings for text messages are unchanged) ...
     }
 
 
-    if (message.startsWith('"//')) {
-        // 处理包含base64编码的音频
-        const base64Data = message.replace(/"/g, '');
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else if (message.startsWith('//')) {
-        // 处理包含base64编码的音频
-        const base64Data = message;
-        lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    } else {
-        lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
-        viewButtons.forEach(button => {
-            lastResponseElement.append(button);
-        });
-        lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    }
-
-
-    // 绑定按钮事件
+    // 绑定按钮事件 (for both text and image messages)
     lastResponseElement.find('.view-button').on('click', function() {
         const urlToOpen = $(this).data('url');
-        console.log("View button clicked, opening URL:", urlToOpen); // DEBUG: Log URL before opening
         window.open(urlToOpen, '_blank');
     });
     lastResponseElement.find('.copy-button').click(function() {
         copyMessage($(this).prev().text().trim());
+    });
+    lastResponseElement.find('.delete-message-btn').click(function() {
+        $(this).closest('.message-bubble').remove();
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
@@ -1240,20 +1279,8 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 } else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
-        const parts = responseData.candidates[0].content.parts;
-        for (const part of parts) {
-            if (part.inlineData) {
-                const mimeType = part.inlineData.mimeType;
-                const base64Data = part.inlineData.data;
-                const imageUrl = `data:${mimeType};base64,${base64Data}`;
-                addImageMessage(imageUrl);
-                resFlag = true;
-                return; // Early return after handling image
-            } else if (part.text) {
-                addResponseMessage(part.text); // Handle text parts as well
-                resFlag = true;
-            }
-        }
+        addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
+        resFlag = true;
     } else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
