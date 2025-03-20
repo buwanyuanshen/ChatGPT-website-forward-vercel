@@ -792,7 +792,7 @@ function addResponseMessage(message) {
                         escapedMessage = marked.parse(escapeHtml(textPart)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
                     }
                 }
-                messageContentHTML += '<div class="message-text">' + escapedMessage + '</div>';
+                messageContentHTML += '<div class="message-text">' + escapedMessage + '</div><button class="copy-button"><i class="far fa-copy"></i></button>'; // 添加复制按钮到文字部分
 
             } else if (part.inlineData) {
                 // Handle image part
@@ -805,8 +805,12 @@ function addResponseMessage(message) {
         lastResponseElement.append(messageContentHTML + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
     } else { // Handle regular text message
+        if (typeof message !== 'string') {
+            console.error("addResponseMessage received non-string message:", message); // Log non-string messages
+            return; // Exit if message is not a string
+        }
         let codeMarkCount = 0;
-        let index = message.indexOf('```');
+        let index = message.indexOf('```'); // Line 809 - Error was happening here
 
         while (index !== -1) {
             codeMarkCount++;
@@ -934,7 +938,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -973,7 +977,7 @@ async function getApiKey() {
       const data = await response.json();
 
       if (data.apiKey) {
-        // 解码 API 密钥
+        // 解码 API 密钥 
         apiKey = decodeApiKey(data.apiKey);
         return apiKey;
       } else {
