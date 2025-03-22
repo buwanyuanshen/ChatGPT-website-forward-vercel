@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - 99);
             let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
 
             let usageResponse = await fetch(usageUrl, { headers });
             if (!usageResponse.ok) {
@@ -620,12 +620,6 @@ $(document).ready(function() {
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
     const scrollDownBtn = $('.scroll-down'); // 获取 scroll-down 按钮容器
 
-  // Flag to track if user is manually scrolling
-  let isUserScrolling = false;
-  let scrollTimeout;
-  // Flag to track if a response is currently active (streaming)
-  let isResponseActive = false;
-
 
   // 存储对话信息,实现连续对话
   var messages = [];
@@ -894,16 +888,21 @@ function addResponseMessage(message) {
         // ... (rest of button bindings for text messages are unchanged) ...
     }
 
-    // **Check scroll position before appending**
-    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    // **更精确地检查滚动位置，并使用更宽松的容差值** <mark>-- Updated Scroll Logic --</mark>
+    const scrollTolerance = 10; // 容差值，允许一定的像素偏差
+    const isAlreadyAtBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() <= scrollTolerance;
+
     chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
 
-    // **Conditional auto-scroll after appending, only if user is not scrolling manually AND no response is active**
-    if (wasScrolledToBottomBeforeResponse && !isUserScrolling && !isResponseActive) {
-        chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-        scrollDownBtn.hide();
+    // **条件性自动滚动：只有当之前已经在底部时才滚动** <mark>-- Updated Scroll Logic --</mark>
+    if (isAlreadyAtBottom) {
+        // 延迟一点点时间再滚动，给浏览器渲染新内容的时间 <mark>-- Updated Scroll Logic --</mark>
+        setTimeout(() => {
+            chatWindow.scrollTop(chatWindow[0].scrollHeight); // 使用最新的 scrollHeight <mark>-- Updated Scroll Logic --</mark>
+            scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom <mark>-- Updated Scroll Logic --</mark>
+        }, 50); // 延迟 50 毫秒，可以根据实际情况调整 <mark>-- Updated Scroll Logic --</mark>
     } else {
-        scrollDownBtn.show();
+        scrollDownBtn.show(); // Show scroll down button if not at bottom <mark>-- Updated Scroll Logic --</mark>
     }
 
 
@@ -1394,11 +1393,10 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
     }
 
-    // **新增代码 - 流式响应结束后判断是否滚动到底部 and reset isResponseActive**
-    if (wasScrolledToBottomBeforeRequest && !isUserScrolling) {
-      chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    // **新增代码 - 流式响应结束后判断是否滚动到底部**
+    if (wasScrolledToBottomBeforeRequest) {
+      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
-    isResponseActive = false; // Response is finished, reset the flag
 
 
     return str;
@@ -1430,12 +1428,11 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         return null;
     }
 
-    // **新增代码 - 非流式响应结束后判断是否滚动到底部 and reset isResponseActive**
+    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    if (wasScrolledToBottomBeforeRequest && !isUserScrolling) {
-      chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    if (wasScrolledToBottomBeforeRequest) {
+      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
-    isResponseActive = false; // Response is finished, reset the flag
 }
 
 
@@ -1493,8 +1490,7 @@ let imageSrc = document.getElementById('imagePreview').src;
         }
     }
 
-    // **Set isResponseActive to true before sending request**
-    isResponseActive = true;
+
     sendRequest(data).then((res) => {
       chatInput.val('');
       // 收到回复，让按钮可点击
@@ -1853,15 +1849,6 @@ $(".delete a").click(function(){
 
 // 添加滚动监听器
 chatWindow.on('scroll', function() {
-    // Set isUserScrolling to true when scrolling starts
-    isUserScrolling = true;
-
-    clearTimeout(scrollTimeout);
-    scrollTimeout = setTimeout(() => {
-        // Reset isUserScrolling after a delay when scrolling stops
-        isUserScrolling = false;
-    }, 200); // Adjust delay as needed
-
     const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 1;
     const isScrolledToTop = chatWindow.scrollTop() === 0;
 
