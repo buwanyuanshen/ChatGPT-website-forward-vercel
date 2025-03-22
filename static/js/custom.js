@@ -471,6 +471,11 @@ var scrollDownBtn = $('.scroll-down a');
 // 获取 chatWindow 元素
 var chatWindow = $('#chatWindow');
 
+// 滚动动画速度 (毫秒)
+var scrollSpeed = 1000;
+
+// 按钮状态：'down' 表示显示向下箭头，'up' 表示显示向上箭头
+var scrollButtonState = 'down';
 
 // 判断是否是移动端
 function isMobile() {
@@ -614,9 +619,7 @@ $(document).ready(function() {
   const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
     const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
-    const scrollDownBtn = $('.scroll-down a'); // 获取 scroll-down 按钮容器
-    const scrollDownContainer = $('.scroll-down'); // 获取 scroll-down 按钮容器本身
-    const settingsDropdown = $('.function .settings .dropdown-menu'); // 获取设置下拉菜单
+    const scrollDownBtn = $('.scroll-down'); // 获取 scroll-down 按钮容器
 
 
   // 存储对话信息,实现连续对话
@@ -893,9 +896,9 @@ function addResponseMessage(message) {
     // **Conditional auto-scroll after appending**
     if (wasScrolledToBottomBeforeResponse) {
         chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-        scrollDownContainer.hide(); // Hide scroll down button when scrolled to bottom
+        scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
     } else {
-        scrollDownContainer.show(); // Show scroll down button if not at bottom
+        scrollDownBtn.show(); // Show scroll down button if not at bottom
     }
 
 
@@ -1831,9 +1834,9 @@ function clearConversation() {
     $(".answer .tips").css({"display":"flex"});
     messages = [];
     localStorage.removeItem("session");
-    scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Reset to scroll-down icon
-    scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down'); // Ensure icon is arrow-down
-    scrollDownContainer.hide(); // Hide scroll down button after clearing conversation
+    scrollDownBtn.removeClass('scroll-up-btn').addClass('scroll-down-btn'); // Reset to scroll-down appearance
+    scrollButtonState = 'down';
+    updateScrollButtonVisibility();
 }
 
 // 删除功能
@@ -1843,45 +1846,52 @@ $(".delete a").click(function(){
 
 // 添加滚动监听器
 chatWindow.on('scroll', function() {
-    const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 5; // Check if scrolled to bottom (within 5px tolerance)
-    const isScrolledToTop = chatWindow.scrollTop() <= 5; // Check if scrolled to top (within 5px tolerance)
-
-    if (!isScrolledToBottom && !isScrolledToTop) {
-        scrollDownContainer.show();
-        scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Ensure in scroll-down state when scrolling middle
-        scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down');
-    } else if (isScrolledToBottom) {
-        scrollDownContainer.removeClass('scroll-down-icon').addClass('scroll-up'); // Change to scroll-up state
-        scrollDownBtn.find('i').removeClass('fa-arrow-down').addClass('fa-arrow-up'); // Change icon to arrow-up
-    } else if (isScrolledToTop) {
-        scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Change back to scroll-down state
-        scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down'); // Change icon to arrow-down
-    }
+    updateScrollButtonVisibility();
 });
+
+// 更新滚动按钮的可见性和状态
+function updateScrollButtonVisibility() {
+    const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() <= 1;
+    const isScrolledToTop = chatWindow.scrollTop() === 0;
+
+    if (isScrolledToBottom) {
+        scrollDownBtn.hide(); // Hide when at bottom
+        if (scrollButtonState === 'down') {
+            scrollDownBtn.find('i').css('transform', 'rotate(180deg)'); // Rotate icon for scroll-up
+            scrollButtonState = 'up';
+        }
+    } else if (isScrolledToTop) {
+        scrollDownBtn.show();
+        if (scrollButtonState === 'up') {
+            scrollDownBtn.find('i').css('transform', 'rotate(0deg)'); // Reset icon for scroll-down
+            scrollButtonState = 'down';
+        }
+    }
+     else {
+        scrollDownBtn.show(); // Show when not at bottom
+        if (scrollButtonState === 'up') {
+            scrollDownBtn.find('i').css('transform', 'rotate(0deg)'); // Reset icon for scroll-down if it was up
+            scrollButtonState = 'down';
+        }
+    }
+}
 
 // scroll-down 按钮点击事件
-scrollDownContainer.click(function(e) {
-    e.preventDefault();
-    if ($(this).hasClass('scroll-down-icon')) {
-        // Scroll down animation
-        chatWindow.animate({ scrollTop: chatWindow.prop('scrollHeight') }, 2000, 'swing', function() { // Added animation speed and easing
-             scrollDownContainer.removeClass('scroll-down-icon').addClass('scroll-up'); // Change to scroll-up state after scroll down
-             scrollDownBtn.find('i').removeClass('fa-arrow-down').addClass('fa-arrow-up'); // Change icon to arrow-up
-        });
-    } else if ($(this).hasClass('scroll-up')) {
-        // Scroll up animation
-        chatWindow.animate({ scrollTop: 0 }, 500, 'swing', function() { // Added animation speed and easing
-            scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Change back to scroll-down state after scroll up
-            scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down'); // Change icon to arrow-down
-        });
+scrollDownBtn.click(function(e) {
+    e.preventDefault(); // Prevent default anchor behavior
+    if (scrollButtonState === 'down') {
+        // Smooth scroll to bottom
+        chatWindow.animate({ scrollTop: chatWindow.prop('scrollHeight') }, scrollSpeed, 'linear');
+    } else {
+        // Smooth scroll to top
+        chatWindow.animate({ scrollTop: 0 }, scrollSpeed, 'linear');
     }
 });
 
-// Handle click outside settings dropdown to stop sliding
+// 点击页面其他任何地方暂停滚动
 $(document).on('click', function(event) {
-    if (!$(event.target).closest('.function .settings').length) {
-        settingsDropdown.stop(true, true); // Stop animation, clear queue, jump to end
-        settingsDropdown.slideUp(200); // Optionally slide up if you want to close it.
+    if (!$(event.target).closest('.scroll-down').length) { // If click is outside scroll-down button
+        chatWindow.stop(true, true); // Stop the scroll animation immediately
     }
 });
 
@@ -2016,6 +2026,7 @@ $(".delete a").click(function(){
         localStorage.setItem('apiPath', selectedApiPath);
     });
 
-    // 初始化滚动条到底部
+    // 初始化滚动位置到底部并更新按钮状态
     chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    updateScrollButtonVisibility();
 });
