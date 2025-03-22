@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - 99);
             let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
 
             let usageResponse = await fetch(usageUrl, { headers });
             if (!usageResponse.ok) {
@@ -614,7 +614,9 @@ $(document).ready(function() {
   const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
     const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
-    const scrollDownBtn = $('.scroll-down'); // 获取 scroll-down 按钮容器
+    const scrollDownBtn = $('.scroll-down a'); // 获取 scroll-down 按钮容器
+    const scrollDownContainer = $('.scroll-down'); // 获取 scroll-down 按钮容器本身
+    const settingsDropdown = $('.function .settings .dropdown-menu'); // 获取设置下拉菜单
 
 
   // 存储对话信息,实现连续对话
@@ -891,9 +893,9 @@ function addResponseMessage(message) {
     // **Conditional auto-scroll after appending**
     if (wasScrolledToBottomBeforeResponse) {
         chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-        scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
+        scrollDownContainer.hide(); // Hide scroll down button when scrolled to bottom
     } else {
-        scrollDownBtn.show(); // Show scroll down button if not at bottom
+        scrollDownContainer.show(); // Show scroll down button if not at bottom
     }
 
 
@@ -1829,7 +1831,9 @@ function clearConversation() {
     $(".answer .tips").css({"display":"flex"});
     messages = [];
     localStorage.removeItem("session");
-    scrollDownBtn.hide(); // Hide scroll down button after clearing conversation
+    scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Reset to scroll-down icon
+    scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down'); // Ensure icon is arrow-down
+    scrollDownContainer.hide(); // Hide scroll down button after clearing conversation
 }
 
 // 删除功能
@@ -1839,18 +1843,46 @@ $(".delete a").click(function(){
 
 // 添加滚动监听器
 chatWindow.on('scroll', function() {
-    const isScrolledToBottom = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    if (!isScrolledToBottom) {
-        scrollDownBtn.show();
-    } else {
-        scrollDownBtn.hide();
+    const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 5; // Check if scrolled to bottom (within 5px tolerance)
+    const isScrolledToTop = chatWindow.scrollTop() <= 5; // Check if scrolled to top (within 5px tolerance)
+
+    if (!isScrolledToBottom && !isScrolledToTop) {
+        scrollDownContainer.show();
+        scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Ensure in scroll-down state when scrolling middle
+        scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down');
+    } else if (isScrolledToBottom) {
+        scrollDownContainer.removeClass('scroll-down-icon').addClass('scroll-up'); // Change to scroll-up state
+        scrollDownBtn.find('i').removeClass('fa-arrow-down').addClass('fa-arrow-up'); // Change icon to arrow-up
+    } else if (isScrolledToTop) {
+        scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Change back to scroll-down state
+        scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down'); // Change icon to arrow-down
     }
 });
 
 // scroll-down 按钮点击事件
-scrollDownBtn.click(function() {
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-    scrollDownBtn.hide();
+scrollDownContainer.click(function(e) {
+    e.preventDefault();
+    if ($(this).hasClass('scroll-down-icon')) {
+        // Scroll down animation
+        chatWindow.animate({ scrollTop: chatWindow.prop('scrollHeight') }, 500, 'swing', function() { // Added animation speed and easing
+             scrollDownContainer.removeClass('scroll-down-icon').addClass('scroll-up'); // Change to scroll-up state after scroll down
+             scrollDownBtn.find('i').removeClass('fa-arrow-down').addClass('fa-arrow-up'); // Change icon to arrow-up
+        });
+    } else if ($(this).hasClass('scroll-up')) {
+        // Scroll up animation
+        chatWindow.animate({ scrollTop: 0 }, 500, 'swing', function() { // Added animation speed and easing
+            scrollDownContainer.removeClass('scroll-up').addClass('scroll-down-icon'); // Change back to scroll-down state after scroll up
+            scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down'); // Change icon to arrow-down
+        });
+    }
+});
+
+// Handle click outside settings dropdown to stop sliding
+$(document).on('click', function(event) {
+    if (!$(event.target).closest('.function .settings').length) {
+        settingsDropdown.stop(true, true); // Stop animation, clear queue, jump to end
+        settingsDropdown.slideUp(200); // Optionally slide up if you want to close it.
+    }
 });
 
 
@@ -1892,19 +1924,6 @@ scrollDownBtn.click(function() {
     localStorage.setItem('max_tokens ', max_tokens );
       })
 
-// 删除输入框中的消息
-function deleteInputMessage() {
-  chatInput.val('');
-}
-
-// 删除功能
-$(".delete a").click(function(){
-  chatWindow.empty();
-  deleteInputMessage();
-  $(".answer .tips").css({"display":"flex"});
-  messages = [];
-  localStorage.removeItem("session");
-});
 
 // 删除功能
 $(".delete a").click(function(){
@@ -1996,4 +2015,7 @@ $(".delete a").click(function(){
         const selectedApiPath = $(this).val();
         localStorage.setItem('apiPath', selectedApiPath);
     });
+
+    // 初始化滚动条到底部
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
 });
