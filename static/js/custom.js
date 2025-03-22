@@ -1130,14 +1130,14 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
+}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
@@ -1761,21 +1761,10 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } else if (lowerModelName.includes("gemini")) {
-        targetApiPath = '/v1/chat/completions'; // Gemini uses a special path, don't override apiPathSelect
-    }
-    else {
+    }else {
         targetApiPath = '/v1/chat/completions'; // Default path
     }
 
-    if (targetApiPath && !lowerModelName.includes("gemini")) { // Do not set apiPath if Gemini model is selected, as it uses specific path
-        apiPathSelect.val(targetApiPath);
-        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
-    } else if (lowerModelName.includes("gemini")) {
-        apiPathSelect.val(targetApiPath); // Clear apiPathSelect for Gemini to avoid conflicts
-        localStorage.removeItem('apiPath'); // Optionally clear localStorage for apiPath
-    }
-    // --- End of Path Auto-Switching Logic ---
 }
 
 
