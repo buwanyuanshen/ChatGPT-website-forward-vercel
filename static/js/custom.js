@@ -1864,7 +1864,7 @@ scrollDownContainer.click(function(e) {
     e.preventDefault();
     if ($(this).hasClass('scroll-down-icon')) {
         // Scroll down animation
-        chatWindow.animate({ scrollTop: chatWindow.prop('scrollHeight') }, 500, 'swing', function() { // Added animation speed and easing
+        chatWindow.animate({ scrollTop: chatWindow.prop('scrollHeight') }, 2000, 'swing', function() { // Added animation speed and easing
              scrollDownContainer.removeClass('scroll-down-icon').addClass('scroll-up'); // Change to scroll-up state after scroll down
              scrollDownBtn.find('i').removeClass('fa-arrow-down').addClass('fa-arrow-up'); // Change icon to arrow-up
         });
