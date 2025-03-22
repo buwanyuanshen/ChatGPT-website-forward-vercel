@@ -447,17 +447,10 @@ $(document).ready(function () {
         searchInput.dispatchEvent(new Event('input')); // Trigger input event to filter options
     }
 
-        // 读取apiPath
-    const apiPath = localStorage.getItem('apiPath');
-    if (apiPath) {
-        $('#apiPathSelect').val(apiPath);
+    const savedApiPath = localStorage.getItem('apiPath');
+    if (savedApiPath) {
+        $('#apiPathSelect').val(savedApiPath);
     }
-
-    // apiPath select event
-    $('#apiPathSelect').change(function() {
-        const selectedApiPath = $(this).val();
-        localStorage.setItem('apiPath', selectedApiPath);
-    });
 });
 
 
@@ -1991,14 +1984,15 @@ $(".delete a").click(function(){
       }, 2000);
     });
   }
+
     // 读取apiPath
     const apiPath = localStorage.getItem('apiPath');
     if (apiPath) {
-        apiPathSelect.val(apiPath);
+        $('#apiPathSelect').val(apiPath);
     }
 
     // apiPath select event
-    apiPathSelect.change(function() {
+    $('#apiPathSelect').change(function() {
         const selectedApiPath = $(this).val();
         localStorage.setItem('apiPath', selectedApiPath);
     });
