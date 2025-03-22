@@ -882,7 +882,7 @@ function addResponseMessage(message) {
         }
         // ... (rest of button bindings for text messages are unchanged) ...
     }
-
+scrollDownBtn.show();
 
     // 绑定按钮事件 (for both text and image messages)
     lastResponseElement.find('.view-button').on('click', function() {
