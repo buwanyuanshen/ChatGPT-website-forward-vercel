@@ -620,6 +620,9 @@ $(document).ready(function() {
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
     const scrollDownBtn = $('.scroll-down'); // 获取 scroll-down 按钮容器
 
+  // Flag to track if user is manually scrolling
+  let isUserScrolling = false;
+  let scrollTimeout;
 
   // 存储对话信息,实现连续对话
   var messages = [];
@@ -892,8 +895,8 @@ function addResponseMessage(message) {
     const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
 
-    // **Conditional auto-scroll after appending**
-    if (wasScrolledToBottomBeforeResponse) {
+    // **Conditional auto-scroll after appending, only if user is not scrolling manually**
+    if (wasScrolledToBottomBeforeResponse && !isUserScrolling) {
         chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
         scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
     } else {
@@ -1389,7 +1392,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     }
 
     // **新增代码 - 流式响应结束后判断是否滚动到底部**
-    if (wasScrolledToBottomBeforeRequest) {
+    if (wasScrolledToBottomBeforeRequest && !isUserScrolling) {
       // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
 
@@ -1425,7 +1428,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
     // **新增代码 - 非流式响应结束后判断是否滚动到底部**
     const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    if (wasScrolledToBottomBeforeRequest) {
+    if (wasScrolledToBottomBeforeRequest && !isUserScrolling) {
       // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
 }
@@ -1844,6 +1847,15 @@ $(".delete a").click(function(){
 
 // 添加滚动监听器
 chatWindow.on('scroll', function() {
+    // Set isUserScrolling to true when scrolling starts
+    isUserScrolling = true;
+
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+        // Reset isUserScrolling after a delay when scrolling stops
+        isUserScrolling = false;
+    }, 200); // Adjust delay as needed
+
     const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 1;
     const isScrolledToTop = chatWindow.scrollTop() === 0;
 
