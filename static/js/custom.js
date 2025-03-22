@@ -21,7 +21,7 @@ searchInput.addEventListener('input', function() {
             option.style.display = 'none'; // 或者 option.hidden = true;
         }
     });
-    localStorage.setItem('modelSearchTerm', searchInput.value); // 存储搜索词
+    localStorage.setItem('modelSearchInput', searchInput.value); // Save search input
 });
 
 function resetImageUpload() {
@@ -229,7 +229,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('remainingBalance').innerText = `剩余: ${remaining.toFixed(4)} $`;
 
         } catch (error) {
-            console.error('Error fetching balance:', error);
             document.getElementById('totalBalance').innerText = '总额: 加载失败';
             document.getElementById('usedBalance').innerText = '已用: 加载失败';
             document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
@@ -258,7 +257,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('remainingBalance').innerText = `剩余: ${data.remaining_balance.toFixed(4)} $`;
 
         } catch (error) {
-            console.error('Error fetching default balance:', error);
             document.getElementById('totalBalance').innerText = '总额: 加载失败';
             document.getElementById('usedBalance').innerText = '已用: 加载失败';
             document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
@@ -442,11 +440,17 @@ $(document).ready(function () {
     initializeDataDescription();
     updateTitle();
 
-    // 初始化模型搜索框内容
-    const storedModelSearchTerm = localStorage.getItem('modelSearchTerm');
-    if (storedModelSearchTerm) {
-        searchInput.value = storedModelSearchTerm;
-        searchInput.dispatchEvent(new Event('input')); // 触发 input 事件以应用搜索过滤
+    // Load model search input from localStorage
+    const savedModelSearchInput = localStorage.getItem('modelSearchInput');
+    if (savedModelSearchInput) {
+        searchInput.value = savedModelSearchInput;
+        searchInput.dispatchEvent(new Event('input')); // Trigger input event to filter options
+    }
+
+    // Load API Path Select from localStorage
+    const savedApiPath = localStorage.getItem('apiPath');
+    if (savedApiPath) {
+        apiPathSelect.val(savedApiPath);
     }
 });
 
@@ -463,6 +467,11 @@ var chatBtn = document.getElementById('chatBtn');
 
 // 获取删除按钮元素
 var deleteBtn = document.getElementById('deleteBtn');
+// 获取 scroll-down 按钮元素
+var scrollDownBtn = $('.scroll-down a');
+// 获取 chatWindow 元素
+var chatWindow = $('#chatWindow');
+
 
 // 判断是否是移动端
 function isMobile() {
@@ -606,6 +615,7 @@ $(document).ready(function() {
   const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
     const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
     const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
+    const scrollDownBtn = $('.scroll-down'); // 获取 scroll-down 按钮容器
 
 
   // 存储对话信息,实现连续对话
@@ -814,7 +824,6 @@ function addResponseMessage(message) {
 
     } else { // Handle regular text message
         if (typeof message !== 'string') {
-            console.error("addResponseMessage received non-string message:", message); // Log non-string messages
             return; // Exit if message is not a string
         }
         let codeMarkCount = 0;
@@ -874,6 +883,18 @@ function addResponseMessage(message) {
             lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
         }
         // ... (rest of button bindings for text messages are unchanged) ...
+    }
+
+    // **Check scroll position before appending**
+    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
+
+    // **Conditional auto-scroll after appending**
+    if (wasScrolledToBottomBeforeResponse) {
+        chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+        scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
+    } else {
+        scrollDownBtn.show(); // Show scroll down button if not at bottom
     }
 
 
@@ -941,7 +962,6 @@ async function getConfig() {
       datas = { "api_url": "" };
     }
   } catch (error) {
-    console.error("Error fetching config:", error);
     // 处理错误情况
   }
 }
@@ -965,7 +985,6 @@ async function getApiKey() {
       const password = $(".settings-common .password").val();
 
       if (!password) {
-        console.error("Please enter an API key or password.");
         addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
         return null;
       }
@@ -978,7 +997,6 @@ async function getApiKey() {
       if (response.status === 403) {
         const errorData = await response.json();
         addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
-        console.error("Error:", errorData.error);
         return null;
       }
 
@@ -990,7 +1008,6 @@ async function getApiKey() {
         return apiKey;
       } else {
         addFailMessage("请在设置填写好环境变量");
-        console.error("API key not found in response.");
         return null;
       }
     } else {
@@ -998,7 +1015,6 @@ async function getApiKey() {
     }
   } catch (error) {
     addFailMessage("出错了，请稍后再试！");
-    console.error("Error fetching API key:", error);
     return null;
   }
 }
@@ -1010,7 +1026,6 @@ async function sendRequest(data) {
 
   if (!datas || !datas.api_url || !apiKey) {
     addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
-    console.error("Config data or API key is missing.");
     return;
   }
 
@@ -1041,10 +1056,8 @@ let requestBody = {
 const selectedApiPath = apiPathSelect.val();
 if (selectedApiPath) {
     apiUrl = datas.api_url + selectedApiPath;
-    localStorage.setItem('apiPath', selectedApiPath); // 存储 API Path
 } else {
     apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
-    localStorage.removeItem('apiPath'); // 移除 API Path 存储，表示使用默认路径
 }
 
 
@@ -1132,14 +1145,14 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta') { // Gemini models handling
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta') { // Gemini models handling
+}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
@@ -1226,7 +1239,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
 
     const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: selectedApiPath === '/v1beta' ? { // Conditional headers
+        headers: selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' ? { // Conditional headers
             'Content-Type': 'application/json'
         } : {
             'Content-Type': 'application/json',
@@ -1290,7 +1303,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     reader.readAsDataURL(audioBlob);
     resFlag = true;
     return; // For TTS, handle response and return
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta') {
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
         addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
@@ -1392,7 +1405,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         resFlag = true;
         return content;
     } else if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) { // Gemini non-stream response handling
-        const content = responseData.candidates[0].content.parts; // Modified to pass the parts array
+        const content = responseData.candidates[0].content.parts[0].text;
         addResponseMessage(content);
         resFlag = true;
         return content;
@@ -1423,7 +1436,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     // 解绑键盘事件
     chatInput.off("keydown",handleEnter);
 let data = {};
-console.log(base64Image);
 let imageSrc = document.getElementById('imagePreview').src;
     data.image_base64 = imageSrc.split(',')[1];
     let message = chatInput.val();
@@ -1479,13 +1491,7 @@ let imageSrc = document.getElementById('imagePreview').src;
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
       if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
-          // For Gemini image/text responses, ensure the whole structured message is stored
-          if (Array.isArray(res)) {
-              messages.push({"role": "assistant", "content": res}); // Store the parts array directly
-          } else {
-              messages.push({"role": "assistant", "content": res});
-          }
-
+        messages.push({"role": "assistant", "content": res});
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
           localStorage.setItem("session",JSON.stringify(messages));
@@ -1824,12 +1830,31 @@ function clearConversation() {
     $(".answer .tips").css({"display":"flex"});
     messages = [];
     localStorage.removeItem("session");
+    scrollDownBtn.hide(); // Hide scroll down button after clearing conversation
 }
 
 // 删除功能
 $(".delete a").click(function(){
     clearConversation();
 });
+
+// 添加滚动监听器
+chatWindow.on('scroll', function() {
+    const isScrolledToBottom = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    if (!isScrolledToBottom) {
+        scrollDownBtn.show();
+    } else {
+        scrollDownBtn.hide();
+    }
+});
+
+// scroll-down 按钮点击事件
+scrollDownBtn.click(function() {
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    scrollDownBtn.hide();
+});
+
+
   // 读取temperature
   const temperature = localStorage.getItem('temperature');
   if (temperature) {
