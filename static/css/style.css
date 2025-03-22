@@ -1,3 +1,16 @@
+.scroll-down a i.fa-rotate-180 {
+    transform: rotate(180deg);
+}
+.scroll-down.scroll-up-btn a i::before {
+    content: "\f0aa"; /* Unicode for arrow-up icon, you might need to adjust this based on your icon library */
+}
+.scroll-down.scroll-down-btn a i::before {
+    content: "\f0ab"; /* Unicode for arrow-down icon, adjust as needed */
+}
+.scroll-down a {
+    /* keep your existing styles, and add transition for smooth rotation */
+    transition: transform 0.3s ease-in-out; /* Smooth rotation transition */
+}
 .model-search-container {
     position: relative; /* 设置相对定位，以便搜索框绝对定位 */
 }
