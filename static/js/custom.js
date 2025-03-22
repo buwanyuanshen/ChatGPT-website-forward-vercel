@@ -888,21 +888,15 @@ function addResponseMessage(message) {
         // ... (rest of button bindings for text messages are unchanged) ...
     }
 
-    // **更精确地检查滚动位置，并使用更宽松的容差值** <mark>-- Updated Scroll Logic --</mark>
-    const scrollTolerance = 10; // 容差值，允许一定的像素偏差
-    const isAlreadyAtBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() <= scrollTolerance;
-
+    // **Check scroll position before appending**
+    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
 
-    // **条件性自动滚动：只有当之前已经在底部时才滚动** <mark>-- Updated Scroll Logic --</mark>
-    if (isAlreadyAtBottom) {
-        // 延迟一点点时间再滚动，给浏览器渲染新内容的时间 <mark>-- Updated Scroll Logic --</mark>
-        setTimeout(() => {
-            chatWindow.scrollTop(chatWindow[0].scrollHeight); // 使用最新的 scrollHeight <mark>-- Updated Scroll Logic --</mark>
-            scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom <mark>-- Updated Scroll Logic --</mark>
-        }, 50); // 延迟 50 毫秒，可以根据实际情况调整 <mark>-- Updated Scroll Logic --</mark>
+    // **Conditional auto-scroll after appending**
+    if (wasScrolledToBottomBeforeResponse) {
+        scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
     } else {
-        scrollDownBtn.show(); // Show scroll down button if not at bottom <mark>-- Updated Scroll Logic --</mark>
+        scrollDownBtn.show(); // Show scroll down button if not at bottom
     }
 
 
@@ -2048,3 +2042,4 @@ $(document).ready(function() {
     scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
     scrollDownBtn.show(); // 确保按钮默认显示
 });
+当正在接受回复的过程中向下滑动滚轮时会回弹位置，检查并修复这个问题
