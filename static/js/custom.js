@@ -2042,4 +2042,3 @@ $(document).ready(function() {
     scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
     scrollDownBtn.show(); // 确保按钮默认显示
 });
-当正在接受回复的过程中向下滑动滚轮时会回弹位置，检查并修复这个问题
