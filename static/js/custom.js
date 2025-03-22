@@ -660,7 +660,6 @@ function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
     lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
@@ -692,7 +691,6 @@ function addModerationMessage(moderationResult) {
     });
     formattedResult += "</ul>";
     lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
         copyMessage($(this).prev().text().trim());
@@ -710,7 +708,6 @@ function addEmbeddingMessage(embeddingResult) {
     // Display the embedding result as a JSON string in a <pre> block for readability
     const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
     lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
 
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
@@ -728,7 +725,6 @@ function addTTSMessage(audioBase64) {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
     lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-    // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
@@ -751,7 +747,6 @@ function addRequestMessage(message) {
 
   let responseMessageElement = $('<div class="message-bubble"><span class="chat-icon response-icon"></span><div class="message-text response"><span class="loading-icon"><i class="fa fa-spinner fa-pulse fa-2x"></i></span></div></div>');
   chatWindow.append(responseMessageElement);
-  // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     // 绑定发送按钮点击事件
   requestMessageElement.find('.send-button').click(function() {
   });
@@ -888,11 +883,6 @@ function addResponseMessage(message) {
         // ... (rest of button bindings for text messages are unchanged) ...
     }
 
-    // **Check scroll position before appending**
-    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-        scrollDownBtn.show(); // Show scroll down button if not at bottom
-
-
 
     // 绑定按钮事件 (for both text and image messages)
     lastResponseElement.find('.view-button').on('click', function() {
@@ -935,7 +925,6 @@ $(document).on('click', '.copy-button', function() {
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
     lastResponseElement.append('<p class="error">' + message + '</p>');
-    // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Removed auto scroll
     messages.pop() // 失败就让用户输入信息从数组删除
   }
 
@@ -1320,7 +1309,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     let res = '';
     let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -1409,9 +1397,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         resFlag = false;
         return null;
     }
-
-    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
 
 }
 
