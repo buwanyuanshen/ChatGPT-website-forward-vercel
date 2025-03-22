@@ -474,7 +474,7 @@ var chatWindow = $('#chatWindow');
 // 标志当前是否正在滚动
 let isScrolling = false;
 // 滚动动画的持续时间（毫秒）
-const scrollDuration = 400; // 匀速滚动速度，可以调整
+const scrollDuration = 1000; // 匀速滚动速度，可以调整
 
 // 判断是否是移动端
 function isMobile() {
@@ -888,6 +888,17 @@ function addResponseMessage(message) {
         // ... (rest of button bindings for text messages are unchanged) ...
     }
 
+    // **Check scroll position before appending**
+    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
+
+    // **Conditional auto-scroll after appending**
+    if (wasScrolledToBottomBeforeResponse) {
+        chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+        scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
+    } else {
+        scrollDownBtn.show(); // Show scroll down button if not at bottom
+    }
 
 
     // 绑定按钮事件 (for both text and image messages)
@@ -1377,6 +1388,11 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
     }
 
+    // **新增代码 - 流式响应结束后判断是否滚动到底部**
+    if (wasScrolledToBottomBeforeRequest) {
+      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
+    }
+
 
     return str;
 } else { // 非流式输出处理
@@ -1407,6 +1423,11 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         return null;
     }
 
+    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
+    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    if (wasScrolledToBottomBeforeRequest) {
+      // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
+    }
 }
 
 
@@ -1826,8 +1847,6 @@ chatWindow.on('scroll', function() {
     const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 1;
     const isScrolledToTop = chatWindow.scrollTop() === 0;
 
-    if (isScrolling) return; // Prevent state change during scrolling
-
     if (isScrolledToBottom) {
         scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
         scrollDownBtn.data('scroll-state', 'up');
@@ -1843,8 +1862,7 @@ chatWindow.on('scroll', function() {
 // scroll-down 按钮点击事件
 scrollDownBtn.click(function(e) {
     e.preventDefault(); // Prevent default anchor behavior
-    if (isScrolling) return; // Prevent multiple clicks during scrolling
-
+    
     isScrolling = true;
     let scrollState = scrollDownBtn.data('scroll-state') || 'down';
     let targetScrollTop = scrollState === 'down' ? chatWindow[0].scrollHeight : 0; // Scroll to bottom if 'down', top if 'up'
