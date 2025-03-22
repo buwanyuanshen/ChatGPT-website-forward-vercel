@@ -888,13 +888,11 @@ function addResponseMessage(message) {
         // ... (rest of button bindings for text messages are unchanged) ...
     }
 
-
-    // **Conditional auto-scroll after appending**
-    if (wasScrolledToBottomBeforeResponse) {
-        scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
-    } else {
+    // **Check scroll position before appending**
+    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
         scrollDownBtn.show(); // Show scroll down button if not at bottom
-    }
+
 
 
     // 绑定按钮事件 (for both text and image messages)
@@ -1322,6 +1320,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     const reader = response.body.getReader();
     let res = '';
     let str;
+    // **新增代码 - 在请求前记录是否滚动到底部**
+    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -1382,7 +1382,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
     }
 
-
     return str;
 } else { // 非流式输出处理
     const responseData = await response.json();
@@ -1411,6 +1410,9 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         resFlag = false;
         return null;
     }
+
+    // **新增代码 - 非流式响应结束后判断是否滚动到底部**
+    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
 
 }
 
