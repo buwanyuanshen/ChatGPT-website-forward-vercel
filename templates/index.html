@@ -80,7 +80,7 @@
                                         <span><i class="fa fa-brain fa-lg" aria-hidden="true"></i>  OpenAI Models</span>
                                         <input type="text" class="form-control ipt-common model-search-input" placeholder="搜索模型">
 					                    <select class="form-control ipt-common model model-select">
-					    					     <option value="gpt-4o-mini">gpt-4o-mini（OpenAI，128k）</option>
+<option value="gpt-4o-mini">gpt-4o-mini（OpenAI，128k）</option>
                                             <option value="gpt-4o-mini-2024-07-18">gpt-4o-mini-2024-07-18（OpenAI，128k）</option>
                                             <option value="gpt-4o">gpt-4o（OpenAI，128k）</option>
                                             <option value="gpt-4o-2024-05-13">gpt-4o-2024-05-13（OpenAI，128k）</option>
@@ -382,20 +382,20 @@
 					                                    <div class="settings-common">
                                         <span><i class="fa fa-route fa-lg" aria-hidden="true"></i>模型请求路径选择</span>
                                         <select class="form-control ipt-common api-path" id="apiPathSelect">
-                                            <option value="/v1/chat/completions" selected>/v1/chat/completions</option>
-					    <option value="/v1beta" selected>/v1beta</option>
-                                            <option value="/v1/completions">/v1/completions</option>
-                                            <option value="/v1/images/generations">/v1/images/generations</option>
-                                            <option value="/v1/moderations">/v1/moderations</option>
-                                            <option value="/v1/embeddings">/v1/embeddings</option>
-                                            <option value="/v1/audio/speech">/v1/audio/speech</option>
+                                            <option value="/v1/chat/completions" selected>/v1/chat/completions（OpenAI）</option>
+					    <option value="/v1beta/models/model:generateContent?key=apikey" selected>/v1beta/models/model:generateContent?key=apikey（Google）</option>
+                                            <option value="/v1/completions">/v1/completions（OpenAI）</option>
+                                            <option value="/v1/images/generations">/v1/images/generations（OpenAI）</option>
+                                            <option value="/v1/moderations">/v1/moderations（OpenAI）</option>
+                                            <option value="/v1/embeddings">/v1/embeddings（OpenAI）</option>
+                                            <option value="/v1/audio/speech">/v1/audio/speech（OpenAI）</option>
                                         </select>
                                     </div>
                                     <div class="settings-common">
                                         <span><i class="fa fa-hourglass-half fa-lg" aria-hidden="true"></i>连续对话消息上限</span>
                                         <input type="number" class="form-control ipt-common max-dialogue-messages" id="maxDialogueMessages" min="10" placeholder="默认: 150">
                                     </div>
-					<div class="settings-common">
+					<div class="settings-common" id="streamOutputSetting">
                                         <span><i class="fa fa-exchange-alt fa-lg" aria-hidden="true"></i>开启流式输出模式</span>
                                         <div class="chck-btn">
                                             <input id="streamOutput" type="checkbox" checked>
@@ -441,6 +441,11 @@
                            <div class="delete common">
     			        <a id="deleteBtn" class="icon-style" title="删除历史记录"><i class="fa fa-trash-alt fa-lg" aria-hidden="true"></i></a>
 			    </div>
+                            <div class="scroll-down common" style="display: none;">
+                                <a class="icon-style" title="下拉到底部">
+                                    <div class="_0e98de6"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="9" viewBox="0 0 16 9" fill="none"><path fill-rule="evenodd" clip-rule="evenodd" d="M1.00008 2.41429C0.609551 2.02376 0.609551 1.3906 1.00008 1.00008C1.3906 0.609551 2.02376 0.609551 2.41429 1.00007L8.00008 6.58586L13.5859 1.00008C13.9764 0.609551 14.6096 0.609551 15.0001 1.00008C15.3906 1.3906 15.3906 2.02376 15.0001 2.41429L8.8486 8.56576C8.37997 9.03439 7.62018 9.03439 7.15155 8.56576L1.00008 2.41429Z" fill="currentColor"></path></svg></div>
+                                </a>
+                            </div>
                         </div>
                     </div>
 
