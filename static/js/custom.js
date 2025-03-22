@@ -451,9 +451,6 @@ $(document).ready(function () {
     if (savedApiPath) {
         $('#apiPathSelect').val(savedApiPath);
     }
-
-    // Scroll chat window to bottom on load
-    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
 });
 
 
@@ -474,9 +471,14 @@ var scrollDownBtn = $('.scroll-down a');
 // 获取 chatWindow 元素
 var chatWindow = $('#chatWindow');
 
-// 设置匀速下拉滑动的速度
-var scrollSpeed = 1500; // 调整数值来控制滚动速度，数值越小速度越快
-var scrollButtonState = 'down'; // 初始状态为下滑
+// 定义滚动动画速度
+var scrollSpeed = 2000; // 匀速滚动到顶/底部的时间，单位毫秒
+
+// 初始状态，假设页面加载时在底部
+var isAtBottom = true;
+
+// 初始化滚动按钮图标
+updateScrollButtonIcon();
 
 // 判断是否是移动端
 function isMobile() {
@@ -891,12 +893,12 @@ function addResponseMessage(message) {
     }
 
     // **Check scroll position before appending**
-    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    const wasScrolledToBottomBeforeResponse = isChatWindowAtBottom();
     chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
 
     // **Conditional auto-scroll after appending**
     if (wasScrolledToBottomBeforeResponse) {
-        chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+        scrollToBottom();
         scrollDownBtn.hide(); // Hide scroll down button when scrolled to bottom
     } else {
         scrollDownBtn.show(); // Show scroll down button if not at bottom
@@ -1329,7 +1331,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     let res = '';
     let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    const wasScrolledToBottomBeforeRequest = isChatWindowAtBottom();
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
@@ -1426,7 +1428,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     }
 
     // **新增代码 - 非流式响应结束后判断是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+    const wasScrolledToBottomBeforeRequest = isChatWindowAtBottom();
     if (wasScrolledToBottomBeforeRequest) {
       // chatWindow.scrollTop(chatWindow.prop('scrollHeight')); // Conditional scroll, keep it if desired
     }
@@ -1817,6 +1819,9 @@ function updateModelSettings(modelName) {
             updateModelSettings(selectedModel);
             // Update the title to use the selected option's data-description
             $(".title h2").text($(".settings-common .model option:selected").data('description'));
+        } else {
+            // 初始加载时滚动到底部
+            scrollToBottom();
         }
 
         // 监听model选择的变化
@@ -1835,9 +1840,9 @@ function clearConversation() {
     $(".answer .tips").css({"display":"flex"});
     messages = [];
     localStorage.removeItem("session");
-    scrollDownBtn.removeClass('scroll-up-btn').addClass('scroll-down-btn'); // 切换回下滑样式
-    scrollButtonState = 'down'; // 重置按钮状态
-    scrollDownBtn.find('i').removeClass('fa-rotate-180'); // 移除旋转
+    scrollDownBtn.hide(); // Hide scroll down button after clearing conversation
+    isAtBottom = true; // Reset to bottom state after clearing
+    updateScrollButtonIcon();
 }
 
 // 删除功能
@@ -1845,41 +1850,65 @@ $(".delete a").click(function(){
     clearConversation();
 });
 
+// Function to update scroll button icon based on scroll position
+function updateScrollButtonIcon() {
+    if (isChatWindowAtBottom()) {
+        scrollDownBtn.find('i').removeClass('fa-arrow-down').addClass('fa-arrow-up');
+        scrollDownBtn.attr('title', 'Scroll to Top');
+        isAtBottom = true;
+    } else {
+        scrollDownBtn.find('i').removeClass('fa-arrow-up').addClass('fa-arrow-down');
+        scrollDownBtn.attr('title', 'Scroll to Bottom');
+        isAtBottom = false;
+    }
+}
+
+// Function to check if chat window is at the bottom
+function isChatWindowAtBottom() {
+    return chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
+}
+
+// Function to scroll chat window to bottom with animation
+function scrollToBottom() {
+    chatWindow.animate({ scrollTop: chatWindow.prop('scrollHeight') }, scrollSpeed, 'linear', function() {
+        updateScrollButtonIcon(); // Update icon after scrolling animation finishes
+    });
+}
+
+// Function to scroll chat window to top with animation
+function scrollToTop() {
+    chatWindow.animate({ scrollTop: 0 }, scrollSpeed, 'linear', function() {
+        updateScrollButtonIcon(); // Update icon after scrolling animation finishes
+    });
+}
+
 // 添加滚动监听器
 chatWindow.on('scroll', function() {
-    const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 5; // 距离底部小于5px 视为到底部
-    const isScrolledToTop = chatWindow.scrollTop() === 0;
-
-    if (isScrolledToBottom) {
-        if (scrollButtonState === 'down') {
-            scrollDownBtn.find('i').addClass('fa-rotate-180'); // 旋转180度
-            scrollDownBtn.removeClass('scroll-down-btn').addClass('scroll-up-btn'); // 切换为上滑样式
-            scrollButtonState = 'up';
-        }
-    } else if (isScrolledToTop) {
-        if (scrollButtonState === 'up') {
-            scrollDownBtn.find('i').removeClass('fa-rotate-180'); // 移除旋转
-            scrollDownBtn.removeClass('scroll-up-btn').addClass('scroll-down-btn'); // 切换回下滑样式
-            scrollButtonState = 'down';
-        }
+    updateScrollButtonIcon(); // Update button icon on scroll
+    if (!isChatWindowAtBottom()) {
+        scrollDownBtn.show();
+    } else {
+        scrollDownBtn.hide();
     }
 });
 
 // scroll-down 按钮点击事件
 scrollDownBtn.click(function(e) {
-    e.preventDefault(); // 阻止默认的 <a> 标签跳转行为
-    $('html, body').stop(true, true); // 停止任何正在进行的动画
-    if (scrollButtonState === 'down') {
-        chatWindow.animate({ scrollTop: chatWindow.prop('scrollHeight') }, scrollSpeed);
-    } else if (scrollButtonState === 'up') {
-        chatWindow.animate({ scrollTop: 0 }, scrollSpeed);
+    e.preventDefault(); // Prevent default anchor behavior
+    chatWindow.stop(true, false); // Stop any current animation immediately
+
+    if (isAtBottom) {
+        scrollToTop();
+    } else {
+        scrollToBottom();
     }
 });
 
-// 点击页面其余任何地方暂停滑动
-$(document).on('click', ':not(.scroll-down a)', function() {
-    $('html, body').stop(true, true); // 立即停止动画
-    chatWindow.stop(true, true); // 立即停止动画
+// 点击页面其他任何地方停止滚动
+$(document).on('click', function(event) {
+    if (!$(event.target).closest('.scroll-down').length) { // 排除点击 scroll-down 按钮本身
+        chatWindow.stop(true, false); // 停止滚动
+    }
 });
 
 
@@ -2025,4 +2054,6 @@ $(".delete a").click(function(){
         const selectedApiPath = $(this).val();
         localStorage.setItem('apiPath', selectedApiPath);
     });
+    // 初始化滚动到底部
+    scrollToBottom();
 });
