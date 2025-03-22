@@ -890,7 +890,6 @@ function addResponseMessage(message) {
 
     // **Check scroll position before appending**
     const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
         scrollDownBtn.show(); // Show scroll down button if not at bottom
 
 
