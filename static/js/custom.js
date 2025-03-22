@@ -888,9 +888,6 @@ function addResponseMessage(message) {
         // ... (rest of button bindings for text messages are unchanged) ...
     }
 
-    // **Check scroll position before appending**
-    const wasScrolledToBottomBeforeResponse = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
-    chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
 
     // **Conditional auto-scroll after appending**
     if (wasScrolledToBottomBeforeResponse) {
@@ -1325,8 +1322,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     const reader = response.body.getReader();
     let res = '';
     let str;
-    // **新增代码 - 在请求前记录是否滚动到底部**
-    const wasScrolledToBottomBeforeRequest = chatWindow.scrollTop() + chatWindow.innerHeight() + 1 >= chatWindow[0].scrollHeight;
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
