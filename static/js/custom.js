@@ -475,7 +475,7 @@ var scrollDownBtn = $('.scroll-down a');
 var chatWindow = $('#chatWindow');
 
 // 设置匀速下拉滑动的速度
-var scrollSpeed = 400; // 调整数值来控制滚动速度，数值越小速度越快
+var scrollSpeed = 1500; // 调整数值来控制滚动速度，数值越小速度越快
 var scrollButtonState = 'down'; // 初始状态为下滑
 
 // 判断是否是移动端
