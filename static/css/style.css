@@ -1,3 +1,42 @@
+.scroll-down.scroll-up a i {
+    transform: rotate(180deg); /* Rotate icon for scroll-up state */
+}
+.scroll-down {
+    display: none; /* Initially hidden, shown by JS based on scroll */
+    position: fixed; /* Fixed position relative to the viewport */
+    bottom: 20px;   /* Distance from the bottom */
+    right: 20px;    /* Distance from the right */
+    z-index: 100;   /* Ensure it's above other content */
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+.scroll-down:hover {
+    opacity: 1;
+}
+
+.scroll-down a {
+    display: block;
+    background-color: var(--scroll-down-bg-color, #f8f9fa); /* Example background color, customize as needed */
+    color: var(--scroll-down-icon-color, #495057); /* Example icon color */
+    border-radius: 50%; /* Make it circular */
+    width: 40px;
+    height: 40px;
+    line-height: 40px; /* Vertically center the icon */
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2); /* Optional shadow for depth */
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease;
+}
+
+.scroll-down a:hover {
+    background-color: var(--scroll-down-bg-hover-color, #e2e6ea); /* Example hover background color */
+    color: var(--scroll-down-icon-hover-color, #212529); /* Example hover icon color */
+}
+
+.scroll-down.scroll-up a i {
+    transform: rotate(180deg); /* Rotate icon for scroll-up state */
+}
 .model-search-container {
     position: relative; /* 设置相对定位，以便搜索框绝对定位 */
 }
