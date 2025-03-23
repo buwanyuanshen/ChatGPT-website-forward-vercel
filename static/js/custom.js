@@ -667,8 +667,9 @@ function addImageMessage(imageUrl) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
-        $(this).closest('.message-bubble').remove(); // 删除该条响应消息
-        updateSessionStorageFromChatWindow(); // Add this line to update session storage
+        const messageBubble = $(this).closest('.message-bubble');
+        const messageText = messageBubble.find('.message-text').text().trim();
+        deleteSingleMessage(messageBubble, messageText, 'assistant');
     });
 }
 
@@ -698,8 +699,9 @@ function addModerationMessage(moderationResult) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-        updateSessionStorageFromChatWindow(); // Add this line to update session storage
+        const messageBubble = $(this).closest('.message-bubble');
+        const messageText = messageBubble.find('.message-text').text().trim();
+        deleteSingleMessage(messageBubble, messageText, 'assistant');
     });
 }
 
@@ -717,8 +719,9 @@ function addEmbeddingMessage(embeddingResult) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-        updateSessionStorageFromChatWindow(); // Add this line to update session storage
+        const messageBubble = $(this).closest('.message-bubble');
+        const messageText = messageBubble.find('.message-text').text().trim();
+        deleteSingleMessage(messageBubble, messageText, 'assistant');
     });
 }
 
@@ -730,8 +733,9 @@ function addTTSMessage(audioBase64) {
     lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-        updateSessionStorageFromChatWindow(); // Add this line to update session storage
+        const messageBubble = $(this).closest('.message-bubble');
+        const messageText = messageBubble.find('.message-text').text().trim();
+        deleteSingleMessage(messageBubble, messageText, 'assistant');
     });
 }
 
@@ -762,8 +766,9 @@ function addRequestMessage(message) {
 
   // 添加删除按钮点击事件
   requestMessageElement.find('.delete-message-btn').click(function() {
-    $(this).closest('.message-bubble').remove(); // 删除该条请求消息
-    updateSessionStorageFromChatWindow(); // Add this line to update session storage
+        const messageBubble = $(this).closest('.message-bubble');
+        const messageText = messageBubble.find('.message-text p').text().trim();
+        deleteSingleMessage(messageBubble, messageText, 'user');
   });
 }
 
@@ -898,12 +903,14 @@ scrollDownBtn.show();
         copyMessage($(this).prev().text().trim());
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-        updateSessionStorageFromChatWindow(); // Add this line to update session storage
+        const messageBubble = $(this).closest('.message-bubble');
+        const messageText = messageBubble.find('.message-text').text().trim();
+        deleteSingleMessage(messageBubble, messageText, 'assistant');
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
-        $(this).closest('.message-bubble').remove();
-        updateSessionStorageFromChatWindow(); // Add this line to update session storage - Duplicated line, can be removed
+        const messageBubble = $(this).closest('.message-bubble');
+        const messageText = messageBubble.find('.message-text').text().trim();
+        deleteSingleMessage(messageBubble, messageText, 'assistant');
     });
 }
 
@@ -958,7 +965,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥 
+// 获取随机的 API 密钥
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1137,15 +1144,15 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
-    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
-    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
+}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]
@@ -1231,7 +1238,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
 
     const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' ? { // Conditional headers
+        headers: selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' ? { // Conditional headers
             'Content-Type': 'application/json'
         } : {
             'Content-Type': 'application/json',
@@ -1295,7 +1302,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     reader.readAsDataURL(audioBlob);
     resFlag = true;
     return; // For TTS, handle response and return
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey') {
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
         addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
@@ -1410,39 +1417,21 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
   }
 
-  // Function to update session storage based on current chat window messages
-  function updateSessionStorageFromChatWindow() {
-      let updatedMessages = [];
-      $('#chatWindow .message-bubble').each(function() {
-          if ($(this).hasClass('message-bubble')) {
-              if ($(this).is(':visible')) { // Only process visible message bubbles
-                  let role = '';
-                  let content = '';
-                  if ($(this).find('.request').length) {
-                      role = 'user';
-                      content = $(this).find('.message-text.request p').text();
-                  } else if ($(this).find('.response').length) {
-                      role = 'assistant';
-                      content = $(this).find('.message-text:not(.request):not(.response) > p, .message-text:not(.request):not(.response) > pre, .message-text:not(.request):not(.response) > img, .message-text:not(.request):not(.response) > audio').text(); // Extract text content, pre content, image alt, audio text. Adjust selector if needed for other content types.
-                      if (!content) { // Handle image message content extraction
-                          content = $(this).find('.message-text img').attr('alt') || ''; // or any other way you represent image content in messages array
-                      }
-                      if (!content) { // Handle audio message content extraction (if needed, based on how you represent audio content)
-                          content = 'Audio message'; // Placeholder, adjust as needed
-                      }
-                  }
+  // 删除单条消息并更新本地存储
+  function deleteSingleMessage(messageBubble, messageText, role) {
+    messageBubble.remove(); // 删除 DOM 元素
 
-                  if (role && content) {
-                      updatedMessages.push({role: role, content: content});
-                  }
-              }
-          }
-      });
-      messages = updatedMessages;
-      if (localStorage.getItem('archiveSession') === 'true') {
-          localStorage.setItem("session", JSON.stringify(messages));
-      }
-  }
+    if (localStorage.getItem('archiveSession') === "true") {
+        let currentSession = JSON.parse(localStorage.getItem("session") || "[]");
+        const messageIndex = currentSession.findIndex(msg => msg.role === role && msg.content.trim() === messageText);
+
+        if (messageIndex !== -1) {
+            currentSession.splice(messageIndex, 1); // 从数组中删除消息
+            localStorage.setItem("session", JSON.stringify(currentSession)); // 更新本地存储
+            messages = currentSession; // 同步 messages 数组
+        }
+    }
+}
 
 
   // 处理用户输入
@@ -1664,7 +1653,6 @@ chatInput.on("keydown", handleEnter);
       });
       // 添加复制
       copy();
-      updateSessionStorageFromChatWindow(); // synchronize messages array with DOM after loading
     }
   }
 
@@ -1879,7 +1867,7 @@ scrollDownBtn.click(function(e) {
             scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
             scrollDownBtn.data('scroll-state', 'up');
         } else {
-            scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+            scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-down');
             scrollDownBtn.data('scroll-state', 'down');
         }
     });
