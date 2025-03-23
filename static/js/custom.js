@@ -950,6 +950,7 @@ function editMessage(message) {
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
     let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
 
     if ($(".answer .others .center").css("display") === "none") {
         $(".answer .others .center").css("display", "flex");
@@ -1339,21 +1340,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
-    apiUrl =  `https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
-    requestBody = {
-        "contents": [{
-            "parts": [{"text": data.prompts[0].content}]}],
-            "generationConfig":{"responseModalities":["Text","Image"]}
-    };
-}else if (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
-    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
-    requestBody = {
-        "contents": [{
-            "parts": [{"text": data.prompts[0].content}]
-        }]
-    };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+}else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
     apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
@@ -1447,7 +1434,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
 
     const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') ? { // Conditional headers
+        headers: selectedApiPath === '/v1beta/models/model:generateContent?key=apikey'? { // Conditional headers
             'Content-Type': 'application/json'
         } : {
             'Content-Type': 'application/json',
@@ -1511,7 +1498,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     reader.readAsDataURL(audioBlob);
     resFlag = true;
     return; // For TTS, handle response and return
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey') {
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
         addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
@@ -1530,14 +1517,14 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str = ''; // Initialize str outside the while loop
+    let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
             break;
         }
-        str = ''; // Reset str for each chunk processing
+        str = '';
         res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
         const lines = res.trim().split(/[\n]+(?=\{)/);
         for (let i = 0; i < lines.length; i++) {
@@ -1548,25 +1535,32 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             } catch (e) {
                 break;
             }
+    if (jsonObj.choices) {
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
 
-            if (Array.isArray(jsonObj)) { // Check if jsonObj is an array, which is the new format
-                for (const item of jsonObj) { // Iterate through each item in the array
-                    if (item.candidates) { // Gemini stream response handling for array item
-                        let geminiContent = '';
-                        if (item.candidates[0].content && item.candidates[0].content.parts && item.candidates[0].content.parts[0].text) {
-                            geminiContent = item.candidates[0].content.parts[0].text;
-                        }
-                        str += geminiContent;
-                        addResponseMessage(str); // Assuming addResponseMessage handles incremental updates correctly
-                        resFlag = true;
-                    } else if (item.error) {
-                        addFailMessage(item.error.type + " : " + item.error.message + item.error.code);
-                        resFlag = false;
-                    }
-                    str = ''; // Reset str after processing each item in the array to avoid accumulating content across array items in one addResponseMessage call
-                }
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
 
-            } else if (jsonObj.candidates) { // Gemini stream response handling (original single object format)
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        }
+                addResponseMessage(str);
+                resFlag = true;
+            } else if (jsonObj.candidates) { // Gemini stream response handling
                 let geminiContent = '';
                 if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
                     geminiContent = jsonObj.candidates[0].content.parts[0].text;
@@ -1574,33 +1568,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 str += geminiContent;
                 addResponseMessage(str);
                 resFlag = true;
-            } else if (jsonObj.choices) {
-                if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-                    const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-                    const content = jsonObj.choices[0].delta.content;
-
-                    if (reasoningContent && reasoningContent.trim() !== "") {
-                        str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-                    } else if (content && content.trim() !== "") {
-                        str += content;
-                    }
-                } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                    str += jsonObj.choices[0].text;
-                } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-                    const message = jsonObj.choices[0].message;
-                    const reasoningContent = message.reasoning_content;
-                    const content = message.content;
-
-                    if (reasoningContent && reasoningContent.trim() !== "") {
-                        str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-                    } else if (content && content.trim() !== "") {
-                        str += content;
-                    }
-                }
-                addResponseMessage(str);
-                resFlag = true;
             }
-
 
              else {
                 if (jsonObj.error) {
