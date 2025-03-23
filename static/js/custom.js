@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - 99);
             let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
 
             let usageResponse = await fetch(usageUrl, { headers });
             if (!usageResponse.ok) {
@@ -474,7 +474,7 @@ var chatWindow = $('#chatWindow');
 // 标志当前是否正在滚动
 let isScrolling = false;
 // 滚动动画的持续时间（毫秒）
-const scrollDuration = 800; // 匀速滚动速度，可以调整
+const scrollDuration = 400; // 匀速滚动速度，可以调整
 
 // 判断是否是移动端
 function isMobile() {
@@ -657,9 +657,10 @@ $(document).ready(function() {
 
 // 添加图片消息到窗口
 function addImageMessage(imageUrl) {
+    let messageIndex = messages.length -1; // 图片消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
@@ -667,12 +668,16 @@ function addImageMessage(imageUrl) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
+        const indexToRemove = parseInt($(this).data('index'));
+        messages.splice(indexToRemove, 1); // Remove message from array
+        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove(); // 删除该条响应消息
     });
 }
 
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
+    let messageIndex = messages.length -1; // 审查结果消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
     let formattedResult = "<p>审查结果:</p><ul>";
@@ -690,24 +695,28 @@ function addModerationMessage(moderationResult) {
         formattedResult += "</ul></li>";
     });
     formattedResult += "</ul>";
-    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
         copyMessage($(this).prev().text().trim());
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
+        const indexToRemove = parseInt($(this).data('index'));
+        messages.splice(indexToRemove, 1); // Remove message from array
+        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
     });
 }
 
 // 添加 Embedding 结果消息到窗口
 function addEmbeddingMessage(embeddingResult) {
+    let messageIndex = messages.length -1; // Embedding 结果消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
     // Display the embedding result as a JSON string in a <pre> block for readability
     const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
-    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
 
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
@@ -715,6 +724,9 @@ function addEmbeddingMessage(embeddingResult) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
+        const indexToRemove = parseInt($(this).data('index'));
+        messages.splice(indexToRemove, 1); // Remove message from array
+        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
     });
 }
@@ -722,11 +734,15 @@ function addEmbeddingMessage(embeddingResult) {
 
 // 添加 TTS 结果消息到窗口
 function addTTSMessage(audioBase64) {
+    let messageIndex = messages.length -1; // TTS 结果消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
+        const indexToRemove = parseInt($(this).data('index'));
+        messages.splice(indexToRemove, 1); // Remove message from array
+        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
     });
 }
@@ -736,7 +752,8 @@ function addRequestMessage(message) {
   $(".answer .tips").css({"display":"none"});    // 打赏卡隐藏
   chatInput.val('');
   let escapedMessage = escapeHtml(message);  // 对请求message进行转义，防止输入的是html而被浏览器渲染
-  let requestMessageElement = $('<div class="message-bubble"><span class="chat-icon request-icon"></span><div class="message-text request"><p>' + escapedMessage + '</p><button class="copy-button"><i class="far fa-copy"></i></button><button class="edit-button"><i class="fas fa-edit"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button></div></div>');
+  let messageIndex = messages.length; // Index of the message to be added
+  let requestMessageElement = $('<div class="message-bubble" data-index="' + messageIndex + '"><span class="chat-icon request-icon"></span><div class="message-text request"><p>' + escapedMessage + '</p><button class="copy-button"><i class="far fa-copy"></i></button><button class="edit-button"><i class="fas fa-edit"></i></button><button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button></div></div>');
 
   chatWindow.append(requestMessageElement);
 
@@ -758,7 +775,10 @@ function addRequestMessage(message) {
 
   // 添加删除按钮点击事件
   requestMessageElement.find('.delete-message-btn').click(function() {
-    $(this).closest('.message-bubble').remove(); // 删除该条请求消息
+      const indexToRemove = parseInt($(this).data('index'));
+      messages.splice(indexToRemove, 1); // Remove message from array
+      localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
+      $(this).closest('.message-bubble').remove(); // 删除该条请求消息
   });
 }
 
@@ -774,6 +794,7 @@ function editMessage(message) {
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
+    let messageIndex = messages.length -1; // 响应消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -818,7 +839,7 @@ function addResponseMessage(message) {
                 messageContentHTML += `<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
             }
         });
-        lastResponseElement.append(messageContentHTML + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        lastResponseElement.append(messageContentHTML + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
 
     } else { // Handle regular text message
         if (typeof message !== 'string') {
@@ -868,25 +889,21 @@ function addResponseMessage(message) {
         if (message.startsWith('"//')) {
             // 处理包含base64编码的音频
             const base64Data = message.replace(/"/g, '');
-            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
         } else if (message.startsWith('//')) {
             // 处理包含base64编码的音频
             const base64Data = message;
-            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
         } else {
             lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
             viewButtons.forEach(button => {
                 lastResponseElement.append(button);
             });
-            lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+            lastResponseElement.append('<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
         }
         // ... (rest of button bindings for text messages are unchanged) ...
     }
-
-    chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
-
-        scrollDownBtn.show(); // Show scroll down button if not at bottom
-
+scrollDownBtn.show();
 
     // 绑定按钮事件 (for both text and image messages)
     lastResponseElement.find('.view-button').on('click', function() {
@@ -897,9 +914,15 @@ function addResponseMessage(message) {
         copyMessage($(this).prev().text().trim());
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
+        const indexToRemove = parseInt($(this).data('index'));
+        messages.splice(indexToRemove, 1); // Remove message from array
+        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
+        const indexToRemove = parseInt($(this).data('index'));
+        messages.splice(indexToRemove, 1); // Remove message from array
+        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
     });
 }
@@ -1134,14 +1157,14 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
+}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
@@ -1372,8 +1395,6 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
         }
     }
-
-
 
     return str;
 } else { // 非流式输出处理
@@ -1669,7 +1690,8 @@ function updateModelSettings(modelName) {
                                modelName.toLowerCase().includes("claude-3-7-sonnet-20250219-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking-20250219");
-                               const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
+
+    const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
                                       modelName.toLowerCase().includes("cogview") ||
                                       modelName.toLowerCase().includes("moderation") ||
                                       modelName.toLowerCase().includes("embedding") ||
@@ -1766,21 +1788,10 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    } else if (lowerModelName.includes("gemini")) {
-        targetApiPath = '/v1/chat/completions'; // Gemini uses a special path, don't override apiPathSelect
-    }
-    else {
+    }else {
         targetApiPath = '/v1/chat/completions'; // Default path
     }
 
-    if (targetApiPath && !lowerModelName.includes("gemini")) { // Do not set apiPath if Gemini model is selected, as it uses specific path
-        apiPathSelect.val(targetApiPath);
-        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
-    } else if (lowerModelName.includes("gemini")) {
-        apiPathSelect.val(targetApiPath); // Clear apiPathSelect for Gemini to avoid conflicts
-        localStorage.removeItem('apiPath'); // Optionally clear localStorage for apiPath
-    }
-    // --- End of Path Auto-Switching Logic ---
 }
 
 
@@ -1853,7 +1864,7 @@ scrollDownBtn.click(function(e) {
             scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
             scrollDownBtn.data('scroll-state', 'up');
         } else {
-            scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+            scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-down');
             scrollDownBtn.data('scroll-state', 'down');
         }
     });
