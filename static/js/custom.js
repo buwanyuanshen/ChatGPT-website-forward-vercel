@@ -1574,14 +1574,14 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
                 addResponseMessage(str);
                 resFlag = true;
-            }else if (Array.isArray(jsonObj)) { // 检查 jsonObj 是否是数组
+            }else if (Array.isArray(jsonObj)) { // Gemini stream response handling (for array format)
     let geminiContent = '';
-    for (const item of jsonObj) { // 遍历数组中的每个元素
+    jsonObj.forEach(item => { // 遍历 JSON 对象数组
         if (item.candidates && item.candidates[0].content && item.candidates[0].content.parts && item.candidates[0].content.parts[0].text) {
-            geminiContent += item.candidates[0].content.parts[0].text; // 累加文本内容
+            geminiContent += item.candidates[0].content.parts[0].text; // 累加每个 chunk 的内容
         }
-    }
-    str += geminiContent; // 将累加的文本添加到 str
+    });
+    str += geminiContent;
     addResponseMessage(str);
     resFlag = true;
 } else if (jsonObj.candidates) { // 保留原有的 else if 分支，以防处理非数组格式的响应 (如果需要)
