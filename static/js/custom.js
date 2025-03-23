@@ -657,10 +657,9 @@ $(document).ready(function() {
 
 // 添加图片消息到窗口
 function addImageMessage(imageUrl) {
-    let messageIndex = messages.length -1; // 图片消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
     // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
@@ -668,16 +667,13 @@ function addImageMessage(imageUrl) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
-        const indexToRemove = parseInt($(this).data('index'));
-        messages.splice(indexToRemove, 1); // Remove message from array
-        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove(); // 删除该条响应消息
+        updateSessionStorageFromChatWindow(); // Add this line to update session storage
     });
 }
 
 // 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
-    let messageIndex = messages.length -1; // 审查结果消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
     let formattedResult = "<p>审查结果:</p><ul>";
@@ -695,28 +691,25 @@ function addModerationMessage(moderationResult) {
         formattedResult += "</ul></li>";
     });
     formattedResult += "</ul>";
-    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
         copyMessage($(this).prev().text().trim());
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const indexToRemove = parseInt($(this).data('index'));
-        messages.splice(indexToRemove, 1); // Remove message from array
-        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
+        updateSessionStorageFromChatWindow(); // Add this line to update session storage
     });
 }
 
 // 添加 Embedding 结果消息到窗口
 function addEmbeddingMessage(embeddingResult) {
-    let messageIndex = messages.length -1; // Embedding 结果消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
     // Display the embedding result as a JSON string in a <pre> block for readability
     const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
-    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
     // 绑定复制按钮点击事件
     lastResponseElement.find('.copy-button').click(function() {
@@ -724,26 +717,21 @@ function addEmbeddingMessage(embeddingResult) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const indexToRemove = parseInt($(this).data('index'));
-        messages.splice(indexToRemove, 1); // Remove message from array
-        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
+        updateSessionStorageFromChatWindow(); // Add this line to update session storage
     });
 }
 
 
 // 添加 TTS 结果消息到窗口
 function addTTSMessage(audioBase64) {
-    let messageIndex = messages.length -1; // TTS 结果消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
-    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const indexToRemove = parseInt($(this).data('index'));
-        messages.splice(indexToRemove, 1); // Remove message from array
-        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
+        updateSessionStorageFromChatWindow(); // Add this line to update session storage
     });
 }
 
@@ -752,8 +740,7 @@ function addRequestMessage(message) {
   $(".answer .tips").css({"display":"none"});    // 打赏卡隐藏
   chatInput.val('');
   let escapedMessage = escapeHtml(message);  // 对请求message进行转义，防止输入的是html而被浏览器渲染
-  let messageIndex = messages.length; // Index of the message to be added
-  let requestMessageElement = $('<div class="message-bubble" data-index="' + messageIndex + '"><span class="chat-icon request-icon"></span><div class="message-text request"><p>' + escapedMessage + '</p><button class="copy-button"><i class="far fa-copy"></i></button><button class="edit-button"><i class="fas fa-edit"></i></button><button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button></div></div>');
+  let requestMessageElement = $('<div class="message-bubble"><span class="chat-icon request-icon"></span><div class="message-text request"><p>' + escapedMessage + '</p><button class="copy-button"><i class="far fa-copy"></i></button><button class="edit-button"><i class="fas fa-edit"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button></div></div>');
 
   chatWindow.append(requestMessageElement);
 
@@ -775,10 +762,8 @@ function addRequestMessage(message) {
 
   // 添加删除按钮点击事件
   requestMessageElement.find('.delete-message-btn').click(function() {
-      const indexToRemove = parseInt($(this).data('index'));
-      messages.splice(indexToRemove, 1); // Remove message from array
-      localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
-      $(this).closest('.message-bubble').remove(); // 删除该条请求消息
+    $(this).closest('.message-bubble').remove(); // 删除该条请求消息
+    updateSessionStorageFromChatWindow(); // Add this line to update session storage
   });
 }
 
@@ -794,7 +779,6 @@ function editMessage(message) {
 
 // 添加响应消息到窗口，流式响应此方法会执行多次
 function addResponseMessage(message) {
-    let messageIndex = messages.length -1; // 响应消息是 response, 对应 messages 最后一个
     let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
@@ -839,7 +823,7 @@ function addResponseMessage(message) {
                 messageContentHTML += `<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
             }
         });
-        lastResponseElement.append(messageContentHTML + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+        lastResponseElement.append(messageContentHTML + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
     } else { // Handle regular text message
         if (typeof message !== 'string') {
@@ -889,17 +873,17 @@ function addResponseMessage(message) {
         if (message.startsWith('"//')) {
             // 处理包含base64编码的音频
             const base64Data = message.replace(/"/g, '');
-            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
         } else if (message.startsWith('//')) {
             // 处理包含base64编码的音频
             const base64Data = message;
-            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
         } else {
             lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
             viewButtons.forEach(button => {
                 lastResponseElement.append(button);
             });
-            lastResponseElement.append('<button class="delete-message-btn" data-index="' + messageIndex + '"><i class="far fa-trash-alt"></i></button>');
+            lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
         }
         // ... (rest of button bindings for text messages are unchanged) ...
     }
@@ -914,16 +898,12 @@ scrollDownBtn.show();
         copyMessage($(this).prev().text().trim());
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const indexToRemove = parseInt($(this).data('index'));
-        messages.splice(indexToRemove, 1); // Remove message from array
-        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
+        updateSessionStorageFromChatWindow(); // Add this line to update session storage
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const indexToRemove = parseInt($(this).data('index'));
-        messages.splice(indexToRemove, 1); // Remove message from array
-        localStorage.setItem("session",JSON.stringify(messages)); // Update localStorage
         $(this).closest('.message-bubble').remove();
+        updateSessionStorageFromChatWindow(); // Add this line to update session storage - Duplicated line, can be removed
     });
 }
 
@@ -1157,15 +1137,15 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
-    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
-    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+}else if (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]
@@ -1251,7 +1231,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
 
     const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' ? { // Conditional headers
+        headers: selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' ? { // Conditional headers
             'Content-Type': 'application/json'
         } : {
             'Content-Type': 'application/json',
@@ -1315,7 +1295,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     reader.readAsDataURL(audioBlob);
     resFlag = true;
     return; // For TTS, handle response and return
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') {
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
         addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
@@ -1428,6 +1408,38 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 }
 
 
+  }
+
+  // Function to update session storage based on current chat window messages
+  function updateSessionStorageFromChatWindow() {
+      let updatedMessages = [];
+      $('#chatWindow .message-bubble').each(function() {
+          if ($(this).hasClass('message-bubble')) {
+              let role = '';
+              let content = '';
+              if ($(this).find('.request').length) {
+                  role = 'user';
+                  content = $(this).find('.message-text.request p').text();
+              } else if ($(this).find('.response').length) {
+                  role = 'assistant';
+                  content = $(this).find('.message-text:not(.request):not(.response) > p, .message-text:not(.request):not(.response) > pre, .message-text:not(.request):not(.response) > img, .message-text:not(.request):not(.response) > audio').text(); // Extract text content, pre content, image alt, audio text. Adjust selector if needed for other content types.
+                  if (!content) { // Handle image message content extraction
+                      content = $(this).find('.message-text img').attr('alt') || ''; // or any other way you represent image content in messages array
+                  }
+                  if (!content) { // Handle audio message content extraction (if needed, based on how you represent audio content)
+                      content = 'Audio message'; // Placeholder, adjust as needed
+                  }
+              }
+
+              if (role && content) {
+                  updatedMessages.push({role: role, content: content});
+              }
+          }
+      });
+      messages = updatedMessages;
+      if (localStorage.getItem('archiveSession') === 'true') {
+          localStorage.setItem("session", JSON.stringify(messages));
+      }
   }
 
 
@@ -1864,7 +1876,7 @@ scrollDownBtn.click(function(e) {
             scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
             scrollDownBtn.data('scroll-state', 'up');
         } else {
-            scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-down');
+            scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
             scrollDownBtn.data('scroll-state', 'down');
         }
     });
