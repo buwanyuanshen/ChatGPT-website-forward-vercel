@@ -1539,68 +1539,68 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             break;
         }
         str = '';
-        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const decodedValue = new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        res += decodedValue;
 
-        // **MODIFIED SPLITTING LOGIC HERE**
-        const lines = res.trim().split(/,[\r\n]*/); // Split by comma followed by optional newline/carriage return
+        // **SIMPLIFIED SPLITTING: SPLIT BY NEWLINE**
+        const lines = res.trim().split('\n'); // Split by newline
+        console.log("Lines after split:", lines); // Debug: Print lines after split
 
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
-            // **Important: Trim each line before parsing**
             const trimmedLine = line.trim();
-            if (!trimmedLine) continue; // Skip empty lines after trim
+            if (!trimmedLine) continue; // Skip empty lines
 
-            let jsonObj;
+            // **ROBUST JSON PARSING: TRY PARSING EACH LINE**
             try {
-                jsonObj = JSON.parse(trimmedLine);
-            } catch (e) {
-                console.error("JSON Parse Error:", e);
-                continue; // If parse error, continue to next line.
-            }
-            if (jsonObj.choices) {
-                if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-                    const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-                    const content = jsonObj.choices[0].delta.content;
+                let jsonObj = JSON.parse(trimmedLine);
+                console.log("Parsed jsonObj:", jsonObj); // Debug: Print parsed JSON
 
-                    if (reasoningContent && reasoningContent.trim() !== "") {
-                        str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-                    } else if (content && content.trim() !== "") {
-                        str += content;
+                if (jsonObj.candidates) { // Gemini stream response handling
+                    let geminiContent = '';
+                    if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+                        geminiContent = jsonObj.candidates[0].content.parts[0].text;
                     }
-                } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                    str += jsonObj.choices[0].text;
-                } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-                    const message = jsonObj.choices[0].message;
-                    const reasoningContent = message.reasoning_content;
-                    const content = message.content;
+                    str += geminiContent;
+                    addResponseMessage(str);
+                    resFlag = true;
+                } else if (jsonObj.choices) { // ... (rest of your choices handling logic - keep it as is) ...
+                    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+                        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+                        const content = jsonObj.choices[0].delta.content;
 
-                    if (reasoningContent && reasoningContent.trim() !== "") {
-                        str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-                    } else if (content && content.trim() !== "") {
-                        str += content;
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
+                        }
+                    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+                        str += jsonObj.choices[0].text;
+                    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+                        const message = jsonObj.choices[0].message;
+                        const reasoningContent = message.reasoning_content;
+                        const content = message.content;
+
+                        if (reasoningContent && reasoningContent.trim() !== "") {
+                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+                        } else if (content && content.trim() !== "") {
+                            str += content;
+                        }
                     }
+                    addResponseMessage(str);
+                    resFlag = true;
                 }
-                addResponseMessage(str);
-                resFlag = true;
-            } else if (jsonObj.candidates) { // Gemini stream response handling
-                let geminiContent = '';
-                if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-                    geminiContent = jsonObj.candidates[0].content.parts[0].text;
-                }
-                str += geminiContent;
-                addResponseMessage(str);
-                resFlag = true;
-            }
-
-             else {
-                if (jsonObj.error) {
+                 else if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
                 }
+
+            } catch (e) {
+                console.error("JSON Parse Error:", e, "Line:", trimmedLine); // Debug: Print error and the line causing it
+                continue; // Skip to the next line on parse error
             }
         }
     }
-
     return str;
 }else { // 非流式输出处理
     const responseData = await response.json();
