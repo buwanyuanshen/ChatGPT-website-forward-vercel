@@ -474,7 +474,7 @@ var chatWindow = $('#chatWindow');
 // 标志当前是否正在滚动
 let isScrolling = false;
 // 滚动动画的持续时间（毫秒）
-const scrollDuration = 400; // 匀速滚动速度，可以调整
+const scrollDuration = 800; // 匀速滚动速度，可以调整
 
 // 判断是否是移动端
 function isMobile() {
@@ -882,7 +882,11 @@ function addResponseMessage(message) {
         }
         // ... (rest of button bindings for text messages are unchanged) ...
     }
-scrollDownBtn.show();
+
+    chatWindow.append(lastResponseElement.closest('.message-bubble')); // Append the whole message bubble
+
+        scrollDownBtn.show(); // Show scroll down button if not at bottom
+
 
     // 绑定按钮事件 (for both text and image messages)
     lastResponseElement.find('.view-button').on('click', function() {
@@ -1130,14 +1134,14 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
+}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') { // Gemini models handling
     apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
@@ -1368,6 +1372,8 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
         }
     }
+
+
 
     return str;
 } else { // 非流式输出处理
@@ -1663,8 +1669,7 @@ function updateModelSettings(modelName) {
                                modelName.toLowerCase().includes("claude-3-7-sonnet-20250219-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking-20250219");
-
-    const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
+                               const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
                                       modelName.toLowerCase().includes("cogview") ||
                                       modelName.toLowerCase().includes("moderation") ||
                                       modelName.toLowerCase().includes("embedding") ||
@@ -1761,10 +1766,21 @@ function updateModelSettings(modelName) {
         targetApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
         targetApiPath = '/v1/audio/speech';
-    }else {
+    } else if (lowerModelName.includes("gemini")) {
+        targetApiPath = '/v1/chat/completions'; // Gemini uses a special path, don't override apiPathSelect
+    }
+    else {
         targetApiPath = '/v1/chat/completions'; // Default path
     }
 
+    if (targetApiPath && !lowerModelName.includes("gemini")) { // Do not set apiPath if Gemini model is selected, as it uses specific path
+        apiPathSelect.val(targetApiPath);
+        localStorage.setItem('apiPath', targetApiPath); // Optionally update localStorage as well
+    } else if (lowerModelName.includes("gemini")) {
+        apiPathSelect.val(targetApiPath); // Clear apiPathSelect for Gemini to avoid conflicts
+        localStorage.removeItem('apiPath'); // Optionally clear localStorage for apiPath
+    }
+    // --- End of Path Auto-Switching Logic ---
 }
 
 
