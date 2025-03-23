@@ -1529,7 +1529,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 
 
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
-const reader = response.body.getReader();
+    const reader = response.body.getReader();
     let res = '';
     let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
@@ -1574,28 +1574,27 @@ const reader = response.body.getReader();
         }
                 addResponseMessage(str);
                 resFlag = true;
-            }else if (jsonObj.candidates) { 
-    let geminiContent = '';
-    if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-        geminiContent = jsonObj.candidates[0].content.parts[0].text;
-    }
-    str += geminiContent;
-    addResponseMessage(str);
-    resFlag = true;
-}
+            } else if (jsonObj.candidates) { // Gemini stream response handling
+                let geminiContent = '';
+                if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+                    geminiContent = jsonObj.candidates[0].content.parts[0].text;
+                }
+                str += geminiContent;
+                addResponseMessage(str);
+                resFlag = true;
+            }
+
              else {
                 if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
                 }
-                }
-        }
-    }
+            }
         }
     }
 
     return str;
-} else { // 非流式输出处理
+}else { // 非流式输出处理
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
         let content = '';
