@@ -1589,7 +1589,8 @@ const reader = response.body.getReader();
                     resFlag = false;
                 }
                 }
-                }
+        }
+    }
         }
     }
 
