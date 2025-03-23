@@ -1535,19 +1535,28 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     // **新增代码 - 在请求前记录是否滚动到底部**
     while (true) {
         const { done, value } = await reader.read();
+        console.log("Value Chunk received:", value); // 调试信息 1: 打印接收到的数据块
         if (done) {
+            console.log("Stream finished."); // 调试信息 2: 标记流结束
             break;
         }
         str = '';
-        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const decodedValue = new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        console.log("Decoded Value:", decodedValue); // 调试信息 3: 打印解码后的数据
+        res += decodedValue;
+        console.log("Accumulated res:", res); // 调试信息 4: 打印累积的 res 字符串
         const lines = res.trim().split(/[\n]+(?=\{)/);
+        console.log("Lines after split:", lines); // 调试信息 5: 打印分割后的行数组
         for (let i = 0; i < lines.length; i++) {
             const line = lines[i];
+            console.log("Line to parse:", line); // 调试信息 6: 打印即将解析的行
             let jsonObj;
             try {
                 jsonObj = JSON.parse(line);
+                console.log("Parsed jsonObj:", jsonObj); // 调试信息 7: 打印解析后的 JSON 对象
             } catch (e) {
-                break;
+                console.error("JSON Parse Error:", e); // 调试信息 8: 打印 JSON 解析错误
+                break; // 如果解析错误，跳出当前行处理
             }
     if (jsonObj.choices) {
         if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
