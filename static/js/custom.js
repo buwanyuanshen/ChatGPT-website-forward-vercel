@@ -1574,28 +1574,17 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
                 addResponseMessage(str);
                 resFlag = true;
-            } else if (jsonArray) { // Process if parsed as JSON array successfully
-            for (const jsonObj of jsonArray) {
-                if (jsonObj.candidates) {
-                    let geminiContent = '';
-                    if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-                        geminiContent = jsonObj.candidates[0].content.parts[0].text;
-                    }
-                    str += geminiContent;
-                    resFlag = true; // Set flag for each successful candidate processing.
-                } else if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                    resFlag = false;
-                }}}else if (jsonObj.candidates) { 
-    let geminiContent = '';
-    if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-        geminiContent = jsonObj.candidates[0].content.parts[0].text;
-    }
-    str += geminiContent;
-    addResponseMessage(str);
-    resFlag = true;
-}
+            } else if (jsonObj.candidates) {
+            // 修改部分：循环处理 candidates 数组（虽然通常 candidates 数组只有一个元素）
+            for (const candidate of jsonObj.candidates) {
+                let geminiContent = '';
+                if (candidate.content && candidate.content.parts && candidate.content.parts[0].text) {
+                    geminiContent = candidate.content.parts[0].text;
+                }
+                str += geminiContent; // 累加 Gemini 内容
+            }
 
+        }
              else {
                 if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
