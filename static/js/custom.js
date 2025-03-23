@@ -1540,23 +1540,22 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             break;
         }
         const decodedValue = new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        res += decodedValue; // 累积数据
-        const lines = res.trim().split(/[\n]+(?=\{)/); // 恢复行分割逻辑
-        console.log("Lines after split:", lines); // 调试信息：查看分割后的行
+        res += decodedValue; // 累积所有接收到的数据到 res
+    }
 
-        for (let i = 0; i < lines.length; i++) { // 循环处理每一行
-            const line = lines[i];
-            console.log("Line to parse:", line); // 调试信息：查看要解析的行
-            let jsonObj;
-            try {
-                jsonObj = JSON.parse(line); // 再次解析每一行为 JSON 对象
-                console.log("Parsed jsonObj (in loop):", jsonObj); // 调试信息：查看循环内解析的 JSON 对象
-            } catch (e) {
-                console.error("JSON Parse Error (in loop):", e); // 循环内 JSON 解析错误
-                continue; // 如果解析出错，跳过当前行，继续下一行
-            }
+    console.log("Full response string:", res); // 打印完整响应字符串
 
-            let current_str = '';
+    try {
+        let jsonResponse = JSON.parse(res); // 将完整字符串解析为 JSON 对象或数组
+        console.log("Parsed JSON Response:", jsonResponse); // 打印解析后的 JSON 响应
+
+        // **判断 jsonResponse 是否为数组，如果不是，则包装成数组**
+        const jsonArray = Array.isArray(jsonResponse) ? jsonResponse : [jsonResponse];
+
+        str = ''; // 重置 str，用于累积最终文本
+
+        for (const jsonObj of jsonArray) { // 遍历 JSON 数组或包装后的单元素数组
+            let current_str = ''; // 用于存储当前 JSON 对象处理后的文本片段
 
             if (jsonObj.choices) { // OpenAI 格式处理
                 if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
@@ -1593,16 +1592,21 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 return str; // 遇到错误直接返回
             }
 
-            if (current_str) { // 如果当前对象处理后有文本内容
+            if (current_str) { // 如果当前对象处理后有文本内容，则添加到总的 str 和显示
                 str += current_str;
                 addResponseMessage(current_str); // 每次处理完一个 JSON 对象就添加消息 (流式效果)
                 resFlag = true;
             }
         }
+
+        return str; // 返回累积的文本内容 (可能不需要，因为已经在循环中 addResponseMessage 了)
+
+    } catch (e) {
+        console.error("JSON Parse Error (Full Response):", e); // 完整响应解析错误
+        addFailMessage("JSON 解析错误，请检查响应数据格式。");
+        resFlag = false;
+        return str; // 返回空字符串或者根据需要处理错误情况
     }
-
-    return str; // 返回累积的文本内容
-
 }else { // 非流式输出处理
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
