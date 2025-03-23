@@ -1574,15 +1574,16 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
                 addResponseMessage(str);
                 resFlag = true;
-            }else if (Array.isArray(jsonObj)) { // Gemini stream response handling (for array format - single element array chunks)
-    let geminiContentChunk = ''; // 每次 chunk 的内容
-    if (jsonObj.length > 0 && jsonObj[0].candidates && jsonObj[0].candidates[0].content && jsonObj[0].candidates[0].content.parts && jsonObj[0].candidates[0].content.parts[0].text) {
-        geminiContentChunk = jsonObj[0].candidates[0].content.parts[0].text;
-    }
-
-    str += geminiContentChunk; // 累加到全局的 str 变量
-    addResponseMessage(geminiContentChunk); // 注意这里，只传递 chunk 的内容，假设 addResponseMessage 会追加显示
-    resFlag = true;
+            }else if (Array.isArray(jsonObj)) { // Gemini stream response handling (检查是否是数组)
+    jsonObj.forEach(chunk => { // 遍历 JSON 数组
+        let geminiContent = '';
+        if (chunk.candidates && chunk.candidates[0].content && chunk.candidates[0].content.parts && chunk.candidates[0].content.parts[0].text) {
+            geminiContent = chunk.candidates[0].content.parts[0].text;
+        }
+        str += geminiContent;
+        addResponseMessage(str);
+        resFlag = true;
+    });
 } else if (jsonObj.candidates) { // 保留原有的 else if 分支，以防处理非数组格式的响应 (如果需要)
     let geminiContent = '';
     if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
