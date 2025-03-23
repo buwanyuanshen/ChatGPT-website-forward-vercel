@@ -1545,21 +1545,19 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     console.log("Full response string:", res); // 打印完整响应字符串
 
     try {
-        const jsonResult = JSON.parse(res); // 将完整字符串解析为 JSON
-
-        console.log("Parsed JSON Result:", jsonResult); // 打印解析后的 JSON 结果
+        let responseJson;
+        if (res.trim().startsWith('[')) { // 判断是否是 JSON 数组
+            responseJson = JSON.parse(res); // 解析为 JSON 数组
+            console.log("Parsed as JSON Array:", responseJson);
+        } else {
+            responseJson = [JSON.parse(res)]; // 解析为 JSON 对象，并放入数组中统一处理
+            console.log("Parsed as JSON Object and wrapped in Array:", responseJson);
+        }
+        const jsonArray = responseJson; // 统一使用 jsonArray 变量名
 
         str = ''; // 重置 str，用于累积最终文本
 
-        let jsonArrayToProcess = []; // 定义一个数组来处理，无论是数组还是单个对象
-
-        if (Array.isArray(jsonResult)) { // 如果解析结果是数组
-            jsonArrayToProcess = jsonResult; // 直接使用数组
-        } else { // 如果解析结果是单个对象
-            jsonArrayToProcess = [jsonResult]; // 将单个对象放入数组，方便统一处理
-        }
-
-        for (const jsonObj of jsonArrayToProcess) { // 遍历 JSON 数组 (或包含单个对象的数组)
+        for (const jsonObj of jsonArray) { // 遍历 JSON 数组 (或包含单个 JSON 对象的数组)
             let current_str = ''; // 用于存储当前 JSON 对象处理后的文本片段
 
             if (jsonObj.choices) { // OpenAI 格式处理
