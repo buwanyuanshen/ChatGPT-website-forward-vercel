@@ -1341,14 +1341,28 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "voice": "alloy",
     };
 } else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
-    apiUrl = getCookie('streamOutput') !== 'false' ? `https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}` : `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+    apiUrl =  `https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
 }else if (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
-    apiUrl = getCookie('streamOutput') !== 'false' ? `https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}` : `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
+    requestBody = {
+        "contents": [{
+            "parts": [{"text": data.prompts[0].content}]
+        }]
+    };
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+    requestBody = {
+        "contents": [{
+            "parts": [{"text": data.prompts[0].content}]}],
+            "generationConfig":{"responseModalities":["Text","Image"]}
+    };
+}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
+    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]
@@ -1434,7 +1448,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
 
     const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' ? { // Conditional headers
+        headers: (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') ? { // Conditional headers
             'Content-Type': 'application/json'
         } : {
             'Content-Type': 'application/json',
@@ -1560,15 +1574,25 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
                 addResponseMessage(str);
                 resFlag = true;
-            } else if (jsonObj.candidates) { // Gemini stream response handling
-                let geminiContent = '';
-                if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-                    geminiContent = jsonObj.candidates[0].content.parts[0].text;
-                }
-                str += geminiContent;
-                addResponseMessage(str);
-                resFlag = true;
-            }
+            }else if (Array.isArray(jsonObj)) { // 检查 jsonObj 是否是数组
+    let geminiContent = '';
+    for (const item of jsonObj) { // 遍历数组中的每个元素
+        if (item.candidates && item.candidates[0].content && item.candidates[0].content.parts && item.candidates[0].content.parts[0].text) {
+            geminiContent += item.candidates[0].content.parts[0].text; // 累加文本内容
+        }
+    }
+    str += geminiContent; // 将累加的文本添加到 str
+    addResponseMessage(str);
+    resFlag = true;
+} else if (jsonObj.candidates) { // 保留原有的 else if 分支，以防处理非数组格式的响应 (如果需要)
+    let geminiContent = '';
+    if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+        geminiContent = jsonObj.candidates[0].content.parts[0].text;
+    }
+    str += geminiContent;
+    addResponseMessage(str);
+    resFlag = true;
+}
 
              else {
                 if (jsonObj.error) {
