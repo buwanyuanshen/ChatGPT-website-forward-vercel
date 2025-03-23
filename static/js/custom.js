@@ -1574,17 +1574,19 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
         }
                 addResponseMessage(str);
                 resFlag = true;
-            }else if (Array.isArray(jsonObj)) { // Gemini stream response handling (检查是否是数组)
-    jsonObj.forEach(chunk => { // 遍历 JSON 数组
-        let geminiContent = '';
-        if (chunk.candidates && chunk.candidates[0].content && chunk.candidates[0].content.parts && chunk.candidates[0].content.parts[0].text) {
-            geminiContent = chunk.candidates[0].content.parts[0].text;
-        }
-        str += geminiContent;
-        addResponseMessage(str);
-        resFlag = true;
-    });
-} else if (jsonObj.candidates) { // 保留原有的 else if 分支，以防处理非数组格式的响应 (如果需要)
+            }else if (Array.isArray(jsonObj)) { // 处理新的 JSON 数组格式 (例如 Gemini 新格式)
+                let geminiContent = '';
+                jsonObj.forEach(item => {
+                    if (item.candidates) {
+                        if (item.candidates[0].content && item.candidates[0].content.parts && item.candidates[0].content.parts[0].text) {
+                            geminiContent += item.candidates[0].content.parts[0].text;
+                        }
+                    }
+                });
+                str += geminiContent;
+                addResponseMessage(str);
+                resFlag = true;
+            }else if (jsonObj.candidates) { 
     let geminiContent = '';
     if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
         geminiContent = jsonObj.candidates[0].content.parts[0].text;
