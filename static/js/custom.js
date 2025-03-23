@@ -1531,54 +1531,51 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
     const reader = response.body.getReader();
     let res = '';
-    let str;
-    // **新增代码 - 在请求前记录是否滚动到底部**
+    let str = ''; // 用于累积最终的文本内容，而不是中间的 str
+
     while (true) {
         const { done, value } = await reader.read();
-        console.log("Value Chunk received:", value); // 调试信息 1: 打印接收到的数据块
         if (done) {
             console.log("Stream finished."); // 调试信息 2: 标记流结束
             break;
         }
-        str = '';
         const decodedValue = new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
-        console.log("Decoded Value:", decodedValue); // 调试信息 3: 打印解码后的数据
-        res += decodedValue;
-        console.log("Accumulated res:", res); // 调试信息 4: 打印累积的 res 字符串
-        // **移除分割逻辑**
-        // const lines = res.trim().split(/[\n]+(?=\{)/);
-        // console.log("Lines after split:", lines); // 调试信息 5: 打印分割后的行数组
-        // for (let i = 0; i < lines.length; i++) {
-        //     const line = lines[i];
-        //     console.log("Line to parse:", line); // 调试信息 6: 打印即将解析的行
-        let jsonObj;
-        try {
-            // **直接解析整个 accumulated res**
-            jsonObj = JSON.parse(res);
-            console.log("Parsed jsonObj:", jsonObj); // 调试信息 7: 打印解析后的 JSON 对象
-        } catch (e) {
-            console.error("JSON Parse Error:", e); // 调试信息 8: 打印 JSON 解析错误
-            // break; //  不再需要 break，因为我们一次性解析整个 res
-            continue; //  解析失败，继续接收下一个 chunk 并累积
-        }
-    if (jsonObj.candidates) {
-        let geminiContent = '';
-        if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-            geminiContent = jsonObj.candidates[0].content.parts[0].text;
-        }
-        str += geminiContent;
-        addResponseMessage(str);
-        resFlag = true;
-    }  else {
-                if (jsonObj.error) {
-                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                    resFlag = false;
-                }
-            }
-        // } // 移除 lines 循环
+        res += decodedValue; // 累积所有接收到的数据到 res
     }
 
-    return str;
+    console.log("Full response string:", res); // 打印完整响应字符串
+
+    try {
+        const jsonArray = JSON.parse(res); // 将完整字符串解析为 JSON 数组
+        console.log("Parsed JSON Array:", jsonArray); // 打印解析后的 JSON 数组
+
+        str = ''; // 重置 str，用于累积最终文本
+
+        for (const jsonObj of jsonArray) { // 遍历 JSON 数组中的每个对象
+            if (jsonObj.candidates) { // Gemini 格式处理
+                let geminiContent = '';
+                if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+                    geminiContent = jsonObj.candidates[0].content.parts[0].text;
+                }
+                str += geminiContent; // 累加 Gemini 内容
+            } else if (jsonObj.error) { // 错误处理
+                addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                resFlag = false;
+                return str; // 遇到错误直接返回，或者根据需要调整错误处理
+            }
+            // 注意：这里不再调用 addResponseMessage(str) 在循环中，因为我们等待所有数据接收完毕
+        }
+        addResponseMessage(str); // 所有数据处理完毕后，一次性添加响应消息
+        resFlag = true;
+        return str; // 返回累积的文本内容
+
+    } catch (e) {
+        console.error("JSON Parse Error (Full Response):", e); // 完整响应解析错误
+        addFailMessage("JSON 解析错误，请检查响应数据格式。");
+        resFlag = false;
+        return str; // 返回空字符串或者根据需要处理错误情况
+    }
+
 }else { // 非流式输出处理
     const responseData = await response.json();
     if (responseData.choices && responseData.choices.length > 0) {
