@@ -958,7 +958,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1415,24 +1415,26 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
       let updatedMessages = [];
       $('#chatWindow .message-bubble').each(function() {
           if ($(this).hasClass('message-bubble')) {
-              let role = '';
-              let content = '';
-              if ($(this).find('.request').length) {
-                  role = 'user';
-                  content = $(this).find('.message-text.request p').text();
-              } else if ($(this).find('.response').length) {
-                  role = 'assistant';
-                  content = $(this).find('.message-text:not(.request):not(.response) > p, .message-text:not(.request):not(.response) > pre, .message-text:not(.request):not(.response) > img, .message-text:not(.request):not(.response) > audio').text(); // Extract text content, pre content, image alt, audio text. Adjust selector if needed for other content types.
-                  if (!content) { // Handle image message content extraction
-                      content = $(this).find('.message-text img').attr('alt') || ''; // or any other way you represent image content in messages array
+              if ($(this).is(':visible')) { // Only process visible message bubbles
+                  let role = '';
+                  let content = '';
+                  if ($(this).find('.request').length) {
+                      role = 'user';
+                      content = $(this).find('.message-text.request p').text();
+                  } else if ($(this).find('.response').length) {
+                      role = 'assistant';
+                      content = $(this).find('.message-text:not(.request):not(.response) > p, .message-text:not(.request):not(.response) > pre, .message-text:not(.request):not(.response) > img, .message-text:not(.request):not(.response) > audio').text(); // Extract text content, pre content, image alt, audio text. Adjust selector if needed for other content types.
+                      if (!content) { // Handle image message content extraction
+                          content = $(this).find('.message-text img').attr('alt') || ''; // or any other way you represent image content in messages array
+                      }
+                      if (!content) { // Handle audio message content extraction (if needed, based on how you represent audio content)
+                          content = 'Audio message'; // Placeholder, adjust as needed
+                      }
                   }
-                  if (!content) { // Handle audio message content extraction (if needed, based on how you represent audio content)
-                      content = 'Audio message'; // Placeholder, adjust as needed
-                  }
-              }
 
-              if (role && content) {
-                  updatedMessages.push({role: role, content: content});
+                  if (role && content) {
+                      updatedMessages.push({role: role, content: content});
+                  }
               }
           }
       });
@@ -1662,6 +1664,7 @@ chatInput.on("keydown", handleEnter);
       });
       // 添加复制
       copy();
+      updateSessionStorageFromChatWindow(); // synchronize messages array with DOM after loading
     }
   }
 
