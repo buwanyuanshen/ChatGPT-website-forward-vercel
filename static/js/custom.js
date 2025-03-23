@@ -666,20 +666,44 @@ function addImageMessage(imageUrl) {
         window.open(imageUrl, '_blank');
     });
     // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').on('click', function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.remove(); // 删除该条响应消息
-        if (localStorage.getItem('archiveSession') === 'true') {
-            // 获取被删除消息的索引 (这里假设删除的是最后一条消息对)
-            if (messages.length > 0) {
-                messages.pop(); // Remove last response message
-                if (messages.length > 0) {
-                    messages.pop(); // Remove last request message if response exists
+lastResponseElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
                 }
-                localStorage.setItem("session", JSON.stringify(messages)); // Update session
             }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
-    });
+    }
+});
 }
 
 // 添加审查结果消息到窗口
@@ -707,19 +731,44 @@ function addModerationMessage(moderationResult) {
         copyMessage($(this).prev().text().trim());
     });
     // 绑定删除按钮点击事件
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.remove();
-        if (localStorage.getItem('archiveSession') === 'true') {
-            if (messages.length > 0) {
-                messages.pop();
-                if (messages.length > 0) {
-                    messages.pop();
+lastResponseElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
                 }
-                localStorage.setItem("session", JSON.stringify(messages));
             }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
-    });
+    }
+});
 }
 
 // 添加 Embedding 结果消息到窗口
@@ -736,18 +785,43 @@ function addEmbeddingMessage(embeddingResult) {
     });
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.remove();
-        if (localStorage.getItem('archiveSession') === 'true') {
-            if (messages.length > 0) {
-                messages.pop();
-                if (messages.length > 0) {
-                    messages.pop();
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
                 }
-                localStorage.setItem("session", JSON.stringify(messages));
             }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
-    });
+    }
+});
 }
 
 
@@ -758,18 +832,43 @@ function addTTSMessage(audioBase64) {
     lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.remove();
-        if (localStorage.getItem('archiveSession') === 'true') {
-            if (messages.length > 0) {
-                messages.pop();
-                if (messages.length > 0) {
-                    messages.pop();
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
                 }
-                localStorage.setItem("session", JSON.stringify(messages));
             }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
-    });
+    }
+});
 }
 
 // 添加请求消息到窗口
@@ -800,15 +899,42 @@ function addRequestMessage(message) {
   // 添加删除按钮点击事件
   requestMessageElement.find('.delete-message-btn').click(function() {
     const messageBubble = $(this).closest('.message-bubble');
-    messageBubble.remove(); // 删除该条请求消息
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
     if (localStorage.getItem('archiveSession') === 'true') {
-        // 删除 messages 数组中最后一条用户消息 (假设删除的是最后一条)
-        if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-            messages.pop();
-            localStorage.setItem("session", JSON.stringify(messages)); // 更新本地存储
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
+            }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
     }
-  });
+});
 }
 
 // 编辑消息
@@ -942,16 +1068,43 @@ scrollDownBtn.show();
         copyMessage($(this).prev().text().trim());
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.remove();
-        if (localStorage.getItem('archiveSession') === 'true') {
-            // 删除 messages 数组中最后一条助手消息 (假设删除的是最后一条)
-            if (messages.length > 0 && messages[messages.length - 1].role === 'assistant') {
-                messages.pop();
-                localStorage.setItem("session", JSON.stringify(messages)); // 更新本地存储
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
             }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
-    });
+    }
+});
     lastResponseElement.find('.delete-message-btn').click(function() {
         $(this).closest('.message-bubble').remove();
     });
