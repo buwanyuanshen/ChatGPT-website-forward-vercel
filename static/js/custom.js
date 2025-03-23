@@ -1586,7 +1586,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
                 } else if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
-                }else if (jsonObj.candidates) { 
+                }}}else if (jsonObj.candidates) { 
     let geminiContent = '';
     if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
         geminiContent = jsonObj.candidates[0].content.parts[0].text;
