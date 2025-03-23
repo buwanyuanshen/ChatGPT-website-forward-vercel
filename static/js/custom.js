@@ -1535,72 +1535,49 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
     // **新增代码 - 在请求前记录是否滚动到底部**
     while (true) {
         const { done, value } = await reader.read();
+        console.log("Value Chunk received:", value); // 调试信息 1: 打印接收到的数据块
         if (done) {
+            console.log("Stream finished."); // 调试信息 2: 标记流结束
             break;
         }
         str = '';
         const decodedValue = new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        console.log("Decoded Value:", decodedValue); // 调试信息 3: 打印解码后的数据
         res += decodedValue;
-
-        // **SIMPLIFIED SPLITTING: SPLIT BY NEWLINE**
-        const lines = res.trim().split('\n'); // Split by newline
-        console.log("Lines after split:", lines); // Debug: Print lines after split
-
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const trimmedLine = line.trim();
-            if (!trimmedLine) continue; // Skip empty lines
-
-            // **ROBUST JSON PARSING: TRY PARSING EACH LINE**
-            try {
-                let jsonObj = JSON.parse(trimmedLine);
-                console.log("Parsed jsonObj:", jsonObj); // Debug: Print parsed JSON
-
-                if (jsonObj.candidates) { // Gemini stream response handling
-                    let geminiContent = '';
-                    if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-                        geminiContent = jsonObj.candidates[0].content.parts[0].text;
-                    }
-                    str += geminiContent;
-                    addResponseMessage(str);
-                    resFlag = true;
-                } else if (jsonObj.choices) { // ... (rest of your choices handling logic - keep it as is) ...
-                    if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-                        const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-                        const content = jsonObj.choices[0].delta.content;
-
-                        if (reasoningContent && reasoningContent.trim() !== "") {
-                            str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-                        } else if (content && content.trim() !== "") {
-                            str += content;
-                        }
-                    } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                        str += jsonObj.choices[0].text;
-                    } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-                        const message = jsonObj.choices[0].message;
-                        const reasoningContent = message.reasoning_content;
-                        const content = message.content;
-
-                        if (reasoningContent && reasoningContent.trim() !== "") {
-                            str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-                        } else if (content && content.trim() !== "") {
-                            str += content;
-                        }
-                    }
-                    addResponseMessage(str);
-                    resFlag = true;
-                }
-                 else if (jsonObj.error) {
+        console.log("Accumulated res:", res); // 调试信息 4: 打印累积的 res 字符串
+        // **移除分割逻辑**
+        // const lines = res.trim().split(/[\n]+(?=\{)/);
+        // console.log("Lines after split:", lines); // 调试信息 5: 打印分割后的行数组
+        // for (let i = 0; i < lines.length; i++) {
+        //     const line = lines[i];
+        //     console.log("Line to parse:", line); // 调试信息 6: 打印即将解析的行
+        let jsonObj;
+        try {
+            // **直接解析整个 accumulated res**
+            jsonObj = JSON.parse(res);
+            console.log("Parsed jsonObj:", jsonObj); // 调试信息 7: 打印解析后的 JSON 对象
+        } catch (e) {
+            console.error("JSON Parse Error:", e); // 调试信息 8: 打印 JSON 解析错误
+            // break; //  不再需要 break，因为我们一次性解析整个 res
+            continue; //  解析失败，继续接收下一个 chunk 并累积
+        }
+    if (jsonObj.candidates) {
+        let geminiContent = '';
+        if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+            geminiContent = jsonObj.candidates[0].content.parts[0].text;
+        }
+        str += geminiContent;
+        addResponseMessage(str);
+        resFlag = true;
+    }  else {
+                if (jsonObj.error) {
                     addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
                     resFlag = false;
                 }
-
-            } catch (e) {
-                console.error("JSON Parse Error:", e, "Line:", trimmedLine); // Debug: Print error and the line causing it
-                continue; // Skip to the next line on parse error
             }
-        }
+        // } // 移除 lines 循环
     }
+
     return str;
 }else { // 非流式输出处理
     const responseData = await response.json();
