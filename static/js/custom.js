@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
             let startDate = new Date();
             startDate.setDate(startDate.getDate() - 99);
             let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
 
             let usageResponse = await fetch(usageUrl, { headers });
             if (!usageResponse.ok) {
@@ -668,8 +668,8 @@ function addImageMessage(imageUrl) {
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').on('click', function() {
         const messageBubble = $(this).closest('.message-bubble');
-        const messageText = messageBubble.find('.message-text').text().trim();
-        deleteSingleMessage(messageBubble, messageText, 'assistant');
+        // 图片消息没有文本内容，可以传递 null 或一个占位符，确保 deleteSingleMessage 逻辑正确处理
+        deleteSingleMessage(messageBubble, null, 'assistant');
     });
 }
 
@@ -734,8 +734,8 @@ function addTTSMessage(audioBase64) {
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
         const messageBubble = $(this).closest('.message-bubble');
-        const messageText = messageBubble.find('.message-text').text().trim();
-        deleteSingleMessage(messageBubble, messageText, 'assistant');
+        // 音频消息没有文本内容，可以传递 null 或一个占位符，确保 deleteSingleMessage 逻辑正确处理
+        deleteSingleMessage(messageBubble, null, 'assistant');
     });
 }
 
@@ -907,11 +907,6 @@ scrollDownBtn.show();
         const messageText = messageBubble.find('.message-text').text().trim();
         deleteSingleMessage(messageBubble, messageText, 'assistant');
     });
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        const messageText = messageBubble.find('.message-text').text().trim();
-        deleteSingleMessage(messageBubble, messageText, 'assistant');
-    });
 }
 
 // 复制按钮点击事件
@@ -965,7 +960,7 @@ async function getConfig() {
   }
 }
 
-// 获取随机的 API 密钥
+// 获取随机的 API 密钥 
 function getRandomApiKey() {
   const apiKeyInput = $(".settings-common .api-key").val().trim();
   if (apiKeyInput) {
@@ -1423,7 +1418,16 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
     if (localStorage.getItem('archiveSession') === "true") {
         let currentSession = JSON.parse(localStorage.getItem("session") || "[]");
-        const messageIndex = currentSession.findIndex(msg => msg.role === role && msg.content.trim() === messageText);
+        let messageIndex;
+        if (messageText) {
+             messageIndex = currentSession.findIndex(msg => msg.role === role && msg.content.trim() === messageText);
+        } else {
+            // 对于图片或音频等没有文本的消息，可能需要根据其他唯一标识来删除，这里简化为删除最后一个对应 role 的消息
+            // 实际应用中可能需要更精确的匹配机制，例如在添加消息时生成并存储一个唯一的 ID
+            const roleIndices = currentSession.map((msg, index) => msg.role === role ? index : -1).filter(index => index !== -1);
+            messageIndex = roleIndices.length > 0 ? roleIndices[roleIndices.length - 1] : -1; // 找到最后一个对应 role 的索引
+        }
+
 
         if (messageIndex !== -1) {
             currentSession.splice(messageIndex, 1); // 从数组中删除消息
