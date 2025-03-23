@@ -668,8 +668,15 @@ function addImageMessage(imageUrl) {
     // 绑定删除按钮点击事件
 lastResponseElement.find('.delete-message-btn').click(function() {
     const messageBubble = $(this).closest('.message-bubble');
-    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
-    messageBubble.remove(); // 删除响应消息 bubble
+    const isResponse = messageBubble.find('.chat-icon').hasClass('response-icon');
+
+    if (isResponse) {
+        messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble (previous one)
+        messageBubble.remove(); // 删除响应消息 bubble (current one)
+    } else { // Assume it's a request message
+        messageBubble.remove(); // Delete the request message (current one)
+        messageBubble.next('.message-bubble').remove(); // Delete the response message (next one)
+    }
 
     if (localStorage.getItem('archiveSession') === 'true') {
         messages = []; // 清空 messages 数组
@@ -733,8 +740,15 @@ function addModerationMessage(moderationResult) {
     // 绑定删除按钮点击事件
 lastResponseElement.find('.delete-message-btn').click(function() {
     const messageBubble = $(this).closest('.message-bubble');
-    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
-    messageBubble.remove(); // 删除响应消息 bubble
+    const isResponse = messageBubble.find('.chat-icon').hasClass('response-icon');
+
+    if (isResponse) {
+        messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble (previous one)
+        messageBubble.remove(); // 删除响应消息 bubble (current one)
+    } else { // Assume it's a request message
+        messageBubble.remove(); // Delete the request message (current one)
+        messageBubble.next('.message-bubble').remove(); // Delete the response message (next one)
+    }
 
     if (localStorage.getItem('archiveSession') === 'true') {
         messages = []; // 清空 messages 数组
@@ -786,8 +800,15 @@ function addEmbeddingMessage(embeddingResult) {
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
     const messageBubble = $(this).closest('.message-bubble');
-    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
-    messageBubble.remove(); // 删除响应消息 bubble
+    const isResponse = messageBubble.find('.chat-icon').hasClass('response-icon');
+
+    if (isResponse) {
+        messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble (previous one)
+        messageBubble.remove(); // 删除响应消息 bubble (current one)
+    } else { // Assume it's a request message
+        messageBubble.remove(); // Delete the request message (current one)
+        messageBubble.next('.message-bubble').remove(); // Delete the response message (next one)
+    }
 
     if (localStorage.getItem('archiveSession') === 'true') {
         messages = []; // 清空 messages 数组
@@ -833,8 +854,15 @@ function addTTSMessage(audioBase64) {
     // 绑定删除按钮点击事件
     lastResponseElement.find('.delete-message-btn').click(function() {
     const messageBubble = $(this).closest('.message-bubble');
-    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
-    messageBubble.remove(); // 删除响应消息 bubble
+    const isResponse = messageBubble.find('.chat-icon').hasClass('response-icon');
+
+    if (isResponse) {
+        messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble (previous one)
+        messageBubble.remove(); // 删除响应消息 bubble (current one)
+    } else { // Assume it's a request message
+        messageBubble.remove(); // Delete the request message (current one)
+        messageBubble.next('.message-bubble').remove(); // Delete the response message (next one)
+    }
 
     if (localStorage.getItem('archiveSession') === 'true') {
         messages = []; // 清空 messages 数组
@@ -899,8 +927,15 @@ function addRequestMessage(message) {
   // 添加删除按钮点击事件
   requestMessageElement.find('.delete-message-btn').click(function() {
     const messageBubble = $(this).closest('.message-bubble');
-    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
-    messageBubble.remove(); // 删除响应消息 bubble
+    const isResponse = messageBubble.find('.chat-icon').hasClass('response-icon');
+
+    if (isResponse) {
+        messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble (previous one)
+        messageBubble.remove(); // 删除响应消息 bubble (current one)
+    } else { // Assume it's a request message
+        messageBubble.remove(); // Delete the request message (current one)
+        messageBubble.next('.message-bubble').remove(); // Delete the response message (next one)
+    }
 
     if (localStorage.getItem('archiveSession') === 'true') {
         messages = []; // 清空 messages 数组
@@ -1069,8 +1104,15 @@ scrollDownBtn.show();
     });
     lastResponseElement.find('.delete-message-btn').click(function() {
     const messageBubble = $(this).closest('.message-bubble');
-    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
-    messageBubble.remove(); // 删除响应消息 bubble
+    const isResponse = messageBubble.find('.chat-icon').hasClass('response-icon');
+
+    if (isResponse) {
+        messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble (previous one)
+        messageBubble.remove(); // 删除响应消息 bubble (current one)
+    } else { // Assume it's a request message
+        messageBubble.remove(); // Delete the request message (current one)
+        messageBubble.next('.message-bubble').remove(); // Delete the response message (next one)
+    }
 
     if (localStorage.getItem('archiveSession') === 'true') {
         messages = []; // 清空 messages 数组
@@ -1340,15 +1382,15 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "model": data.model,
         "voice": "alloy",
     };
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
-    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
-    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+}else if (selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
+    apiUrl =`https://gemini.baipiao.io/v1beta/models/${data.model}:streamGenerateContent?key=${apiKey}`;
     requestBody = {
         "contents": [{
             "parts": [{"text": data.prompts[0].content}]
@@ -1434,7 +1476,7 @@ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
 
     const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' ? { // Conditional headers
+        headers: selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey' ? { // Conditional headers
             'Content-Type': 'application/json'
         } : {
             'Content-Type': 'application/json',
@@ -1498,7 +1540,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     reader.readAsDataURL(audioBlob);
     resFlag = true;
     return; // For TTS, handle response and return
-} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') {
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:streamGenerateContent?key=apikey') {
     const responseData = await response.json();
     if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
         addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
@@ -2047,7 +2089,7 @@ scrollDownBtn.click(function(e) {
             scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
             scrollDownBtn.data('scroll-state', 'up');
         } else {
-            scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+            scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-down');
             scrollDownBtn.data('scroll-state', 'down');
         }
     });
