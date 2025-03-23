@@ -1531,91 +1531,63 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
 if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
 const reader = response.body.getReader();
     let res = '';
-    let str = ''; // 初始化 str 为空字符串，用于累积最终的文本内容
-    let buffer = ''; // 用于缓冲接收到的数据片段
+    let str;
     // **新增代码 - 在请求前记录是否滚动到底部**
     while (true) {
         const { done, value } = await reader.read();
         if (done) {
             break;
         }
-        buffer += new TextDecoder().decode(value);
-        // 处理以 'data: ' 开头的 SSE 数据，并移除 [DONE] 标记
-        const dataLines = buffer.split('\n').filter(line => line.startsWith('data: ') || line.trim() === '[DONE]');
-
-        for (const line of dataLines) {
-            if (line.trim() === 'data: [DONE]') {
-                buffer = ''; // 清空 buffer
-                break; // 遇到 [DONE] 后，跳出当前数据行的处理
+        str = '';
+        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const lines = res.trim().split(/[\n]+(?=\{)/);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+            } catch (e) {
+                break;
             }
-            if (line.startsWith('data: ')) {
-                const jsonString = line.substring(6); // 移除 'data: ' 前缀
-                if (jsonString.trim() === "") continue; // 忽略空数据行
-                try {
-                    const jsonObj = JSON.parse(jsonString);
-                    if (Array.isArray(jsonObj)) { // 判断是否为数组格式
-                        for (const item of jsonObj) { // 遍历数组
-                            if (item.candidates) {
-                                let geminiContent = '';
-                                if (item.candidates[0].content && item.candidates[0].content.parts && item.candidates[0].content.parts[0].text) {
-                                    geminiContent = item.candidates[0].content.parts[0].text;
-                                }
-                                str += geminiContent; // 累加内容
-                            } else if (item.error) {
-                                addFailMessage(item.error.type + " : " + item.error.message + item.error.code);
-                                resFlag = false;
-                                buffer = ''; // 清空 buffer 并跳出循环，防止继续处理后续可能的数据
-                                break;
-                            }
-                        }
-                        if (resFlag !== false) { // 确保没有错误发生
-                            addResponseMessage(str); // 一次性添加所有内容
-                            resFlag = true;
-                            str = ''; // 清空 str，为下次响应做准备
-                        }
-                        buffer = ''; // 清空 buffer，准备接收下一段数据
-                        continue; // 处理完数组后，继续处理下一行数据或结束循环
-                    } else if (jsonObj.choices) { // 保持原有的 choices 处理逻辑
-                        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-                            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
-                            const content = jsonObj.choices[0].delta.content;
+    if (jsonObj.choices) {
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
 
-                            if (reasoningContent && reasoningContent.trim() !== "") {
-                                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-                            } else if (content && content.trim() !== "") {
-                                str += content;
-                            }
-                        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
-                            str += jsonObj.choices[0].text;
-                        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
-                            const message = jsonObj.choices[0].message;
-                            const reasoningContent = message.reasoning_content;
-                            const content = message.content;
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
 
-                            if (reasoningContent && reasoningContent.trim() !== "") {
-                                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-                            } else if (content && content.trim() !== "") {
-                                str += content;
-                            }
-                        }
-                        addResponseMessage(str);
-                        resFlag = true;
-                        str = ''; // 清空 str，为下次响应做准备
-                    } else if (jsonObj.candidates) { // 保持原有的 candidates 处理逻辑 (非数组情况)
-                        let geminiContent = '';
-                        if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
-                            geminiContent = jsonObj.candidates[0].content.parts[0].text;
-                        }
-                        str += geminiContent;
-                        addResponseMessage(str);
-                        resFlag = true;
-                        str = ''; // 清空 str，为下次响应做准备
-                    } else { // 保持原有的 error 处理逻辑
-                        if (jsonObj.error) {
-                            addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
-                            resFlag = false;
-                        }
-                    }
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        }
+                addResponseMessage(str);
+                resFlag = true;
+            }else if (jsonObj.candidates) { 
+    let geminiContent = '';
+    if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+        geminiContent = jsonObj.candidates[0].content.parts[0].text;
+    }
+    str += geminiContent;
+    addResponseMessage(str);
+    resFlag = true;
+}
+             else {
+                if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                    resFlag = false;
+                }
                 }
                 }
         }
