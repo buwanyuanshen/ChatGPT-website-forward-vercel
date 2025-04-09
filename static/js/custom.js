@@ -4,7 +4,7 @@ const searchInput = document.querySelector('.model-search-input');
 
 if (selectElement) {
     // 遍历 select 元素下的所有 option 元素
-    Array.from(selectElement.options).forEach(option => {
+    Array.from(selectElement.options).forEach(option => {  
         const originalText = option.textContent; // 保存原始文本
         option.setAttribute('data-description', originalText); // 设置 data-description
         option.textContent = option.value; // 设置 textContent 为 value
@@ -1348,6 +1348,13 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
+}else if (model.includes("gemini-2.0-flash-live-001") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:bidiGenerateContent?key=${apiKey}`;
+    requestBody = {
+        "contents": [{
+            "parts": [{"text": data.prompts[0].content}]
+        }]
+    };
 }else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
     apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
@@ -1555,7 +1562,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
             if (reasoningContent && reasoningContent.trim() !== "") {
                 str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
+            } else if (content && content.trim() !== "") {  
                 str += content;
             }
         }
