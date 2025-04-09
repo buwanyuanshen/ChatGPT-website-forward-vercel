@@ -1348,13 +1348,6 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
             "parts": [{"text": data.prompts[0].content}]}],
             "generationConfig":{"responseModalities":["Text","Image"]}
     };
-}else if (model.includes("gemini-2.0-flash-live-001") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
-    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:bidiGenerateContent?key=${apiKey}`;
-    requestBody = {
-        "contents": [{
-            "parts": [{"text": data.prompts[0].content}]
-        }]
-    };
 }else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
     apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
     requestBody = {
