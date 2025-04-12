@@ -1397,6 +1397,7 @@ if (data.model.includes("grok-2-image")) {
                 requestBody = {
                     "model": data.model,
                     "prompt": data.prompts[0].content,
+                    "response_format": "url",
                     "n": 1
                 };
 }
