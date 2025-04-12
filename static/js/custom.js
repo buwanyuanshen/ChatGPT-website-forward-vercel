@@ -12,7 +12,7 @@ if (selectElement) {
 }
 
 searchInput.addEventListener('input', function() {
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = searchInput.value.toLowerCase();    
     Array.from(selectElement.options).forEach(option => {
         const description = option.getAttribute('data-description').toLowerCase();
         if (description.includes(searchTerm)) {
@@ -1405,11 +1405,11 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
             if (data.model.includes("grok-2-image")) {
-                apiUrl = datas.api_url + "/v1/chat/completions";
+                apiUrl = datas.api_url + "/v1/images/generations";
                 requestBody = {
-                    "messages": data.prompts[0].content,
                     "model": data.model,
-                    "n": 1,
+                    "prompt": data.prompts[0].content,
+                    "n": 1
                 };
             }
         if (data.model.includes("deepseek-r") ) {
