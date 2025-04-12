@@ -1405,7 +1405,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
             if (data.model.includes("grok-2-image")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
+    apiUrl = datas.api_url + "/v1/images/generations";
     requestBody = {
         "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
         "model": data.model,
