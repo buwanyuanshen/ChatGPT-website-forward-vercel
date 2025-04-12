@@ -1392,54 +1392,13 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "stream": false // 强制非流式
     };
 }
-
-            if (data.model.includes("grok-2-image")) {
+if (data.model.includes("grok-2-image")) {
                 apiUrl = datas.api_url + "/v1/images/generations";
                 requestBody = {
                     "model": data.model,
                     "prompt": data.prompts[0].content,
                     "n": 1
                 };
-            }
-        if (data.model.includes("deepseek-r") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-    if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-    if (data.model.includes("claude-3-7-sonnet-thinking") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
-if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
 }
 
     const response = await fetch(apiUrl, {
@@ -1659,7 +1618,7 @@ let imageSrc = document.getElementById('imagePreview').src;
   data.max_tokens = parseInt($(".settings-common .max-tokens").val());
 
     const selectedModel = data.model.toLowerCase();
-    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) {
+    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1") || selectedModel.includes("grok-2-image")) {
         data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
     } else {
         // 判读是否已开启连续对话
@@ -1683,7 +1642,7 @@ let imageSrc = document.getElementById('imagePreview').src;
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
-      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
+      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1") || selectedModel.includes("grok-2-image")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
         messages.push({"role": "assistant", "content": res});
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
@@ -1878,11 +1837,7 @@ const selectedModel = localStorage.getItem('selectedModel');
 // 检测模型并更新设置
 function updateModelSettings(modelName) {
     const isNonStreamModel = modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all") ||
-                               modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all") ||
-                               modelName.toLowerCase().includes("deepseek-r") ||
-                               modelName.toLowerCase().includes("claude-3-7-sonnet-20250219-thinking") ||
-                               modelName.toLowerCase().includes("claude-3-7-sonnet-thinking") ||
-                               modelName.toLowerCase().includes("claude-3-7-sonnet-thinking-20250219");
+                               modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all");
 
     const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
                                       modelName.toLowerCase().includes("cogview") ||
@@ -1974,7 +1929,7 @@ function updateModelSettings(modelName) {
 
     if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
         selectedApiPath = '/v1/completions';
-    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) {
+    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3") || lowerModelName.includes("grok-2-image")) {
         selectedApiPath = '/v1/images/generations';
     } else if (lowerModelName.includes("moderation")) {
         selectedApiPath = '/v1/moderations';
