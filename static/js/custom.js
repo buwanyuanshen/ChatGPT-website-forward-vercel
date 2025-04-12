@@ -1405,7 +1405,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
             if (data.model.includes("grok-2-image")) {
-    apiUrl = datas.api_url + "/v1/images/generations";
+    apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
         "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
         "model": data.model,
@@ -1985,7 +1985,7 @@ function updateModelSettings(modelName) {
 
     if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
         targetApiPath = '/v1/completions';
-    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3") || lowerModelName.includes("grok-2-image")) {
+    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) {
         targetApiPath = '/v1/images/generations';
     } else if (lowerModelName.includes("moderation")) {
         targetApiPath = '/v1/moderations';
