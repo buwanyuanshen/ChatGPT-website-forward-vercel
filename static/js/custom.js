@@ -1404,6 +1404,14 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "stream": false // 强制非流式
     };
 }
+            if (data.model.includes("grok-2-image")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+        "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
+        "model": data.model,
+        "n": 1,
+    };
+}
         if (data.model.includes("deepseek-r") ) {
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
@@ -1462,7 +1470,7 @@ if (!response.ok) {
     return;
 }
 
-if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3")) {
+if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3") || model.includes("grok-2-image")) {
     const responseData = await response.json();
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
         addImageMessage(responseData.data[0].url);
