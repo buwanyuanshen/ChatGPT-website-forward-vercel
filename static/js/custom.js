@@ -1400,7 +1400,42 @@ if (data.model.includes("grok-2-image")) {
                     "n": 1
                 };
 }
-
+if (data.model.includes("deepseek-r") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
+     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
+     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
+ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
     const response = await fetch(apiUrl, {
         method: 'POST',
         headers: selectedApiPath === '/v1beta/models/model:generateContent?key=apikey'? { // Conditional headers
