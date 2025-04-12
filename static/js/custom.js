@@ -1407,7 +1407,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
             if (data.model.includes("grok-2-image")) {
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
-        "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
+        "messages": data.prompts,
         "model": data.model,
         "n": 1,
     };
@@ -1670,7 +1670,7 @@ let imageSrc = document.getElementById('imagePreview').src;
   data.max_tokens = parseInt($(".settings-common .max-tokens").val());
 
     const selectedModel = data.model.toLowerCase();
-    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")|| selectedModel.includes("grok-2-image")) {
+    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) {
         data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
     } else {
         // 判读是否已开启连续对话
