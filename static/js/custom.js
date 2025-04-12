@@ -1408,7 +1408,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
                 apiUrl = datas.api_url + "/v1/images/generations";
                 requestBody = {
                     "model": data.model,
-                    "prompt": data.prompts,
+                    "prompt": data.prompts[0].content,
                     "n": 1
                 };
             }
@@ -1981,21 +1981,21 @@ function updateModelSettings(modelName) {
     localStorage.setItem('previousModel', modelName);
 
     // --- Start of Path Auto-Switching Logic ---
-    let targetApiPath = null;
+    let selectedApiPath = null;
     const lowerModelName = modelName.toLowerCase();
 
     if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
-        targetApiPath = '/v1/completions';
+        selectedApiPath = '/v1/completions';
     } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) {
-        targetApiPath = '/v1/images/generations';
+        selectedApiPath = '/v1/images/generations';
     } else if (lowerModelName.includes("moderation")) {
-        targetApiPath = '/v1/moderations';
+        selectedApiPath = '/v1/moderations';
     } else if (lowerModelName.includes("embedding")) {
-        targetApiPath = '/v1/embeddings';
+        selectedApiPath = '/v1/embeddings';
     } else if (lowerModelName.includes("tts-1")) {
-        targetApiPath = '/v1/audio/speech';
+        selectedApiPath = '/v1/audio/speech';
     }else {
-        targetApiPath = '/v1/chat/completions'; // Default path
+        selectedApiPath = '/v1/chat/completions'; // Default path
     }
 
 }
