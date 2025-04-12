@@ -1405,13 +1405,18 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
             if (data.model.includes("grok-2-image")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-        "messages": data.prompts[0].content,
-        "model": data.model,
-        "n": 1,
-    };
-}
+                apiUrl = datas.api_url + "/v1/chat/completions";
+                requestBody = {
+                    "messages": [
+                        {
+                           "role": "user",
+                           "content": data.prompts[0].content
+                        }
+                    ],
+                    "model": data.model,
+                    "n": 1,
+                };
+            }
         if (data.model.includes("deepseek-r") ) {
     apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
