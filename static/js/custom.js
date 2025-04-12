@@ -1405,10 +1405,10 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
             if (data.model.includes("grok-2-image")) {
-                apiUrl = datas.api_url + "/v1/chat/completions";
+                apiUrl = datas.api_url + "/v1/images/generations";
                 requestBody = {
                     "model": data.model,
-                    "messages": data.prompts,
+                    "prompt": data.prompts,
                     "n": 1
                 };
             }
