@@ -1392,18 +1392,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "stream": false // 强制非流式
     };
 }
-        if (data.model.includes("grok-3-mini")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
-    requestBody = {
-    "messages": data.prompts,
-    "model": data.model,
-    "max_tokens": data.max_tokens,
-    "temperature": data.temperature,
-    "top_p": 1,
-    "n": 1,
-    "stream": false // 强制非流式
-    };
-}
+
             if (data.model.includes("grok-2-image")) {
                 apiUrl = datas.api_url + "/v1/images/generations";
                 requestBody = {
@@ -1891,7 +1880,6 @@ function updateModelSettings(modelName) {
     const isNonStreamModel = modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all") ||
                                modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all") ||
                                modelName.toLowerCase().includes("deepseek-r") ||
-                               modelName.toLowerCase().includes("grok-3-mini") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-20250219-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking") ||
                                modelName.toLowerCase().includes("claude-3-7-sonnet-thinking-20250219");
