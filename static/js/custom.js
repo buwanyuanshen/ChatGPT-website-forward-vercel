@@ -1423,7 +1423,10 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
         addImageMessage(responseData.data[0].url);
         resFlag = true;
-    } else if (responseData.error) {
+    } else if (responseData.data && responseData.data.length > 0 && responseData.data[0].revised_prompt) {
+        addResponseMessage(responseData.data[0].revised_prompt);
+        resFlag = true;
+    }else if (responseData.error) {
         addFailMessage(responseData.error.message);
         resFlag = false;
     } else {
