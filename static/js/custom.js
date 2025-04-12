@@ -1405,14 +1405,9 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
             if (data.model.includes("grok-2-image")) {
-                apiUrl = datas.api_url + "/v1/chat/completions";
+                apiUrl = datas.api_url + "/v1/images/generations";
                 requestBody = {
-                    "messages": [
-                        {
-                           "role": "user",
-                           "content": data.prompts[0].content
-                        }
-                    ],
+                    "prompt": data.prompts[0].content,
                     "model": data.model,
                     "n": 1,
                 };
@@ -1675,7 +1670,7 @@ let imageSrc = document.getElementById('imagePreview').src;
   data.max_tokens = parseInt($(".settings-common .max-tokens").val());
 
     const selectedModel = data.model.toLowerCase();
-    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1")) {
+    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1") || selectedModel.includes("grok-2-image")) {
         data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
     } else {
         // 判读是否已开启连续对话
@@ -1905,6 +1900,7 @@ function updateModelSettings(modelName) {
                                       modelName.toLowerCase().includes("cogview") ||
                                       modelName.toLowerCase().includes("moderation") ||
                                       modelName.toLowerCase().includes("embedding") ||
+                                      modelName.toLowerCase().includes("grok-2-image") ||
                                       modelName.toLowerCase().includes("tts-1");
 
     var streamOutputCheckbox = document.getElementById('streamOutput');
@@ -1990,7 +1986,7 @@ function updateModelSettings(modelName) {
 
     if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
         targetApiPath = '/v1/completions';
-    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) {
+    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3") || lowerModelName.includes("grok-2-image")) {
         targetApiPath = '/v1/images/generations';
     } else if (lowerModelName.includes("moderation")) {
         targetApiPath = '/v1/moderations';
