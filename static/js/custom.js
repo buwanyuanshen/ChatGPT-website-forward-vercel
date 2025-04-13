@@ -4,90 +4,71 @@ const searchInput = document.querySelector('.model-search-input');
 
 if (selectElement) {
     // 遍历 select 元素下的所有 option 元素
-    Array.from(selectElement.options).forEach(option => {
+    Array.from(selectElement.options).forEach(option => {  
         const originalText = option.textContent; // 保存原始文本
-        // Only set data-description if it doesn't already exist (from potential localStorage load)
-        if (!option.getAttribute('data-description')) {
-            option.setAttribute('data-description', originalText);
+        option.setAttribute('data-description', originalText); // 设置 data-description
+        option.textContent = option.value; // 设置 textContent 为 value
+    });
+}
+
+searchInput.addEventListener('input', function() {
+    const searchTerm = searchInput.value.toLowerCase();    
+    Array.from(selectElement.options).forEach(option => {
+        const description = option.getAttribute('data-description').toLowerCase();
+        if (description.includes(searchTerm)) {
+            option.style.display = 'block'; // 或者 option.hidden = false;
+        } else {
+            option.style.display = 'none'; // 或者 option.hidden = true;
         }
-        // Always set textContent to value for consistency after potential localStorage load
-        option.textContent = option.value;
     });
-}
-
-if (searchInput) {
-    searchInput.addEventListener('input', function() {
-        const searchTerm = searchInput.value.toLowerCase();
-        Array.from(selectElement.options).forEach(option => {
-            // Ensure data-description exists before trying to read it
-            const descriptionAttr = option.getAttribute('data-description');
-            const description = descriptionAttr ? descriptionAttr.toLowerCase() : '';
-            // Also check the value itself for matching
-            const valueLower = option.value.toLowerCase();
-
-            if (description.includes(searchTerm) || valueLower.includes(searchTerm)) {
-                option.style.display = 'block'; // 或者 option.hidden = false;
-            } else {
-                option.style.display = 'none'; // 或者 option.hidden = true;
-            }
-        });
-        localStorage.setItem('modelSearchInput', searchInput.value); // Save search input
-    });
-}
-
+    localStorage.setItem('modelSearchInput', searchInput.value); // Save search input
+});
 
 function resetImageUpload() {
-    const imageUpload = document.getElementById('imageUpload');
-    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
-    const imagePreview = document.getElementById('imagePreview');
-    if (imageUpload) imageUpload.value = '';
-    base64Image = ''; // Ensure global variable is reset
-    if (imagePreviewContainer) imagePreviewContainer.style.display = 'none';
-    if (imagePreview) imagePreview.src = '';
+    imageUpload.value = '';
+    base64Image = '';
+    imagePreviewContainer.style.display = 'none';
+    imagePreview.src = '';
     // 可选：触发 change 事件以更新状态
-    if (imageUpload) {
-        var event = new Event('change', { bubbles: true });
-        imageUpload.dispatchEvent(event);
-    }
+    var event = new Event('change', { bubbles: true });
+    imageUpload.dispatchEvent(event);
 }
 
-var base64Image = ""; // Ensure this is declared globally or appropriately scoped
-var imageUpload = document.getElementById('imageUpload');
-var imagePreviewContainer = document.getElementById('imagePreviewContainer');
-var imagePreview = document.getElementById('imagePreview'); // Define imagePreview
-var closeButton = document.getElementById('closeButton');
+    var base64Image = "";
+    var imageUpload = document.getElementById('imageUpload');
+    var imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    var closeButton = document.getElementById('closeButton');
 
-if (imageUpload) {
     imageUpload.addEventListener('change', function(event) {
         var file = event.target.files[0];
         if (file) {
             var reader = new FileReader();
             reader.onload = function(e) {
                 base64Image = e.target.result.split(',')[1];
-                if (imagePreviewContainer) imagePreviewContainer.style.display = 'block';
-                if (imagePreview) imagePreview.src = e.target.result;
+                imagePreviewContainer.style.display = 'block';
+                document.getElementById('imagePreview').src = e.target.result;
             };
             reader.readAsDataURL(file);
         } else {
-            resetImageUpload(); // Use the reset function on file removal
+            base64Image = '';
+            imagePreviewContainer.style.display = 'none';
+            document.getElementById('imagePreview').src = '';
         }
     });
-}
 
-if (closeButton) {
     closeButton.addEventListener('click', function() {
-        resetImageUpload(); // Use the reset function
-    });
-}
+        imageUpload.value = '';
+        base64Image = '';
+        imagePreviewContainer.style.display = 'none';
+        document.getElementById('imagePreview').src = '';
 
+        var event = new Event('change', { bubbles: true });
+        imageUpload.dispatchEvent(event);
+    });
 function checkModelAndShowUpload() {
     var modelSelect = document.querySelector('.model');
-    var uploadArea = document.getElementById('uploadArea');
-
-    // Ensure elements exist before accessing properties/methods
-    if (!modelSelect || !uploadArea) return;
-
     var selectedModel = modelSelect.value.toLowerCase();
+    var uploadArea = document.getElementById('uploadArea');
 
     if (
         selectedModel.includes("gpt-4") ||
@@ -101,117 +82,23 @@ function checkModelAndShowUpload() {
         selectedModel.includes("vision") ||
         selectedModel.includes("o1") ||
         selectedModel.includes("o3")
+
     ) {
         uploadArea.style.display = 'block';
     } else {
         uploadArea.style.display = 'none';
-        resetImageUpload(); // Also reset/hide image if model doesn't support it
     }
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     var modelSelect = document.querySelector('.model');
-    if (modelSelect) {
-        modelSelect.addEventListener('change', checkModelAndShowUpload);
-        // 初始化时检查一次
-        checkModelAndShowUpload();
-    }
+    modelSelect.addEventListener('change', checkModelAndShowUpload);
 
-    // ---- Balance Functionality ----
-    var toggleBalance = document.getElementById('toggleBalance');
-    var balanceInfo = document.getElementById('balanceInfo');
-
-    if (toggleBalance && balanceInfo) {
-        // 读取Cookie并设置初始状态
-        var balanceVisibility = getCookie('balanceVisibility');
-        if (balanceVisibility === 'hidden') {
-            toggleBalance.checked = false;
-            balanceInfo.style.display = 'none';
-        } else {
-            toggleBalance.checked = true;
-            balanceInfo.style.display = 'block';
-        }
-
-        // 监听开关变化
-        toggleBalance.addEventListener('change', function() {
-            if (this.checked) {
-                balanceInfo.style.display = 'block';
-                setCookie('balanceVisibility', 'visible', 30); // 保存30天
-            } else {
-                balanceInfo.style.display = 'none';
-                setCookie('balanceVisibility', 'hidden', 30); // 保存30天
-            }
-        });
-    }
-
-    // ---- Stream Output Setting ----
-    var streamOutputCheckbox = document.getElementById('streamOutput');
-    if (streamOutputCheckbox) {
-        var streamOutput = getCookie('streamOutput');
-        if (streamOutput === 'false') {
-            streamOutputCheckbox.checked = false;
-        } else {
-            streamOutputCheckbox.checked = true; // default true or cookie is not set or 'true'
-        }
-
-        streamOutputCheckbox.addEventListener('change', function() {
-            setCookie('streamOutput', this.checked ? 'true' : 'false', 30);
-        });
-    }
-
-    // ---- Max Dialogue Messages Setting ----
-    var maxDialogueMessagesInput = document.getElementById('maxDialogueMessages');
-    if (maxDialogueMessagesInput) {
-        var maxDialogueMessages = getCookie('maxDialogueMessages');
-        if (maxDialogueMessages && !isNaN(parseInt(maxDialogueMessages))) {
-            maxDialogueMessagesInput.value = parseInt(maxDialogueMessages);
-        } else {
-            maxDialogueMessagesInput.value = 150; // Default value
-            setCookie('maxDialogueMessages', '150', 30); // Set default in cookie too
-        }
-
-        maxDialogueMessagesInput.addEventListener('change', function() {
-            let value = parseInt(this.value);
-            if (isNaN(value) || value < 1) {
-                value = 1; // Set a minimum valid value
-                this.value = value;
-            }
-            setCookie('maxDialogueMessages', value, 30);
-        });
-         // Add input event listener for instant validation if needed
-         maxDialogueMessagesInput.addEventListener('input', function() {
-            let value = this.value;
-            // Allow empty input temporarily, validation happens on change/blur
-            if (value !== "" && (isNaN(parseInt(value)) || parseInt(value) < 1)) {
-                 // Provide feedback or restrict input further if desired
-                 // For now, rely on the 'change' event for final validation & saving
-            }
-         });
-    }
-
-     // --- Balance Fetching Initialization ---
-     // Fetch default balance first, then initialize listeners that might override it
-     fetchDefaultBalance().then(() => {
-         initListeners(); // Initialize listeners after default balance (and potentially defaultApiUrl) is fetched
-     });
-
-     // --- Model Search Input Initialization ---
-    const savedModelSearchInput = localStorage.getItem('modelSearchInput');
-    if (searchInput && savedModelSearchInput) { // Check if searchInput exists
-        searchInput.value = savedModelSearchInput;
-        // Create and dispatch the event *after* the options have potentially been modified by localStorage
-        setTimeout(() => { // Use timeout to ensure options are ready
-             searchInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }, 0);
-    }
-
-    // --- API Path Initialization ---
-    const savedApiPath = localStorage.getItem('apiPath');
-    const apiPathSelectElement = document.getElementById('apiPathSelect');
-    if (apiPathSelectElement && savedApiPath) {
-        apiPathSelectElement.value = savedApiPath;
-    }
+    // 初始化时检查一次
+    checkModelAndShowUpload();
 });
+
+
 
 
 // Helper functions to set and get cookies
@@ -222,8 +109,7 @@ function setCookie(name, value, days) {
         date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));  // Calculate expiration time
         expires = "; expires=" + date.toUTCString();  // Convert to UTC string
     }
-    // Ensure cookie value is encoded
-    document.cookie = name + "=" + (encodeURIComponent(value) || "") + expires + "; path=/; SameSite=Lax"; // Added SameSite
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";  // Set cookie
 }
 
 function getCookie(name) {
@@ -232,707 +118,537 @@ function getCookie(name) {
     for (var i = 0; i < ca.length; i++) {
         var c = ca[i].trim();  // Use trim() to clean up any extra spaces
         if (c.indexOf(nameEQ) === 0) {
-            // Decode the cookie value
-            return decodeURIComponent(c.substring(nameEQ.length, c.length));
+            return c.substring(nameEQ.length, c.length);  // Return the cookie value
         }
     }
     return null;  // If cookie is not found, return null
 }
 
+document.addEventListener('DOMContentLoaded', function() {
+    // 余额显示/隐藏功能
+    var toggleBalance = document.getElementById('toggleBalance');
+    var balanceInfo = document.getElementById('balanceInfo');
 
-// Helper function to clean up API URL
-function cleanApiUrl(apiUrl) {
-    if (!apiUrl) {
-        return apiUrl;
-    }
-    let cleanedUrl = apiUrl.trim();
-    cleanedUrl = cleanedUrl.replace(/\s/g, ''); // Remove spaces
-    cleanedUrl = cleanedUrl.replace(/\/+$/, ''); // Remove trailing slashes
-    // Make regex case-insensitive and optional '/chat/completions' more robust
-    cleanedUrl = cleanedUrl.replace(/\/v1(\/chat\/completions)?$/i, '');
-    return cleanedUrl;
-}
-
-// Function to fetch balance from a specific API endpoint
-async function fetchBalance(apiUrl, apiKey) {
-    const totalBalanceEl = document.getElementById('totalBalance');
-    const usedBalanceEl = document.getElementById('usedBalance');
-    const remainingBalanceEl = document.getElementById('remainingBalance');
-
-    // Helper to set loading state
-    const setLoading = () => {
-        if (totalBalanceEl) totalBalanceEl.innerText = '总额: 加载中...';
-        if (usedBalanceEl) usedBalanceEl.innerText = '已用: 加载中...';
-        if (remainingBalanceEl) remainingBalanceEl.innerText = '剩余: 加载中...';
-    };
-
-    // Helper to set failure state
-    const setFailure = (reason = '加载失败') => {
-        if (totalBalanceEl) totalBalanceEl.innerText = `总额: ${reason}`;
-        if (usedBalanceEl) usedBalanceEl.innerText = `已用: ${reason}`;
-        if (remainingBalanceEl) remainingBalanceEl.innerText = `剩余: ${reason}`;
-    };
-
-    if (!apiUrl || !apiKey) {
-        // If either is missing, try fetching default instead of failing immediately
-        console.log("API URL or Key missing for custom fetch, attempting default.");
-        await fetchDefaultBalance();
-        return;
+    // 读取Cookie并设置初始状态
+    var balanceVisibility = getCookie('balanceVisibility');
+    if (balanceVisibility === 'hidden') {
+        toggleBalance.checked = false;
+        balanceInfo.style.display = 'none';
+    } else {
+        toggleBalance.checked = true;
+        balanceInfo.style.display = 'block';
     }
 
-    setLoading(); // Set loading state
-
-    const headers = new Headers({
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+    // 监听开关变化
+    toggleBalance.addEventListener('change', function() {
+        if (this.checked) {
+            balanceInfo.style.display = 'block';
+            setCookie('balanceVisibility', 'visible', 30); // 保存30天
+        } else {
+            balanceInfo.style.display = 'none';
+            setCookie('balanceVisibility', 'hidden', 30); // 保存30天
+        }
     });
 
-    try {
-        const cleanedApiUrl = cleanApiUrl(apiUrl);
-        if (!cleanedApiUrl) {
-            throw new Error("无效的 API URL");
-        }
-
-        // Use URL constructor for robust path joining
-        const baseUrl = new URL(cleanedApiUrl.startsWith('http') ? cleanedApiUrl : `https://${cleanedApiUrl}`); // Assume https if no scheme
-
-        const subscriptionUrl = new URL('/v1/dashboard/billing/subscription', baseUrl);
-        const usageUrl = new URL('/v1/dashboard/billing/usage', baseUrl);
-
-        let startDate = new Date();
-        startDate.setDate(startDate.getDate() - 99); // Look back 99 days
-        let endDate = new Date();
-        endDate.setDate(endDate.getDate() + 1); // Include today fully
-
-        usageUrl.searchParams.set('start_date', startDate.toISOString().split('T')[0]);
-        usageUrl.searchParams.set('end_date', endDate.toISOString().split('T')[0]); // Corrected param name
-
-        // Perform requests concurrently
-        const [subscriptionResponse, usageResponse] = await Promise.all([
-            fetch(subscriptionUrl.toString(), { headers }),
-            fetch(usageUrl.toString(), { headers })
-        ]);
-
-        if (!subscriptionResponse.ok) {
-             const errorText = await subscriptionResponse.text();
-             console.error('Subscription fetch error:', subscriptionResponse.status, errorText);
-             throw new Error(`订阅信息失败 (${subscriptionResponse.status})`);
-        }
-        if (!usageResponse.ok) {
-             const errorText = await usageResponse.text();
-             console.error('Usage fetch error:', usageResponse.status, errorText);
-             throw new Error(`用量信息失败 (${usageResponse.status})`);
-        }
-
-        const subscriptionData = await subscriptionResponse.json();
-        const usageData = await usageResponse.json();
-
-        const total = subscriptionData.hard_limit_usd ?? 0; // Use nullish coalescing for default
-        const totalUsage = (usageData.total_usage ?? 0) / 100; // API returns usage in cents
-        const remaining = total - totalUsage;
-
-        // Update the balance display
-        if (totalBalanceEl) totalBalanceEl.innerText = `总额: ${total.toFixed(4)} $`;
-        if (usedBalanceEl) usedBalanceEl.innerText = `已用: ${totalUsage.toFixed(4)} $`;
-        if (remainingBalanceEl) remainingBalanceEl.innerText = `剩余: ${remaining.toFixed(4)} $`;
-
-    } catch (error) {
-        console.error("Error fetching balance:", error);
-        setFailure(error.message || '加载失败'); // Display specific error message if available
+    // 模型输出方式是否流式
+    var streamOutputCheckbox = document.getElementById('streamOutput');
+    var streamOutput = getCookie('streamOutput');
+    if (streamOutput === 'false') {
+        streamOutputCheckbox.checked = false;
+    } else {
+        streamOutputCheckbox.checked = true; // default true or cookie is not set
     }
-}
 
-// Function to fetch default balance from the backend
-let defaultApiUrl = ''; // Variable to store default apiUrl from backend
-async function fetchDefaultBalance() {
-    const totalBalanceEl = document.getElementById('totalBalance');
-    const usedBalanceEl = document.getElementById('usedBalance');
-    const remainingBalanceEl = document.getElementById('remainingBalance');
+    streamOutputCheckbox.addEventListener('change', function() {
+        setCookie('streamOutput', this.checked ? 'true' : 'false', 30);
+    });
 
-    const setLoading = () => {
-        if (totalBalanceEl) totalBalanceEl.innerText = '总额: 加载中...';
-        if (usedBalanceEl) usedBalanceEl.innerText = '已用: 加载中...';
-        if (remainingBalanceEl) remainingBalanceEl.innerText = '剩余: 加载中...';
-    };
+    // 连续对话消息上限
+    var maxDialogueMessagesInput = document.getElementById('maxDialogueMessages');
+    var maxDialogueMessages = getCookie('maxDialogueMessages');
+    if (maxDialogueMessages) {
+        maxDialogueMessagesInput.value = maxDialogueMessages;
+    } else {
+        maxDialogueMessagesInput.value = 150; // Default value if no cookie is set, aligning with original js comment
+    }
 
-    const setFailure = (reason = '加载失败') => {
-        if (totalBalanceEl) totalBalanceEl.innerText = `总额: ${reason}`;
-        if (usedBalanceEl) usedBalanceEl.innerText = `已用: ${reason}`;
-        if (remainingBalanceEl) remainingBalanceEl.innerText = `剩余: ${reason}`;
-    };
+    maxDialogueMessagesInput.addEventListener('change', function() {
+        setCookie('maxDialogueMessages', this.value, 30);
+    });
+});
 
-    setLoading(); // Set loading state initially
 
-    try {
-        let response = await fetch('/default_balance'); // Ensure this endpoint exists and is correct
-        if (!response.ok) {
-             const errorText = await response.text();
-             console.error('Default balance fetch error:', response.status, errorText);
-             throw new Error(`获取默认余额失败 (${response.status})`);
+    // Helper function to clean up API URL
+    function cleanApiUrl(apiUrl) {
+        if (!apiUrl) {
+            return apiUrl;
         }
-        let data = await response.json();
-        if (data.error) {
-            console.error("Default balance backend error:", data.error);
-            throw new Error(data.error.message || '后端返回错误');
-        }
+        let cleanedUrl = apiUrl.trim();
+        cleanedUrl = cleanedUrl.replace(/\s/g, ''); // Remove spaces
+        cleanedUrl = cleanedUrl.replace(/\/+$/, ''); // Remove trailing slashes
+        cleanedUrl = cleanedUrl.replace(/\/v1(\/chat\/completions)?$/i, ''); // Remove /v1 or /v1/chat/completions at the end
+        return cleanedUrl;
+    }
 
-        // Store default apiUrl if provided and valid
-        if (data.url && typeof data.url === 'string') {
-             defaultApiUrl = cleanApiUrl(data.url); // Clean and store
+
+    async function fetchBalance(apiUrl, apiKey) {
+        const headers = new Headers({
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+        });
+
+        try {
+            // Clean the apiUrl before using it
+            const cleanedApiUrl = cleanApiUrl(apiUrl);
+
+            // Get the total balance (quota)
+            let subscriptionResponse = await fetch(`${cleanedApiUrl}/v1/dashboard/billing/subscription`, { headers });
+            if (!subscriptionResponse.ok) {
+                throw new Error('Failed to fetch subscription data');
+            }
+            let subscriptionData = await subscriptionResponse.json();
+            let total = subscriptionData.hard_limit_usd;
+
+            // Get the usage information
+            let startDate = new Date();
+            startDate.setDate(startDate.getDate() - 99);
+            let endDate = new Date();
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
+
+            let usageResponse = await fetch(usageUrl, { headers });
+            if (!usageResponse.ok) {
+                throw new Error('Failed to fetch usage data');
+            }
+            let usageData = await usageResponse.json();
+            let totalUsage = usageData.total_usage / 100;
+
+            let remaining = total - totalUsage;
+
+            // Update the balance display
+            document.getElementById('totalBalance').innerText = `总额: ${total.toFixed(4)} $`;
+            document.getElementById('usedBalance').innerText = `已用: ${totalUsage.toFixed(4)} $`;
+            document.getElementById('remainingBalance').innerText = `剩余: ${remaining.toFixed(4)} $`;
+
+        } catch (error) {
+            document.getElementById('totalBalance').innerText = '总额: 加载失败';
+            document.getElementById('usedBalance').innerText = '已用: 加载失败';
+            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
+        }
+    }
+
+    // Function to fetch default balance from the backend
+    let defaultApiUrl = ''; // Variable to store default apiUrl from backend
+    async function fetchDefaultBalance() {
+        try {
+            let response = await fetch('/default_balance');
+            if (!response.ok) {
+                throw new Error('Failed to fetch default balance data');
+            }
+            let data = await response.json();
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
+
+            // Store default apiUrl
+            defaultApiUrl = data.url; // Assuming the backend returns url in data
+
+            // Update the balance display with default balance
+            document.getElementById('totalBalance').innerText = `总额: ${data.total_balance.toFixed(4)} $`;
+            document.getElementById('usedBalance').innerText = `已用: ${data.used_balance.toFixed(4)} $`;
+            document.getElementById('remainingBalance').innerText = `剩余: ${data.remaining_balance.toFixed(4)} $`;
+
+        } catch (error) {
+            document.getElementById('totalBalance').innerText = '总额: 加载失败';
+            document.getElementById('usedBalance').innerText = '已用: 加载失败';
+            document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
+        }
+    }
+
+    // Function to initialize the listeners
+    function initListeners() {
+        const apiKeyField = document.querySelector('.api-key');
+        const apiUrlField = document.querySelector('.api_url');
+
+        // Initial check
+        if (apiKeyField.value.trim()) {
+            let apiUrl = apiUrlField.value.trim();
+            if (!apiUrl) {
+                apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
+            }
+            fetchBalance(apiUrl, apiKeyField.value.trim());
         } else {
-             defaultApiUrl = ''; // Reset if not provided or invalid
-             console.warn("Default API URL not provided or invalid in /default_balance response.");
+            fetchDefaultBalance();
         }
 
-
-        // Ensure balance values are numbers before formatting
-        const totalBalance = Number(data.total_balance);
-        const usedBalance = Number(data.used_balance);
-        const remainingBalance = Number(data.remaining_balance);
-
-        if (isNaN(totalBalance) || isNaN(usedBalance) || isNaN(remainingBalance)) {
-             throw new Error("无效的余额数据");
-        }
-
-
-        // Update the balance display with default balance
-        if (totalBalanceEl) totalBalanceEl.innerText = `总额: ${totalBalance.toFixed(4)} $`;
-        if (usedBalanceEl) usedBalanceEl.innerText = `已用: ${usedBalance.toFixed(4)} $`;
-        if (remainingBalanceEl) remainingBalanceEl.innerText = `剩余: ${remainingBalance.toFixed(4)} $`;
-
-    } catch (error) {
-        console.error("Error fetching default balance:", error);
-        defaultApiUrl = ''; // Ensure default URL is cleared on error
-        setFailure(error.message || '加载失败');
-    }
-}
-
-// Function to initialize the listeners for API Key and URL fields
-function initListeners() {
-    const apiKeyField = document.querySelector('.api-key');
-    const apiUrlField = document.querySelector('.api_url');
-
-    // Ensure fields exist before adding listeners
-    if (!apiKeyField || !apiUrlField) {
-        console.warn("API Key or API URL input field not found. Balance fetching might not work correctly with custom inputs.");
-        return;
-    }
-
-    // Debounce function to limit API calls
-    let debounceTimer;
-    const debounceFetch = (apiUrl, apiKey) => {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
+        // Event listeners
+        apiKeyField.addEventListener('input', function () {
+            const apiKey = apiKeyField.value.trim();
             if (apiKey) {
-                let urlToUse = apiUrl || defaultApiUrl; // Use provided apiUrl or fallback to default
-                if (!urlToUse) {
-                    console.warn("No API URL available (custom or default). Cannot fetch balance.");
-                     // Optionally display a message indicating URL is needed
-                     document.getElementById('totalBalance').innerText = '总额: 需要API URL';
-                     document.getElementById('usedBalance').innerText = '已用: 需要API URL';
-                     document.getElementById('remainingBalance').innerText = '剩余: 需要API URL';
-                    return;
+                let apiUrl = apiUrlField.value.trim();
+                if (!apiUrl) {
+                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
                 }
-                 fetchBalance(urlToUse, apiKey);
+                fetchBalance(apiUrl, apiKey);
             } else {
                 fetchDefaultBalance();
             }
-        }, 500); // Adjust delay as needed (e.g., 500ms)
-    };
+        });
 
+        apiUrlField.addEventListener('input', function () {
+            const apiKey = apiKeyField.value.trim();
+            if (apiKey) {
+                let apiUrl = apiUrlField.value.trim();
+                if (!apiUrl) {
+                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty, but in this case apiUrl is not empty because it's triggered by apiUrlField input event. So no need to check again.
+                        apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
+                } else {
+                    apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
+                }
+                fetchBalance(apiUrl, apiKey);
+            } else {
+                fetchDefaultBalance();
+            }
+        });
+    }
 
-    // --- Initial Check ---
-    // Use values from localStorage first if available, otherwise use field values
-    const initialApiKey = localStorage.getItem('apiKey') || apiKeyField.value.trim();
-    const initialApiUrl = localStorage.getItem('api_url') || apiUrlField.value.trim();
-    apiKeyField.value = initialApiKey; // Ensure field reflects the value being used
-    apiUrlField.value = initialApiUrl; // Ensure field reflects the value being used
-
-    // Trigger initial fetch based on potentially loaded values
-    debounceFetch(initialApiUrl, initialApiKey);
-
-
-    // Event listeners using debounce
-    apiKeyField.addEventListener('input', function () {
-        const apiKey = apiKeyField.value.trim();
-        const apiUrl = apiUrlField.value.trim();
-        debounceFetch(apiUrl, apiKey);
-         // Save to localStorage on input as well (optional, blur might be better)
-         // localStorage.setItem('apiKey', apiKey);
+    // Ensure DOM is fully loaded before adding event listeners
+    document.addEventListener('DOMContentLoaded', function () {
+        initListeners();
     });
 
-    apiUrlField.addEventListener('input', function () {
-        const apiKey = apiKeyField.value.trim();
-        const apiUrl = apiUrlField.value.trim();
-        debounceFetch(apiUrl, apiKey);
-         // Save to localStorage on input as well
-         // localStorage.setItem('api_url', apiUrl);
-    });
 
-     // Also fetch on blur to capture final input
-     apiKeyField.addEventListener('blur', function() {
-         const apiKey = apiKeyField.value.trim();
-         const apiUrl = apiUrlField.value.trim();
-         // No need for debounce on blur, fetch immediately if needed
-         if (apiKey) {
-             fetchBalance(apiUrl || defaultApiUrl, apiKey);
-         } else {
-             fetchDefaultBalance();
-         }
-         // Save final value to localStorage
-         if(apiKey) localStorage.setItem('apiKey', apiKey); else localStorage.removeItem('apiKey');
-     });
-
-     apiUrlField.addEventListener('blur', function() {
-         const apiKey = apiKeyField.value.trim();
-         const apiUrl = apiUrlField.value.trim();
-         if (apiKey) {
-             fetchBalance(apiUrl || defaultApiUrl, apiKey);
-         } else {
-             fetchDefaultBalance();
-         }
-          // Save final value to localStorage
-         if(apiUrl) localStorage.setItem('api_url', apiUrl); else localStorage.removeItem('api_url');
-     });
-}
-
-
-// Global variables for chat elements
-var chatInput = document.getElementById('chatInput');
-var iptContainer = document.querySelector('.ipt');
-var chatBtn = document.getElementById('chatBtn');
-var deleteBtn = document.getElementById('deleteBtn');
-var chatWindow = $('#chatWindow'); // Using jQuery selector
-var scrollDownBtn = $('.scroll-down'); // Using jQuery selector for the container
-
-// Settings
-var maxHeight = 250; // Max height for chat input
-let isScrolling = false; // Flag for scroll animation
-const scrollDuration = 400; // Scroll animation speed
-
-// --- jQuery Document Ready ---
 $(document).ready(function () {
-
-    // Function to detect links
+        // Function to detect links
     function containsLink(input) {
-        // Improved regex: handles more edge cases like parentheses in URLs
-        const urlRegex = /(?:(?:https?|ftp):\/\/|www\.)[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9()@:%_\+.~#?&//=]*)/g;
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
         return urlRegex.test(input);
     }
 
-    // --- Input Auto-Resize and Link Detection ---
-    if (chatInput && iptContainer) {
-        chatInput.addEventListener('input', function () {
-            // Save scroll position to prevent jumpiness
-            var currentScrollTop = this.scrollTop;
+    // Existing input event listener for dynamic resizing
+    chatInput.addEventListener('input', function () {
+        // Save the current scroll height
+        var currentScrollHeight = chatInput.scrollHeight;
 
-            // Adjust height
-            this.style.height = 'auto'; // Temporarily shrink to allow scrollHeight recalculation
-            var newScrollHeight = this.scrollHeight;
-            this.style.height = (Math.min(maxHeight, newScrollHeight)) + 'px';
+        // Adjust the height of the input box
+        chatInput.style.height = 'auto';
+        chatInput.style.height = (Math.min(maxHeight, chatInput.scrollHeight)) + 'px';
 
-            // Adjust container height
-            iptContainer.style.height = (Math.min(maxHeight, newScrollHeight) + 20) + 'px';
+        // Set the height of the outer container
+        iptContainer.style.height = (Math.min(maxHeight, chatInput.scrollHeight) + 20) + 'px';
 
-            // Restore scroll position
-            this.scrollTop = currentScrollTop;
+        // Restore the scroll height to prevent flickering
+        chatInput.scrollTop = currentScrollHeight;
 
+        // Check if the input contains a link
+        if (containsLink(chatInput.value)) {
+            // Disable continuous dialogue
+            $("#chck-2").prop("checked", false);
+            localStorage.setItem('continuousDialogue', false);
+        }
+    });
 
-            // Check if the input contains a link and continuous dialogue is enabled
-            if (localStorage.getItem('continuousDialogue') === 'true' && containsLink(chatInput.value)) {
-                // Temporarily disable continuous dialogue for this send
-                 // We don't change the checkbox/localStorage permanently here.
-                 // The check should happen when *sending* the message.
-                 console.log("Link detected, continuous dialogue will be temporarily ignored for this message if active.");
-                 // Optionally show a visual indicator?
-            }
-        });
-    } else {
-         console.warn("Chat input or container not found. Auto-resizing disabled.");
-    }
-
-
-    // --- Custom Model Management ---
-    // Function to save models to localStorage
-    function saveModelsToLocalStorage() {
-        var modelsHtml = $(".model").html();
-        localStorage.setItem('customModels', modelsHtml);
-    }
-
-    // Function to initialize data-description and textContent = value
-    function initializeModelOptions() {
-        $(".model option").each(function() {
-            const option = $(this);
-            const originalText = option.text(); // Get current text (might be value already)
-            const value = option.val();
-
-            // Set data-description preferably from original text if available and not already set
-            if (!option.attr('data-description')) {
-                option.attr('data-description', originalText);
-            }
-            // Ensure textContent is always the value
-            option.text(value);
-        });
-    }
-
-    // Load models from localStorage if available
+// 读取本地存储中的模型列表，并初始化模型选择下拉框
     var savedModels = localStorage.getItem('customModels');
     if (savedModels) {
         $(".model").html(savedModels);
     }
 
-    // Initialize options after potentially loading from localStorage
-    initializeModelOptions();
-
-    // Update title based on selected model
-    function updateTitle() {
-        const selectedOption = $(".settings-common .model option:selected");
-        // Use data-description if available, otherwise fallback to value/text
-        const titleText = selectedOption.data('description') || selectedOption.val() || "Select Model";
-         // Ensure the title element exists
-         const titleElement = $(".title h2");
-         if (titleElement.length > 0) {
-             titleElement.text(titleText);
-         } else {
-             console.warn("Title H2 element not found.");
-         }
-    }
-    updateTitle(); // Initial title update
-
-
-    // Add Custom Model Button
+    // 监听添加自定义模型按钮点击事件
     $(".add-custom-model").on("click", function () {
-        var customModelInput = $(".custom-model");
-        var customModelName = customModelInput.val().trim();
+        // 获取用户输入的自定义模型名称
+        var customModelName = $(".custom-model").val().trim();
 
-        if (customModelName === "") {
-            alert("请输入有效的模型名称！");
-            return;
-        }
+        // 确保模型名称非空
+        if (customModelName !== "") {
+            // 检查是否已存在相同模型
+            if ($(".model option[value='" + customModelName + "']").length === 0) {
+                // 创建新的 option 元素
+                var newOption = $('<option>', {
+                    value: customModelName,
+                    text: customModelName, // 设置 textContent 为 value
+                    'data-description': customModelName //设置data-description为value
+                });
+                // 添加自定义模型到模型选择下拉框
+                $(".model").prepend(newOption); // Prepend to add to the beginning
 
-        // Check if model already exists (case-insensitive check might be better)
-        if ($(".model option[value='" + customModelName + "']").length > 0) {
-            alert("该模型已存在！");
-            return;
-        }
+                // 设置新添加的模型为选中项
+                $(".model").val(customModelName);
 
-        // Create new option
-        var newOption = $('<option>', {
-            value: customModelName,
-            text: customModelName, // Text initially same as value
-            'data-description': customModelName // Set data-description
-        });
+                // 保存模型列表到本地存储
+                saveModelsToLocalStorage();
 
-        // Add to the beginning (prepend) and select it
-        $(".model").prepend(newOption).val(customModelName);
+                // 清空输入框
+                $(".custom-model").val("");
 
-        // Re-initialize the newly added option's text/data-description
-        initializeModelOptions(); // Re-run to ensure consistency
+                // 添加后立即更新标题
+                updateTitle(); // Call updateTitle here
 
-        saveModelsToLocalStorage();
-        customModelInput.val(""); // Clear input
-        updateTitle(); // Update title immediately
-        checkModelAndShowUpload(); // Check if upload area needs to be shown/hidden
-        updateModelSettings(customModelName); // Update stream settings etc.
-    });
-
-    // Delete Custom Model Button
-    $(".delete-custom-model").on("click", function () {
-        var customModelInput = $(".custom-model");
-        var customModelName = customModelInput.val().trim();
-
-        if (customModelName === "") {
-            alert("请输入有效的模型名称！");
-            return;
-        }
-
-        var optionToRemove = $(".model option[value='" + customModelName + "']");
-        if (optionToRemove.length > 0) {
-             // Check if it's the currently selected model
-             const isSelected = optionToRemove.is(':selected');
-             optionToRemove.remove();
-             saveModelsToLocalStorage();
-             customModelInput.val("");
-
-             // If the deleted model was selected, select the first available option and update
-             if (isSelected && $(".model option").length > 0) {
-                 $(".model").prop('selectedIndex', 0); // Select the first option
-                 const newSelectedModel = $(".model").val();
-                 localStorage.setItem('selectedModel', newSelectedModel); // Update storage
-                 updateTitle();
-                 checkModelAndShowUpload();
-                 updateModelSettings(newSelectedModel);
-             } else if ($(".model option").length === 0) {
-                 // Handle case where no models are left
-                 updateTitle(); // Title might become empty/default
-                 checkModelAndShowUpload();
-                 updateModelSettings(""); // Pass empty string?
-                 localStorage.removeItem('selectedModel');
-             }
-
+            } else {
+                alert("该模型已存在！");
+            }
         } else {
-            alert("未找到要删除的模型！");
+            alert("请输入有效的模型名称！");
         }
     });
 
-    // --- Settings Persistence & Initialization --- (Moved relevant parts inside DOMContentLoaded)
+    // 监听删除自定义模型按钮点击事件
+    $(".delete-custom-model").on("click", function () {
+        // 获取用户输入的自定义模型名称
+        var customModelName = $(".custom-model").val().trim();
 
-    // Example: Initializing temperature from localStorage
-    const savedTemperature = localStorage.getItem('temperature');
-    if (savedTemperature) {
-        const tempValue = parseFloat(savedTemperature);
-        if (!isNaN(tempValue)) {
-            $('.settings-common .temperature').val(tempValue);
-            $('.settings-common .temperature-display').text(tempValue);
-            $('.settings-common .temperature-input').val(tempValue);
-        }
-    }
+        // 确保模型名称非空
+        if (customModelName !== "") {
+            // 检查是否存在相同模型
+            var optionToRemove = $(".model option[value='" + customModelName + "']");
+            if (optionToRemove.length > 0) {
+                // 删除相同模型
+                optionToRemove.remove();
 
-    // Example: Initializing max_tokens from localStorage
-    const savedMaxTokens = localStorage.getItem('max_tokens '); // Note the space in key
-    if (savedMaxTokens) {
-        const tokensValue = parseInt(savedMaxTokens);
-         if (!isNaN(tokensValue)) {
-            $('.settings-common .max-tokens').val(tokensValue);
-            $('.settings-common .max-tokens-display').text(tokensValue);
-            $('.settings-common .max-tokens-input').val(tokensValue);
-         }
-    }
+                // 保存模型列表到本地存储
+                saveModelsToLocalStorage();
 
-     // --- Initial Chat Window Scroll ---
-     // Scroll to bottom only if there's content
-     if (chatWindow.children().length > 0) {
-         chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
-         scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
-         scrollDownBtn.data('scroll-state', 'up'); // Set state to 'up' if scrolled down
-     } else {
-         scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-         scrollDownBtn.data('scroll-state', 'down'); // Default state
-     }
-     scrollDownBtn.show(); // Always show the button
-
-}); // --- End jQuery $(document).ready ---
-
-
-// --- Input Height Reset Logic ---
-if (chatBtn) {
-    chatBtn.addEventListener('click', resetInputHeight);
-}
-if (deleteBtn) {
-    deleteBtn.addEventListener('click', resetInputHeight);
-}
-if (chatInput) {
-    chatInput.addEventListener('keydown', function (event) {
-        // Ctrl+Enter or Cmd+Enter for sending
-        if ((event.ctrlKey || event.metaKey) && event.keyCode === 13) {
-            event.preventDefault(); // Prevent default newline
-            resetInputHeight();
-            chatBtn.click(); // Trigger send
-        }
-        // Enter on mobile for sending
-        else if (isMobile() && event.keyCode === 13 && !event.shiftKey) { // Ensure Shift+Enter still works for newline
-            event.preventDefault();
-            resetInputHeight();
-            chatBtn.click();
+                // 清空输入框
+                $(".custom-model").val("");
+            } else {
+                alert("未找到要删除的模型！");
+            }
+        } else {
+            alert("请输入有效的模型名称！");
         }
     });
-}
 
-function resetInputHeight() {
-    if (chatInput) {
-        chatInput.style.height = '32px'; // Reset to initial height
+    // 将模型列表保存到本地存储
+    function saveModelsToLocalStorage() {
+        var modelsHtml = $(".model").html();
+        localStorage.setItem('customModels', modelsHtml);
     }
-    if (iptContainer) {
-        iptContainer.style.height = '50px'; // Reset container height
-    }
-}
 
-// --- Mobile Detection ---
+    // 初始化 data-description 属性
+    function initializeDataDescription() {
+        $(".model option").each(function() {
+            if (!$(this).attr('data-description')) { // Only initialize if it doesn't exist
+                const originalText = $(this).text();
+                $(this).attr('data-description', originalText);
+                $(this).text($(this).val());
+            }
+
+        });
+    }
+
+    function updateTitle() {
+        $(".title h2").text($(".settings-common .model option:selected").data('description'));
+    }
+    initializeDataDescription();
+    updateTitle();
+
+    // Load model search input from localStorage
+    const savedModelSearchInput = localStorage.getItem('modelSearchInput');
+    if (savedModelSearchInput) {
+        searchInput.value = savedModelSearchInput;
+        searchInput.dispatchEvent(new Event('input')); // Trigger input event to filter options
+    }
+
+    const savedApiPath = localStorage.getItem('apiPath');
+    if (savedApiPath) {
+        $('#apiPathSelect').val(savedApiPath);
+    }
+});
+
+
+// 获取输入框元素和外部容器
+var chatInput = document.getElementById('chatInput');
+var iptContainer = document.querySelector('.ipt');
+
+// 设置输入框的最大高度为250px
+var maxHeight = 250;
+
+// 获取发送按钮元素
+var chatBtn = document.getElementById('chatBtn');
+
+// 获取删除按钮元素
+var deleteBtn = document.getElementById('deleteBtn');
+// 获取 scroll-down 按钮元素
+var scrollDownBtn = $('.scroll-down a');
+// 获取 chatWindow 元素
+var chatWindow = $('#chatWindow');
+
+// 标志当前是否正在滚动
+let isScrolling = false;
+// 滚动动画的持续时间（毫秒）
+const scrollDuration = 400; // 匀速滚动速度，可以调整
+
+// 判断是否是移动端
 function isMobile() {
-  // Consider more robust detection if needed (e.g., touch events, user agent)
-  return window.innerWidth <= 768;
+  // 使用适当的移动设备检测逻辑，这里简单地检查是否小于某个屏幕宽度
+  return window.innerWidth <= 768; // 这里假设小于等于768像素的宽度是移动端
 }
 
-// --- Temperature Slider/Input Sync ---
-// Slider input event
+// 监听输入框内容变化
+chatInput.addEventListener('input', function () {
+    // 保存当前输入框的滚动高度
+    var currentScrollHeight = chatInput.scrollHeight;
+
+    // 使输入框高度自动适应内容
+    chatInput.style.height = 'auto';
+    chatInput.style.height = (Math.min(maxHeight, chatInput.scrollHeight)) + 'px';
+
+    // 计算输入框的新高度
+    var newHeight = Math.min(maxHeight, chatInput.scrollHeight);
+
+    // 设置外部容器的高度
+    iptContainer.style.height = (newHeight + 20) + 'px'; // 增加20px的额外空间
+
+    // 恢复滚动高度，避免闪烁
+    chatInput.scrollTop = currentScrollHeight;
+});
+
+// 监听发送按钮点击事件
+chatBtn.addEventListener('click', function () {
+    // 设置输入框的初始高度
+    chatInput.style.height = '32px';
+    iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
+});
+
+// 监听删除按钮点击事件
+deleteBtn.addEventListener('click', function () {
+    // 设置输入框的初始高度
+    chatInput.style.height = '32px';
+    iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
+});
+
+// 监听键盘按下事件
+chatInput.addEventListener('keydown', function (event) {
+    // 判断同时按下Ctrl键和Enter键
+    if (event.ctrlKey && event.keyCode === 13) {
+        // 设置输入框的初始高度
+        chatInput.style.height = '32px';
+        iptContainer.style.height = '50px'; // 将外部容器的高度也设置为初始值
+    }
+    // 如果是手机端，直接按下Enter键发送
+    else if (isMobile() && event.keyCode == 13) {
+        chatBtn.click();
+        event.preventDefault();  //避免回车换行
+    }
+});
+
+
+// 监听 temperature 变化
 $('.settings-common .temperature').on('input', function() {
-    const temperatureValue = parseFloat($(this).val()).toFixed(1); // Ensure single decimal place
+    const temperatureValue = $(this).val();
     $('.settings-common .temperature-display').text(temperatureValue);
     $('.settings-common .temperature-input').val(temperatureValue);
 });
 
-// Input field input event
+// 监听 temperature 输入框变化
 $('.settings-common .temperature-input').on('input', function() {
     let temperatureValue = $(this).val();
-    const minTemperature = parseFloat($(this).attr('min') || 0);
-    const maxTemperature = parseFloat($(this).attr('max') || 2);
+    const minTemperature = parseFloat($('.settings-common .temperature-input').attr('min'));
+    const maxTemperature = parseFloat($('.settings-common .temperature-input').attr('max'));
 
-    // Basic validation (allow partial input like "1.")
-    if (temperatureValue === "" || temperatureValue === ".") return; // Allow empty or just dot temporarily
-
-    let numericValue = parseFloat(temperatureValue);
-
-    if (isNaN(numericValue)) {
-         // Handle invalid input - maybe reset or show error?
-         // For now, let's prevent further invalid state by potentially resetting
-         // Or just rely on blur/change event for final validation.
-         return;
+    // 限制最多只能输入两个数字
+    const regex = /^(\d{0,2}(\.\d{0,1})?)?$/;
+    if (!regex.test(temperatureValue)) {
+    temperatureValue = parseFloat(temperatureValue).toFixed(1);
+        $(this).val(temperatureValue);
+    } else {
+        // 处理以0开头后面直接跟数字的情况，如01
+        if (temperatureValue.startsWith('0') && temperatureValue.length > 1 && temperatureValue[1] !== '.') {
+            temperatureValue = parseFloat(temperatureValue); // 将字符串转换为数字
+            $(this).val(temperatureValue); // 更新输入框的值
+        }
+        // 将字符串转换为数字
+        temperatureValue = parseFloat(temperatureValue);
+        if (isNaN(temperatureValue) || temperatureValue < minTemperature) {
+            temperatureValue = minTemperature;
+            $(this).val(minTemperature);
+        } else if (temperatureValue > maxTemperature) {
+            temperatureValue = maxTemperature;
+            $(this).val(maxTemperature);
+        }
     }
-
-     // Clamp value immediately if it exceeds bounds
-     if (numericValue < minTemperature) numericValue = minTemperature;
-     if (numericValue > maxTemperature) numericValue = maxTemperature;
-
-
-    // Don't restrict decimal places during input, only on display/slider update
-    $('.settings-common .temperature-display').text(numericValue.toFixed(1)); // Display with one decimal
-    $('.settings-common .temperature').val(numericValue); // Update slider
-
-    // Optionally reformat input field on blur/change if needed:
-    // $(this).val(numericValue.toFixed(1));
+    $('.settings-common .temperature-display').text(temperatureValue);
+    $('.settings-common .temperature').val(temperatureValue);
 });
 
-// Input field change/blur event for final validation and storage
-$('.settings-common .temperature-input').on('change blur', function() {
-    let temperatureValue = parseFloat($(this).val());
-    const minTemperature = parseFloat($(this).attr('min') || 0);
-    const maxTemperature = parseFloat($(this).attr('max') || 2);
 
-     if (isNaN(temperatureValue)) {
-        temperatureValue = parseFloat($('.settings-common .temperature').val()); // Revert to slider value
-    } else if (temperatureValue < minTemperature) {
-        temperatureValue = minTemperature;
-    } else if (temperatureValue > maxTemperature) {
-        temperatureValue = maxTemperature;
-    }
-
-    const finalValue = temperatureValue.toFixed(1);
-    $(this).val(finalValue); // Update input field with formatted value
-    $('.settings-common .temperature-display').text(finalValue);
-    $('.settings-common .temperature').val(finalValue); // Sync slider
-
-    // Save to localStorage
-    localStorage.setItem('temperature', finalValue);
-});
-
-// --- Max Tokens Slider/Input Sync ---
-// Slider input event
+// 监听 max_tokens 变化
 $('.settings-common .max-tokens').on('input', function() {
-    const maxTokensValue = parseInt($(this).val());
-    if (!isNaN(maxTokensValue)) {
-        $('.settings-common .max-tokens-display').text(maxTokensValue);
-        $('.settings-common .max-tokens-input').val(maxTokensValue);
+    const maxTokensValue = $(this).val();
+    $('.settings-common .max-tokens-display').text(maxTokensValue);
+    $('.settings-common .max-tokens-input').val(maxTokensValue);
+});
+
+// 监听 max_tokens 输入框键盘按下事件
+$('.settings-common .max-tokens-input').on('keypress', function(event) {
+const maxTokensValue = $(this).val();
+    // 获取按下的键码
+    const keyCode = event.which || event.keyCode;
+    // 获取当前输入框的值
+    const inputValue = $(this).val();
+    // 如果按下的键是小数点，并且当前输入框的值已经包含小数点，则阻止默认行为
+    if (keyCode === 46 ) {
+        event.preventDefault();
     }
 });
 
-// Input field input event (basic validation)
+// 监听 max_tokens 输入框变化
 $('.settings-common .max-tokens-input').on('input', function() {
-    let maxTokensValue = $(this).val();
-    // Remove non-digit characters
-    maxTokensValue = maxTokensValue.replace(/[^0-9]/g, '');
-    $(this).val(maxTokensValue); // Update input field immediately
-
-    if (maxTokensValue === "") return; // Allow empty temporarily
-
-    const numericValue = parseInt(maxTokensValue);
-    const minTokens = parseInt($(this).attr('min') || 1);
-    const maxTokens = parseInt($(this).attr('max') || 4096);
-
-
-    if (!isNaN(numericValue)) {
-         // Don't clamp immediately during input unless strictly needed
-         // Clamp on display/slider update
-         let displayValue = numericValue;
-         if (displayValue < minTokens) displayValue = minTokens; // Display clamped value
-         if (displayValue > maxTokens) displayValue = maxTokens; // Display clamped value
-
-
-        $('.settings-common .max-tokens-display').text(displayValue); // Display potentially clamped value
-        // Update slider only if within valid range (or clamp slider value)
-        let sliderValue = numericValue;
-         if (sliderValue < minTokens) sliderValue = minTokens;
-         if (sliderValue > maxTokens) sliderValue = maxTokens;
-        $('.settings-common .max-tokens').val(sliderValue);
-    }
-});
-
-// Input field change/blur event for final validation and storage
-$('.settings-common .max-tokens-input').on('change blur', function() {
     let maxTokensValue = parseInt($(this).val());
-    const minTokens = parseInt($(this).attr('min') || 1);
-    const maxTokens = parseInt($(this).attr('max') || 4096);
+    const minTokens = parseInt($('.settings-common .max-tokens-input').attr('min'));
+    const maxTokens = parseInt($('.settings-common .max-tokens-input').attr('max'));
 
     if (isNaN(maxTokensValue) || maxTokensValue < minTokens) {
         maxTokensValue = minTokens;
+        $(this).val(minTokens);
     } else if (maxTokensValue > maxTokens) {
         maxTokensValue = maxTokens;
+        $(this).val(maxTokens);
     }
 
-    $(this).val(maxTokensValue); // Update input field with validated value
     $('.settings-common .max-tokens-display').text(maxTokensValue);
-    $('.settings-common .max-tokens').val(maxTokensValue); // Sync slider
-
-    // Save to localStorage (ensure key consistency)
-    localStorage.setItem('max_tokens ', maxTokensValue); // Using 'max_tokens ' key from original code
+    $('.settings-common .max-tokens').val(maxTokensValue);
 });
 
 
-// --- Core Chat Logic ---
+// 功能
 $(document).ready(function() {
-  // Re-select elements within this scope if needed, or use globals defined earlier
   var chatBtn = $('#chatBtn');
   var chatInput = $('#chatInput');
   var chatWindow = $('#chatWindow');
-  var streamOutputSetting = $('#streamOutputSetting'); // Get stream setting row
-  const apiPathSelect = $('#apiPathSelect');
-  const modelSelect = $('.settings-common .model');
-  const scrollDownBtn = $('.scroll-down'); // Container
+  var streamOutputSetting = $('#streamOutputSetting'); // 获取模型输出方式设置行
+  const apiPathSelect = $('#apiPathSelect'); // 获取 API Path 选择器
+    const modelSelect = $('.settings-common .model'); // 获取模型选择 select 元素
+    const modelSearchInput = $('.model-search-input'); // 获取模型搜索 input 元素
+    const scrollDownBtn = $('.scroll-down'); // 获取 scroll-down 按钮容器
 
-  // Conversation history
-  var messages = []; // Initialize as empty array
 
-  // Response flag
-  var resFlag = true;
-  var ajaxRequest = null; // Variable to hold the AJAX request for aborting
+  // 存储对话信息,实现连续对话
+  var messages = [];
 
-  // Marked.js setup
+  // 检查返回的信息是否是正确信息
+  var resFlag = true
+
+  // 创建自定义渲染器
   const renderer = new marked.Renderer();
+
+  // 重写list方法
   renderer.list = function(body, ordered, start) {
     const type = ordered ? 'ol' : 'ul';
     const startAttr = (ordered && start) ? ` start="${start}"` : '';
-    // Add classes for styling if needed
-    return `<${type}${startAttr} class="marked-list">\n${body}</${type}>\n`;
+    return `<${type}${startAttr}>\n${body}</${type}>\n`;
   };
-   // Override link rendering to add target="_blank"
-   renderer.link = function(href, title, text) {
-     // Basic check if it looks like a valid URL
-     if (href && (href.startsWith('http') || href.startsWith('//'))) {
-         return `<a href="${href}" title="${title || ''}" target="_blank" rel="noopener noreferrer">${text}</a>`;
-     }
-     // Otherwise, render as plain text or handle differently
-     return text; // Or return the original markdown link text: `[${text}](${href})`
-   };
 
-
+  // 设置marked选项
   marked.setOptions({
     renderer: renderer,
     highlight: function (code, language) {
-      const validLanguage = hljs.getLanguage(language) ? language : 'plaintext'; // Default to plaintext
-      try {
-          return hljs.highlight(code, { language: validLanguage, ignoreIllegals: true }).value;
-      } catch (e) {
-          console.error("Highlighting error:", e);
-          return hljs.highlight(code, { language: 'plaintext', ignoreIllegals: true }).value; // Fallback safely
-      }
-    },
-     gfm: true, // Enable GitHub Flavored Markdown
-     breaks: true, // Convert single newlines to <br>
-     pedantic: false,
-     smartLists: true,
-     smartypants: false
+      const validLanguage = hljs.getLanguage(language) ? language : 'javascript';
+      return hljs.highlight(code, { language: validLanguage }).value;
+    }
   });
 
-  // HTML escaping function
+
+  // 转义html代码(对应字符转移为html实体)，防止在浏览器渲染
   function escapeHtml(html) {
     let text = document.createTextNode(html);
     let div = document.createElement('div');
@@ -940,1794 +656,1585 @@ $(document).ready(function() {
     return div.innerHTML;
   }
 
- // Rebuild messages array from DOM and save (used by delete buttons)
-function rebuildAndSaveMessages() {
-    messages = []; // Clear current array
-    $('#chatWindow .message-bubble').each(function() {
-        const bubble = $(this);
-        const messageTextElement = bubble.find('.message-text');
-        let role = '';
-        let content = '';
-
-        if (bubble.find('.request-icon').length > 0) {
-            role = 'user';
-            // Get text content, handling potential <p> or direct text
-             content = messageTextElement.find('p').length ? messageTextElement.find('p').text() : messageTextElement.text();
-             // Trim buttons text if necessary (though they are usually siblings)
-             content = content.replace(/复制编辑删除$/,'').trim(); // Basic trim
-
-        } else if (bubble.find('.response-icon').length > 0) {
-            role = 'assistant';
-            // Determine content type based on elements inside message-text
-            if (messageTextElement.find('img').length > 0) {
-                content = messageTextElement.find('img').attr('src') || '//image url...'; // SAVE THE URL
-            } else if (messageTextElement.find('audio').length > 0) {
-                content = '//audio base64...'; // Placeholder for audio
-            } else if (messageTextElement.find('pre').length > 0) {
-                content = messageTextElement.find('pre').text(); // Get code content
-            } else if (messageTextElement.find('p').length > 0 || messageTextElement.find('ul').length > 0 || messageTextElement.find('ol').length > 0) {
-                 // Get combined HTML content for markdown rendering, or just text
-                 // For simplicity in saving, let's try getting the text content first.
-                 // This might lose formatting for complex markdown in history.
-                 // A better approach might be to store the raw markdown, but that requires more changes.
-                 content = messageTextElement.text();
-                  // Basic trim of button text
-                  content = content.replace(/复制查看删除$/,'').trim();
-            } else {
-                 // Fallback for simple text or unknown structure
-                 content = messageTextElement.text();
-                 content = content.replace(/复制查看删除$/,'').trim();
-            }
-        }
-
-        if (role && content) {
-            // Trim button text from the end more reliably if needed
-            // Example: remove "复制编辑删除" or "复制查看删除" etc.
-            // This depends heavily on the exact button text and structure.
-            // A safer way is to select the text node directly if possible.
-
-            messages.push({ "role": role, "content": content.trim() });
-        } else if (role && !content && role === 'assistant') {
-            // Handle case where assistant response might be empty (e.g., failed generation placeholder)
-             // Decide whether to save empty responses or skip them
-             // console.log("Skipping potentially empty assistant message during rebuild.");
-        }
-    });
-
-    // Save the rebuilt array
-    if (localStorage.getItem('archiveSession') === 'true') {
-        if (messages.length > 0) {
-            localStorage.setItem("session", JSON.stringify(messages));
-        } else {
-            localStorage.removeItem("session"); // Remove if empty
-        }
-    }
-}
-
-
-// --- Message Adding Functions ---
-
-// Add Image Message (Handles Display, Saving, Deletion)
+// 添加图片消息到窗口
 function addImageMessage(imageUrl) {
     let lastResponseElement = $(".message-bubble .response").last();
-    if (!lastResponseElement.length) {
-        console.error("Cannot add image message: No preceding response element found.");
-        return;
-    }
-    lastResponseElement.empty(); // Clear loading indicator or previous content
+    lastResponseElement.empty();
+    lastResponseElement.append(`<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>` + '<button class="view-button"><i class="fas fa-search"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
-    // Create image element and buttons
-    const imageElement = `<img src="${imageUrl}" style="max-width: 100%; max-height: 300px; display: block; margin-top: 5px;" alt="Generated Image">`; // Adjusted style
-    const viewButton = '<button class="view-button"><i class="fas fa-search"></i></button>';
-    const deleteButton = '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>';
-
-    // Append to the response element
-    lastResponseElement.append(`<div class="message-text">${imageElement}</div>` + viewButton + deleteButton);
-
-    // *** Add to messages array and save (Moved Logic) ***
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        messages.push({"role": "assistant", "content": imageUrl}); // SAVE THE ACTUAL URL
-        if (localStorage.getItem('archiveSession') === 'true') {
-            localStorage.setItem("session", JSON.stringify(messages));
-        }
-    } else {
-         console.warn("addImageMessage called without preceding user message in array.");
-    }
-
-    // Bind view button event
+    // 绑定查看按钮事件
     lastResponseElement.find('.view-button').on('click', function() {
         window.open(imageUrl, '_blank');
     });
+    // 绑定删除按钮点击事件
+lastResponseElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
 
-    // Bind delete button event
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        const requestBubble = messageBubble.prev('.message-bubble'); // Find the preceding request
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
 
-        requestBubble.remove(); // Remove request message bubble
-        messageBubble.remove(); // Remove response message bubble
-
-        rebuildAndSaveMessages(); // Rebuild and save after deletion
-    });
-
-     scrollToBottom(); // Scroll after adding
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
+            }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
+        }
+    }
+});
 }
 
-
-// Add Moderation Message
+// 添加审查结果消息到窗口
 function addModerationMessage(moderationResult) {
     let lastResponseElement = $(".message-bubble .response").last();
-     if (!lastResponseElement.length) return;
     lastResponseElement.empty();
-
     let formattedResult = "<p>审查结果:</p><ul>";
-    // Assuming moderationResult is an array from the API structure
-    if (Array.isArray(moderationResult) && moderationResult.length > 0) {
-         const result = moderationResult[0]; // Usually only one result for a single input
-         formattedResult += `<li>有害标记: ${result.flagged ? '是' : '否'}</li>`;
-
-         if (result.categories) {
-             formattedResult += "<li>违规类别:<ul>";
-             for (const category in result.categories) {
-                 formattedResult += `<li>${category}: ${result.categories[category] ? '是' : '否'}</li>`;
-             }
-             formattedResult += "</ul></li>";
-         }
-          if (result.category_scores) {
-             formattedResult += "<li>违规类别分数 (越大置信度越高):<ul>";
-             for (const score in result.category_scores) {
-                 formattedResult += `<li>${score}: ${result.category_scores[score].toFixed(4)}</li>`;
-             }
-             formattedResult += "</ul></li>";
-         }
-    } else {
-         formattedResult = "<p>无法解析审查结果。</p>";
-    }
+    moderationResult.forEach(result => {
+        formattedResult += `<li>有害标记: ${result["有害标记"] ? '是' : '否'}</li>`;
+        formattedResult += "<li>违规类别:<ul>";
+        for (const category in result["违规类别"]) {
+            formattedResult += `<li>${category}: ${result["违规类别"][category] ? '是' : '否'}</li>`;
+        }
+        formattedResult += "</ul></li>";
+        formattedResult += "<li>违规类别分数:<ul>";
+        for (const score in result["违规类别分数(越大置信度越高)"]) {
+            formattedResult += `<li>${score}: ${result["违规类别分数(越大置信度越高)"][score].toFixed(4)}</li>`;
+        }
+        formattedResult += "</ul></li>";
+    });
     formattedResult += "</ul>";
-
     lastResponseElement.append('<div class="message-text">' + formattedResult + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    // 绑定复制按钮点击事件
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim());
+    });
+    // 绑定删除按钮点击事件
+lastResponseElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
 
-     // *** Add to messages array and save ***
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        // Save a simplified representation or the full JSON?
-        messages.push({"role": "assistant", "content": JSON.stringify(moderationResult) }); // Save JSON string
-        if (localStorage.getItem('archiveSession') === 'true') {
-            localStorage.setItem("session", JSON.stringify(messages));
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
+            }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
     }
-
-    // Bind buttons
-    lastResponseElement.find('.copy-button').click(function() {
-        copyMessage($(this).prev().text().trim()); // Copy displayed text
-    });
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.prev('.message-bubble').remove();
-        messageBubble.remove();
-        rebuildAndSaveMessages();
-    });
-     scrollToBottom();
+});
 }
 
-// Add Embedding Message
+// 添加 Embedding 结果消息到窗口
 function addEmbeddingMessage(embeddingResult) {
     let lastResponseElement = $(".message-bubble .response").last();
-     if (!lastResponseElement.length) return;
     lastResponseElement.empty();
+    // Display the embedding result as a JSON string in a <pre> block for readability
+    const embeddingString = JSON.stringify(embeddingResult, null, 2); // null, 2 for pretty printing
+    lastResponseElement.append(`<div class="message-text"><p></p><pre style="white-space: pre-wrap;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
-    const embeddingString = JSON.stringify(embeddingResult, null, 2);
-    lastResponseElement.append(`<div class="message-text"><p>Embedding Vector:</p><pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(embeddingString)}</pre></div>` + '<button class="copy-button"><i class="far fa-copy"></i></button>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    // 绑定复制按钮点击事件
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim()); // Copy the text content of the message
+    });
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
 
-     // *** Add to messages array and save ***
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        messages.push({"role": "assistant", "content": "//embedding data..." }); // Save placeholder
-        if (localStorage.getItem('archiveSession') === 'true') {
-            localStorage.setItem("session", JSON.stringify(messages));
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
+            }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
         }
     }
-
-    // Bind buttons
-    lastResponseElement.find('.copy-button').click(function() {
-        copyMessage(embeddingString); // Copy the actual JSON string
-    });
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.prev('.message-bubble').remove();
-        messageBubble.remove();
-        rebuildAndSaveMessages();
-    });
-     scrollToBottom();
+});
 }
 
-// Add TTS Message
+
+// 添加 TTS 结果消息到窗口
 function addTTSMessage(audioBase64) {
     let lastResponseElement = $(".message-bubble .response").last();
-     if (!lastResponseElement.length) return;
+    lastResponseElement.empty();
+    lastResponseElement.append('<div class="message-text">' + '<audio controls><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg"></audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+    // 绑定删除按钮点击事件
+    lastResponseElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
+            }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
+        }
+    }
+});
+}
+
+// 添加请求消息到窗口
+function addRequestMessage(message) {
+  $(".answer .tips").css({"display":"none"});    // 打赏卡隐藏
+  chatInput.val('');
+  let escapedMessage = escapeHtml(message);  // 对请求message进行转义，防止输入的是html而被浏览器渲染
+  let requestMessageElement = $('<div class="message-bubble"><span class="chat-icon request-icon"></span><div class="message-text request"><p>' + escapedMessage + '</p><button class="copy-button"><i class="far fa-copy"></i></button><button class="edit-button"><i class="fas fa-edit"></i></button><button class="delete-message-btn"><i class="far fa-trash-alt"></i></button></div></div>');
+
+  chatWindow.append(requestMessageElement);
+
+  // 添加复制按钮点击事件
+  requestMessageElement.find('.copy-button').click(function() {
+    copyMessage($(this)); // 调用复制消息函数
+  });
+
+  let responseMessageElement = $('<div class="message-bubble"><span class="chat-icon response-icon"></span><div class="message-text response"><span class="loading-icon"><i class="fa fa-spinner fa-pulse fa-2x"></i></span></div></div>');
+  chatWindow.append(responseMessageElement);
+    // 绑定发送按钮点击事件
+  requestMessageElement.find('.send-button').click(function() {
+  });
+
+  // 绑定编辑按钮点击事件
+  requestMessageElement.find('.edit-button').click(function() {
+    editMessage(message);
+  });
+
+  // 添加删除按钮点击事件
+  requestMessageElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
+            }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
+        }
+    }
+});
+}
+
+// 编辑消息
+function editMessage(message) {
+  // 清除该条请求消息和回复消息
+  $('.message-bubble').last().prev().remove();
+  $('.message-bubble').last().remove();
+
+  // 将请求消息粘贴到用户输入框
+  chatInput.val(message);
+}
+
+// 添加响应消息到窗口，流式响应此方法会执行多次
+function addResponseMessage(message) {
+    let lastResponseElement = $(".message-bubble .response").last();
     lastResponseElement.empty();
 
-    lastResponseElement.append('<div class="message-text">' + '<audio controls style="margin-top: 5px;"><source src="data:audio/mpeg;base64,' + audioBase64 + '" type="audio/mpeg">Your browser does not support the audio element.</audio></div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-
-     // *** Add to messages array and save ***
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        messages.push({"role": "assistant", "content": "//audio base64..."}); // Save placeholder
-        if (localStorage.getItem('archiveSession') === 'true') {
-            localStorage.setItem("session", JSON.stringify(messages));
-        }
+    if ($(".answer .others .center").css("display") === "none") {
+        $(".answer .others .center").css("display", "flex");
     }
 
-    // Bind delete button
-    lastResponseElement.find('.delete-message-btn').click(function() {
-        const messageBubble = $(this).closest('.message-bubble');
-        messageBubble.prev('.message-bubble').remove();
-        messageBubble.remove();
-        rebuildAndSaveMessages();
-    });
-     scrollToBottom();
-}
+    let escapedMessage;
+    let messageContentHTML = ''; // Accumulate HTML content
 
-// Add Request Message to window
-function addRequestMessage(message) {
-  $(".answer .tips").hide(); // Hide tips card
-  chatInput.val(''); // Clear input field
+    if (Array.isArray(message)) { // Handle structured message parts (for Gemini image responses)
+        message.forEach(part => {
+            if (part.text) {
+                // Process text part as before
+                let textPart = part.text;
+                let codeMarkCount = 0;
+                let index = textPart.indexOf('```');
 
-  let escapedMessage = escapeHtml(message);
-  // Structure: Bubble -> Icon + Message Text Container -> (Paragraph + Buttons)
-  let requestBubble = $(`
-    <div class="message-bubble request-bubble">
-      <span class="chat-icon request-icon"></span>
-      <div class="message-content">
-         <div class="message-text request">
-             <p>${escapedMessage}</p>
-         </div>
-         <div class="message-buttons">
-             <button class="copy-button" title="Copy"><i class="far fa-copy"></i></button>
-             <button class="edit-button" title="Edit"><i class="fas fa-edit"></i></button>
-             <button class="delete-message-btn" title="Delete"><i class="far fa-trash-alt"></i></button>
-         </div>
-      </div>
-    </div>`);
+                while (index !== -1) {
+                    codeMarkCount++;
+                    index = textPart.indexOf('```', index + 3);
+                }
 
-  chatWindow.append(requestBubble);
+                if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+                    escapedMessage = marked.parse(textPart + '\n\n```');
+                } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+                    escapedMessage = marked.parse(textPart);  // 响应消息markdown实时转换为html
+                } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+                    if (textPart.includes('`')) {
+                        escapedMessage = marked.parse(textPart);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
+                    } else {
+                        escapedMessage = marked.parse(escapeHtml(textPart)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
+                    }
+                }
+                messageContentHTML += '<div class="message-text">' + escapedMessage + '</div><button class="copy-button"><i class="far fa-copy"></i></button>'; // 添加复制按钮到文字部分
 
-  // Bind buttons within this request bubble
-  requestBubble.find('.copy-button').click(function() {
-      copyMessage(message); // Copy original unescaped message
-      showCheckmark($(this));
-  });
-
-  requestBubble.find('.edit-button').click(function() {
-    editMessage(requestBubble, message); // Pass the bubble and original message
-  });
-
-  requestBubble.find('.delete-message-btn').click(function() {
-    const responseBubble = requestBubble.next('.message-bubble.response-bubble'); // Find the *next* bubble which should be the response
-    requestBubble.remove();
-    responseBubble.remove(); // Remove the corresponding response too
-    rebuildAndSaveMessages(); // Rebuild and save
-  });
-
-  // Add placeholder for the response
-  let responseBubble = $(`
-    <div class="message-bubble response-bubble">
-      <span class="chat-icon response-icon"></span>
-       <div class="message-content">
-            <div class="message-text response">
-                <span class="loading-icon"><i class="fa fa-spinner fa-pulse fa-fw"></i></span>
-            </div>
-             <div class="message-buttons">
-                  <!-- Buttons will be added dynamically here -->
-             </div>
-       </div>
-    </div>`);
-  chatWindow.append(responseBubble);
-
-  scrollToBottom(); // Scroll after adding request and response placeholder
-}
-
-// Edit Message Function
-function editMessage(requestBubble, originalMessage) {
-    // Remove the response bubble associated with this request
-    requestBubble.next('.message-bubble.response-bubble').remove();
-    // Remove the request bubble itself
-    requestBubble.remove();
-
-    // Rebuild the message array *without* the deleted pair and save
-    rebuildAndSaveMessages();
-
-    // Put the original message back into the input box
-    chatInput.val(originalMessage);
-    chatInput.focus(); // Set focus to the input box
-    // Adjust input height if needed
-     chatInput.dispatchEvent(new Event('input', { bubbles: true }));
-}
-
-// Global variable to store the accumulated response for stream=true
-let currentAssistantMessage = '';
-// Global variable to store the reference to the last response element being updated
-let lastResponseElementForStream = null;
-
-// Add/Update Response Message (Handles stream and non-stream)
-function addResponseMessage(contentChunk, isComplete = false) {
-    let lastResponseElement = $(".message-bubble .response-bubble .message-text.response").last();
-
-    if (!lastResponseElement.length) {
-         // If called during load before request bubble, might need adjustment.
-         // For now, assume it's called after addRequestMessage.
-         console.error("Cannot add response: No response element found.");
-         return;
-    }
-
-     // Clear loading indicator on first chunk
-     if (lastResponseElement.find('.loading-icon').length > 0) {
-         lastResponseElement.empty();
-         currentAssistantMessage = ''; // Reset accumulator for new message
-         lastResponseElementForStream = lastResponseElement; // Store reference
-     } else if (lastResponseElement !== lastResponseElementForStream) {
-         // If the target element changed unexpectedly (e.g., user deleted mid-stream)
-         // Reset and use the new last element
-         console.warn("Response element changed mid-stream. Resetting.");
-         currentAssistantMessage = '';
-         lastResponseElementForStream = lastResponseElement;
-         // Potentially clear the new element if it has old content?
-         // lastResponseElement.empty(); // Uncomment cautiously
-     }
-
-
-    currentAssistantMessage += contentChunk; // Accumulate content
-
-    let processedHTML;
-    // Use marked.parse safely
-    try {
-         // Check for incomplete code blocks for streaming
-         let finalContent = currentAssistantMessage;
-         const codeBlockRegex = /```/g;
-         const codeMatches = finalContent.match(codeBlockRegex);
-         const codeMarkCount = codeMatches ? codeMatches.length : 0;
-
-         if (!isComplete && codeMarkCount % 2 === 1) {
-             // If streaming and an odd number of ``` exist, append closing ``` for parsing
-             processedHTML = marked.parse(finalContent + '\n```');
-         } else {
-             processedHTML = marked.parse(finalContent);
-         }
-    } catch (e) {
-         console.error("Markdown parsing error:", e);
-         processedHTML = marked.parse(escapeHtml(currentAssistantMessage)); // Fallback to escaped HTML
-    }
-
-
-    // Update the content
-    lastResponseElement.html(processedHTML);
-
-    // Re-attach code highlighting and copy buttons after updating content
-    lastResponseElement.find('pre code').each(function(i, block) {
-        hljs.highlightElement(block);
-    });
-    // Remove previous copy buttons before adding new ones inside 'pre'
-    lastResponseElement.find('pre .copy-code-btn').remove();
-    lastResponseElement.find('pre').each(function() {
-        // Add button relative to the 'pre' block
-        $(this).append('<button class="copy-code-btn" title="Copy Code"><i class="far fa-copy"></i></button>');
-    });
-
-
-    // Manage buttons container (outside message-text)
-    let buttonsContainer = lastResponseElement.closest('.message-content').find('.message-buttons');
-    if (!buttonsContainer.length) { // Create if doesn't exist
-         buttonsContainer = $('<div class="message-buttons"></div>');
-         lastResponseElement.closest('.message-content').append(buttonsContainer);
-    }
-
-
-    // Add/Update main action buttons only when complete or for non-streaming
-    if (isComplete) {
-        buttonsContainer.empty(); // Clear previous buttons
-
-        // Add Copy button for the whole message text
-        buttonsContainer.append('<button class="copy-button" title="Copy Message"><i class="far fa-copy"></i></button>');
-
-        // Add View buttons for links
-        lastResponseElement.find('a[href^="http"]').each(function() {
-             const url = $(this).attr('href');
-             buttonsContainer.append(`<button class="view-button" data-url="${url}" title="Open Link"><i class="fas fa-external-link-alt"></i></button>`); // Changed icon
-        });
-
-
-        // Add Delete button
-        buttonsContainer.append('<button class="delete-message-btn" title="Delete"><i class="far fa-trash-alt"></i></button>');
-
-
-        // Bind buttons for the completed message
-        const responseBubble = lastResponseElement.closest('.message-bubble.response-bubble');
-        bindResponseButtons(responseBubble, currentAssistantMessage);
-
-
-        // *** Add completed message to array and save ***
-        if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-            messages.push({"role": "assistant", "content": currentAssistantMessage});
-            if (localStorage.getItem('archiveSession') === 'true') {
-                localStorage.setItem("session", JSON.stringify(messages));
+            } else if (part.inlineData) {
+                // Handle image part
+                const mimeType = part.inlineData.mimeType;
+                const base64Data = part.inlineData.data;
+                const imageUrl = `data:${mimeType};base64,${base64Data}`;
+                messageContentHTML += `<div class="message-text"><img src="${imageUrl}" style="max-width: 30%; max-height: 30%;" alt="Generated Image"></div>`;
             }
-        } else {
-             console.warn("Completed response added without preceding user message in array.");
-        }
-
-        currentAssistantMessage = ''; // Reset for next message
-        lastResponseElementForStream = null; // Clear reference
-        resFlag = true; // Mark as successful completion
-
-        // Re-enable send button etc. (handled in calling function)
-         chatBtn.attr('disabled',false);
-         chatInput.on("keydown", handleEnter); // Re-bind enter key
-         $('.stop').hide(); // Hide stop button
-
-    } else {
-         resFlag = true; // Mark as successful chunk
-         // Show stop button during streaming
-         $('.stop').show();
-    }
-
-    scrollToBottom(); // Scroll as content is added
-}
-
-// Helper function to bind buttons for a response bubble
-function bindResponseButtons(responseBubble, fullMessageContent) {
-    const messageTextElement = responseBubble.find('.message-text.response'); // Target the text container
-
-    // Copy Message Button
-    responseBubble.find('.copy-button').first().off('click').on('click', function() { // Ensure only one handler, target first
-        // Get text, excluding potential code blocks if needed, or get all text
-         let textToCopy = messageTextElement.text(); // Simple text extraction
-         // Alternative: get formatted HTML? copyMessage helper likely handles text.
-        copyMessage(textToCopy);
-        showCheckmark($(this));
-    });
-
-    // View Link Buttons
-    responseBubble.find('.view-button').off('click').on('click', function() {
-        const urlToOpen = $(this).data('url');
-        if (urlToOpen) {
-            window.open(urlToOpen, '_blank');
-        }
-    });
-
-    // Delete Button
-    responseBubble.find('.delete-message-btn').first().off('click').on('click', function() {
-        const requestBubble = responseBubble.prev('.message-bubble.request-bubble');
-        requestBubble.remove();
-        responseBubble.remove();
-        rebuildAndSaveMessages();
-    });
-
-    // Copy Code Buttons (inside PRE tags)
-    responseBubble.find('.copy-code-btn').off('click').on('click', function() {
-        const codeText = $(this).siblings('code').text();
-        copyMessage(codeText);
-        showCheckmark($(this), "Copied"); // Show "Copied" text
-    });
-}
-
-
-// Copy message helper
-function copyMessage(text) {
-  if (!navigator.clipboard) {
-    // Fallback for older browsers
-    let tempTextarea = $('<textarea>');
-    tempTextarea.val(text).css({position: 'absolute', left: '-9999px'}).appendTo('body').select();
-    try {
-        document.execCommand('copy');
-    } catch (err) {
-        console.error('Fallback copy failed', err);
-        alert("复制失败");
-    }
-    tempTextarea.remove();
-    return; // Indicate success/failure?
-  }
-  navigator.clipboard.writeText(text).then(function() {
-    // Success - checkmark is handled by showCheckmark
-  }, function(err) {
-    console.error('Async copy failed', err);
-    alert("复制失败");
-  });
-}
-
-// Show checkmark on button
-function showCheckmark(buttonElement, text = '<i class="far fa-check-circle"></i>') {
-    const originalContent = buttonElement.html();
-    buttonElement.html(text);
-    buttonElement.prop('disabled', true); // Optionally disable briefly
-    setTimeout(function() {
-        buttonElement.html(originalContent);
-        buttonElement.prop('disabled', false);
-    }, 1500); // Show checkmark for 1.5 seconds
-}
-
-// Add Fail Message
-function addFailMessage(message) {
-    let lastResponseElement = $(".message-bubble .response-bubble .message-text.response").last();
-    if (!lastResponseElement.length) return; // Exit if no target
-
-    lastResponseElement.empty(); // Clear loading icon
-    lastResponseElement.append('<p class="error"><i class="fas fa-exclamation-triangle"></i> ' + escapeHtml(message) + '</p>');
-
-    // Clean up buttons container if it exists
-    lastResponseElement.closest('.message-content').find('.message-buttons').empty();
-
-    // Remove the preceding user prompt from the messages array as it failed
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-        messages.pop();
-        // No need to save here, as the session shouldn't reflect the failed attempt
-    }
-    resFlag = false; // Set flag to indicate failure
-    scrollToBottom();
-
-     // Re-enable send button etc.
-     chatBtn.attr('disabled',false);
-     chatInput.on("keydown", handleEnter); // Re-bind enter key
-     $('.stop').hide(); // Hide stop button
-}
-
-let datas; // Should hold API URL etc. - scope carefully
-
-// Decode API key (if needed, typically handled server-side)
-function decodeApiKey(encodedApiKey) {
-  try {
-      return atob(encodedApiKey);
-  } catch (e) {
-       console.error("Failed to decode API key:", e);
-       return null; // Return null or handle error appropriately
-  }
-}
-
-
-// Get config (API URL) - Potentially from backend or localStorage
-async function getConfig() {
-    // Prioritize localStorage if available
-    const storedApiUrl = localStorage.getItem('api_url');
-    if (storedApiUrl) {
-        datas = { "api_url": cleanApiUrl(storedApiUrl) };
-        return; // Use stored value
-    }
-
-    // Fallback to fetching from backend if no localStorage value
-    try {
-        const response = await fetch("/config"); // Ensure this endpoint is correct
-         if (!response.ok) {
-             throw new Error(`Config fetch failed: ${response.status}`);
-         }
-        const data = await response.json();
-
-        if (data.api_url) {
-            datas = { "api_url": cleanApiUrl(data.api_url) };
-             // Optionally save fetched default to localStorage if desired
-             // localStorage.setItem('api_url', datas.api_url);
-        } else {
-            datas = { "api_url": "" }; // Default to empty if not provided
-        }
-    } catch (error) {
-        console.error("Error getting config:", error);
-        datas = { "api_url": "" }; // Ensure datas is defined even on error
-    }
-}
-
-// Get a random API key if multiple are provided
-function getRandomApiKey(apiKeyInputValue) {
-    if (!apiKeyInputValue) return null;
-    const apiKeys = apiKeyInputValue.split(',').map(key => key.trim()).filter(key => key); // Filter empty keys
-    if (apiKeys.length === 0) return null;
-    return apiKeys[Math.floor(Math.random() * apiKeys.length)];
-}
-
-// Get API Key - Prioritize input field/localStorage, fallback to password/backend
-async function getApiKey() {
-    // 1. Try API Key field (and localStorage)
-    const apiKeyInput = $(".settings-common .api-key").val().trim();
-    const storedApiKey = localStorage.getItem('apiKey'); // Check localStorage too
-    const effectiveApiKeyValue = apiKeyInput || storedApiKey; // Use input if present, else stored
-
-    if (effectiveApiKeyValue) {
-        let apiKey = getRandomApiKey(effectiveApiKeyValue);
-        if (apiKey) return apiKey; // Return random key if multiple provided
-    }
-
-    // 2. Try Password field (and localStorage)
-    const passwordInput = $(".settings-common .password").val().trim();
-    const storedPassword = localStorage.getItem('password');
-    const effectivePassword = passwordInput || storedPassword;
-
-    if (effectivePassword) {
-        try {
-             const response = await fetch("/get_api_key", { // Ensure endpoint is correct
-                 method: "POST",
-                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                 body: new URLSearchParams({ password: effectivePassword }),
-             });
-
-             if (!response.ok) {
-                 const errorData = await response.json().catch(() => ({ detail: "Unknown error" })); // Catch JSON parse errors
-                 // Handle specific errors like 401/403 (Unauthorized/Forbidden)
-                 if (response.status === 401 || response.status === 403) {
-                      addFailMessage("访问密码错误或无效。");
-                 } else {
-                      addFailMessage(`获取API Key失败: ${errorData.detail || response.statusText}`);
-                 }
-                 return null; // Indicate failure
-             }
-
-             const data = await response.json();
-             if (data.apiKey) {
-                 // Assuming backend sends encoded key - decode if necessary
-                 const decodedKey = decodeApiKey(data.apiKey);
-                 if (decodedKey) {
-                     return decodedKey;
-                 } else {
-                     addFailMessage("无法解码API Key。");
-                     return null;
-                 }
-             } else {
-                 addFailMessage("后端未返回API Key。");
-                 return null;
-             }
-        } catch (error) {
-            console.error("Error fetching API key with password:", error);
-            addFailMessage("获取API Key时出错。");
-            return null;
-        }
-    }
-
-    // 3. No Key or Password provided/valid
-    addFailMessage("请在设置中提供API Key或访问密码。");
-    return null;
-}
-
-
-// --- Send Request Function ---
-async function sendRequest(data) {
-  await getConfig(); // Ensure datas.api_url is populated (from localStorage or backend)
-  const apiKey = await getApiKey(); // Get API key (from input/storage or backend)
-
-
-   // Use custom API URL from input/localStorage if available, otherwise use fetched default
-    let customApiUrl = cleanApiUrl(localStorage.getItem('api_url') || $(".settings-common .api_url").val());
-    let effectiveApiUrl = customApiUrl || (datas ? datas.api_url : ''); // Use custom, fallback to fetched default
-
-
-  if (!effectiveApiUrl || !apiKey) {
-    // If getApiKey already added a message, don't add another.
-    if (resFlag) { // Check if addFailMessage was already called by getApiKey or getConfig
-         addFailMessage("缺少API Key或API URL。请检查设置。");
-    }
-    chatBtn.attr('disabled',false); // Re-enable button
-    return; // Stop execution
-  }
-
-    // Validate API URL format (basic check)
-    var apiUrlRegex = /^(http|https):\/\/[^ "]+$/;
-    if (!apiUrlRegex.test(effectiveApiUrl)) {
-        // Allow localhost without http/https for development? Maybe not.
-        addFailMessage("无效的API URL格式。请输入完整网址 (e.g., https://api.example.com)");
-        chatBtn.attr('disabled',false);
-        return;
-    }
-
-    // Determine API Path and Request Body based on model and selected path
-    let apiUrl;
-    let requestBody;
-    let requestHeaders = {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + apiKey
-    };
-
-    const selectedApiPath = apiPathSelect.val(); // Get user's selected path
-    const model = data.model.toLowerCase();
-
-    // --- Path and Body Logic ---
-    let determinedPath = selectedApiPath; // Start with user selection
-    let streamRequested = getCookie('streamOutput') !== 'false'; // Check cookie
-
-    // Auto-detect path if user hasn't selected one or if model implies a specific path
-    if (!determinedPath || determinedPath === "/v1/chat/completions") { // Only override default/chat path
-        if (model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002")) {
-            determinedPath = '/v1/completions';
-        } else if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3") || model.includes("grok-2-image")) {
-            determinedPath = '/v1/images/generations';
-            streamRequested = false; // Images are not streamed
-        } else if (model.includes("moderation")) {
-            determinedPath = '/v1/moderations';
-            streamRequested = false;
-        } else if (model.includes("embedding")) {
-            determinedPath = '/v1/embeddings';
-            streamRequested = false;
-        } else if (model.includes("tts-1")) {
-            determinedPath = '/v1/audio/speech';
-            streamRequested = false;
-        } else if (model.includes("gemini")) {
-             // Gemini often uses a different path/auth, handle explicitly if needed
-             // Example for a specific Gemini URL structure:
-             if (model.includes("gemini-pro") || model.includes("gemini-1.0-pro") || model.includes("gemini-1.5-pro") || model.includes("gemini-1.5-flash")) {
-                  // Check if a specific Gemini path exists, otherwise default might be chat/completions if proxied
-                   if ($('#apiPathSelect option[value="/v1beta/models/model:generateContent?key=apikey"]').length > 0) {
-                        determinedPath = '/v1beta/models/model:generateContent?key=apikey';
-                        streamRequested = false; // Often non-streaming or different stream format
-                        // Adjust headers for Gemini if needed (e.g., remove Authorization, use key in URL)
-                        requestHeaders = { 'Content-Type': 'application/json' };
-                        apiUrl = `https://${effectiveApiUrl.replace(/^https?:\/\//, '')}${determinedPath.replace('model:generateContent?key=apikey', `${data.model}:generateContent?key=${apiKey}`)}`; // Construct specific URL
-                   } else {
-                       determinedPath = '/v1/chat/completions'; // Assume standard proxy if specific path not selected/available
-                       streamRequested = true; // Or check specific model caps
-                   }
-
-             } else if (model.includes("gemini-2.0-flash-exp-image-generation")) {
-                 if ($('#apiPathSelect option[value="/v1beta/models/model:generateContent?key=apikey"]').length > 0) {
-                     determinedPath = '/v1beta/models/model:generateContent?key=apikey';
-                     streamRequested = false; // Image generation is non-streaming
-                     requestHeaders = { 'Content-Type': 'application/json' };
-                     apiUrl = `https://${effectiveApiUrl.replace(/^https?:\/\//, '')}${determinedPath.replace('model:generateContent?key=apikey', `${data.model}:generateContent?key=${apiKey}`)}`;
-                 } else {
-                      determinedPath = '/v1/chat/completions'; // Fallback proxy path
-                 }
-             }
-             else {
-                  determinedPath = '/v1/chat/completions'; // Default for other potential Gemini models via proxy
-                  streamRequested = getCookie('streamOutput') !== 'false';
-             }
-        } else if (model.includes("o1") && !model.includes("all")) {
-             determinedPath = '/v1/chat/completions';
-             streamRequested = false; // Force non-streaming
-        } else if (model.includes("o3") && !model.includes("all")) {
-             determinedPath = '/v1/chat/completions';
-             streamRequested = false; // Force non-streaming
-        } else if (model.includes("deepseek-r")) {
-             determinedPath = '/v1/chat/completions';
-              // streamRequested = check settings; default is true usually
-        } else if (model.includes("claude-3-7-sonnet-thinking") || model.includes("claude-3-7-sonnet-20250219-thinking")) {
-              determinedPath = '/v1/chat/completions';
-              // streamRequested = check settings; default is true usually
-         } else {
-             determinedPath = '/v1/chat/completions'; // Default path
-              streamRequested = getCookie('streamOutput') !== 'false';
-         }
-    } else {
-         // User selected a specific path, respect it
-         // Need to check if standard streaming applies or if the path implies non-streaming
-         if (determinedPath === '/v1/images/generations' || determinedPath === '/v1/moderations' || determinedPath === '/v1/embeddings' || determinedPath === '/v1/audio/speech') {
-             streamRequested = false;
-         } else if (determinedPath === '/v1beta/models/model:generateContent?key=apikey') {
-             streamRequested = false; // Assume non-streaming for this path
-             requestHeaders = { 'Content-Type': 'application/json' }; // Adjust headers
-             apiUrl = `https://${effectiveApiUrl.replace(/^https?:\/\//, '')}${determinedPath.replace('model:generateContent?key=apikey', `${data.model}:generateContent?key=${apiKey}`)}`;
-         }
-         // For /v1/completions, streamRequested depends on cookie
-         else if (determinedPath === '/v1/completions') {
-             streamRequested = getCookie('streamOutput') !== 'false';
-         }
-         // Default to cookie setting for other paths like /v1/chat/completions
-         else {
-             streamRequested = getCookie('streamOutput') !== 'false';
-         }
-    }
-
-     // Construct final API URL if not already set (like for specific Gemini case)
-     if (!apiUrl) {
-         apiUrl = effectiveApiUrl + determinedPath;
-     }
-
-
-    // --- Construct Request Body based on Path ---
-    switch (determinedPath) {
-        case '/v1/completions':
-            requestBody = {
-                "prompt": data.prompts[data.prompts.length - 1].content, // Use last user message for completions
-                "model": data.model,
-                "max_tokens": data.max_tokens,
-                "temperature": data.temperature,
-                "stream": streamRequested
-                // Add other params like top_p, n if needed
-            };
-            break;
-
-        case '/v1/images/generations':
-            let size = "1024x1024"; // Default size
-            let quality = "standard";
-            let style = "natural"; // Default style
-            // Extract size, quality, style from model name if present
-            if (model.includes("dall-e-3")) {
-                 if (model.includes("1792x1024")) size = "1792x1024";
-                 else if (model.includes("1024x1792")) size = "1024x1792";
-                 // DALL-E 3 also supports 1024x1024 (default)
-                 if (model.includes("-hd")) quality = "hd";
-                  // DALL-E 3 styles: vivid, natural
-                 if (model.includes("-vivid")) style = "vivid"; // Example convention
-                 // Use only the base model name for the API call
-                 data.model = model.split('-')[0] + '-' + model.split('-')[1]; // e.g., "dall-e-3"
-            } else if (model.includes("dall-e-2")) {
-                  if (model.includes("256x256")) size = "256x256";
-                  else if (model.includes("512x512")) size = "512x512";
-                  // DALL-E 2 also supports 1024x1024 (default)
-                  // DALL-E 2 doesn't have quality/style params in the same way
-                  quality = undefined;
-                  style = undefined;
-                  data.model = "dall-e-2"; // Use base name
-            } else if (model.includes("cogview-3")) {
-                 size = "1024x1024"; // Or check model name specifics if they vary
-                 quality = undefined;
-                 style = undefined;
-                 data.model = "cogview-3";
-             } else if (model.includes("grok-2-image")){
-                  size = undefined; // Let model decide or check API docs
-                  quality = undefined;
-                  style = undefined;
-                  data.model = "grok-2-image"; // Use exact name if needed by API
-             }
-
-
-            requestBody = {
-                "prompt": data.prompts[data.prompts.length - 1].content, // Use last user message
-                "model": data.model, // Use potentially cleaned model name
-                "n": 1,
-                "size": size,
-                "quality": quality,
-                "style": style,
-                 // Remove undefined properties before stringifying if API is strict
-            };
-             // Clean undefined properties
-             Object.keys(requestBody).forEach(key => requestBody[key] === undefined && delete requestBody[key]);
-            break;
-
-        case '/v1/moderations':
-            requestBody = {
-                "input": data.prompts[data.prompts.length - 1].content,
-                "model": data.model.includes("latest") ? "text-moderation-latest" : "text-moderation-stable" // Choose specific moderation model
-            };
-            break;
-
-        case '/v1/embeddings':
-            requestBody = {
-                "input": data.prompts[data.prompts.length - 1].content,
-                "model": data.model // Pass the full model name, e.g., text-embedding-ada-002
-                // Add encoding_format if needed
-            };
-            break;
-
-        case '/v1/audio/speech':
-            requestBody = {
-                "input": data.prompts[data.prompts.length - 1].content,
-                "model": data.model, // e.g., tts-1, tts-1-hd
-                "voice": "alloy" // Default voice, allow selection later?
-                // Add response_format, speed if needed
-            };
-            break;
-
-         case '/v1beta/models/model:generateContent?key=apikey': // Specific Gemini Handler
-              // Handle image input for multimodal Gemini models
-              let geminiContentParts = [{"text": data.prompts[data.prompts.length - 1].content}]; // Start with text
-              if (data.image_base64 && model.includes("vision")) { // Or check specific model names like gemini-pro-vision
-                    geminiContentParts.push({
-                        "inline_data": {
-                            "mime_type": "image/jpeg", // Or detect mime type
-                            "data": data.image_base64
-                        }
-                    });
-              }
-
-              requestBody = {
-                  "contents": [{"role": "user", "parts": geminiContentParts}], // Use parts structure
-                   // Add generationConfig, safetySettings if needed
-                   // Example for image generation model:
-                   "generationConfig": model.includes("image-generation") ? {"responseModalities":["Text","Image"]} : {}
-              };
-             // History needs careful handling for Gemini 'contents' format
-             // This example sends only the last user turn. Implement history mapping if needed.
-             break;
-
-
-        case '/v1/chat/completions':
-        default: // Default to chat completions
-            let messagesToSend = [];
-             // Handle image data for multimodal models using this endpoint (e.g., gpt-4-vision)
-             const lastUserMessageIndex = data.prompts.length - 1;
-             if (data.image_base64 && lastUserMessageIndex >= 0 && (model.includes("vision") || model.includes("gpt-4") || model.includes("claude-3") || model.includes("glm-4v") || model.includes("o1") || model.includes("o3") )) { // Add relevant model checks
-                 // Prepare multimodal content for the last message
-                 const lastMessageContent = [
-                     { "type": "text", "text": data.prompts[lastUserMessageIndex].content }
-                 ];
-                  // Basic check for base64 string
-                 if (typeof data.image_base64 === 'string' && data.image_base64.length > 10) {
-                     lastMessageContent.push({
-                         "type": "image_url",
-                         "image_url": { "url": `data:image/jpeg;base64,${data.image_base64}` } // Assume JPEG, adjust if needed
-                     });
-                 }
-
-
-                 // Decide how much history to include
-                 if (localStorage.getItem('continuousDialogue') === 'true') {
-                     messagesToSend = data.prompts.slice(0, lastUserMessageIndex); // History before last message
-                     messagesToSend.push({ "role": "user", "content": lastMessageContent });
-                 } else {
-                     messagesToSend = [{ "role": "user", "content": lastMessageContent }]; // Only last message
-                 }
-             } else {
-                  // Regular text chat
-                  messagesToSend = data.prompts; // Use the prepared prompts array (handles history logic)
-             }
-
-            requestBody = {
-                "messages": messagesToSend,
-                "model": data.model,
-                "max_tokens": data.max_tokens,
-                "temperature": data.temperature,
-                "stream": streamRequested
-                // Add other params like top_p, n if needed
-            };
-             // Specific overrides
-             if (model.includes("o1") && !model.includes("all")) requestBody.temperature = 1;
-             if (model.includes("o3") && !model.includes("all")) requestBody.temperature = 1;
-              if (model.includes("deepseek-r")) { /* No specific overrides needed based on provided snippet */ }
-              if (model.includes("claude-3-7-sonnet-thinking")) { /* No specific overrides needed */ }
-
-            break;
-    }
-
-    // --- Make the API Request ---
-    try {
-        const controller = new AbortController();
-        const signal = controller.signal;
-        ajaxRequest = controller; // Store controller for aborting
-        $('.stop').show(); // Show stop button
-
-
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: requestHeaders,
-            body: JSON.stringify(requestBody),
-            signal: signal // Pass the abort signal
         });
+        lastResponseElement.append(messageContentHTML + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
 
-         ajaxRequest = null; // Clear request object after fetch starts/completes initial phase
+    } else { // Handle regular text message
+        if (typeof message !== 'string') {
+            return; // Exit if message is not a string
+        }
+        let codeMarkCount = 0;
+        let index = message.indexOf('```'); // Line 809 - Error was happening here
 
-        if (!response.ok) {
-            let errorData;
-            try {
-                 errorData = await response.json();
-                 const errorMsg = errorData.error ? (errorData.error.message || JSON.stringify(errorData.error)) : (JSON.stringify(errorData) || response.statusText);
-                 throw new Error(`HTTP error ${response.status}: ${errorMsg}`);
-            } catch (e) {
-                 // Handle cases where response is not JSON or JSON parsing fails
-                 throw new Error(`HTTP error ${response.status}: ${response.statusText}. Could not parse error details.`);
-            }
+        while (index !== -1) {
+            codeMarkCount++;
+            index = message.indexOf('```', index + 3);
         }
 
-        // --- Process Response based on Path and Streaming ---
-        if (determinedPath === '/v1/images/generations') {
-            const responseData = await response.json();
-             if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
-                 addImageMessage(responseData.data[0].url); // This now handles saving too
-                 resFlag = true;
-             } else if (responseData.data && responseData.data.length > 0 && responseData.data[0].revised_prompt) {
-                  // Handle revised prompt scenario (e.g., DALL-E might return this instead of URL on safety issues)
-                  addResponseMessage("服务器返回了修改后的提示词 (可能由于安全原因): " + responseData.data[0].revised_prompt, true);
-                  resFlag = true; // Still technically a valid response
-             } else {
-                 throw new Error("图片生成失败: " + (responseData.error?.message || "返回数据格式不正确"));
-             }
-        } else if (determinedPath === '/v1/moderations') {
-            const responseData = await response.json();
-            if (responseData.results) {
-                addModerationMessage(responseData.results);
-                resFlag = true;
+        if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
+            escapedMessage = marked.parse(message + '\n\n```');
+        } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
+            escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
+        } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
+            if (message.includes('`')) {
+                escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
             } else {
-                throw new Error("内容审查失败: " + (responseData.error?.message || "返回数据格式不正确"));
+                escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
             }
-        } else if (determinedPath === '/v1/embeddings') {
-            const responseData = await response.json();
-             // Embeddings usually return a list, handle appropriately
-             if (responseData.data && responseData.data.length > 0 && responseData.data[0].embedding) {
-                 addEmbeddingMessage(responseData.data[0].embedding); // Display the first embedding
-                 resFlag = true;
-             } else {
-                 throw new Error("Embedding 获取失败: " + (responseData.error?.message || "返回数据格式不正确"));
-             }
-        } else if (determinedPath === '/v1/audio/speech') {
-            const audioBlob = await response.blob();
-             if (audioBlob.type.startsWith('audio/')) {
-                 const reader = new FileReader();
-                 reader.onloadend = () => {
-                     const base64Audio = reader.result.split(',')[1];
-                     addTTSMessage(base64Audio); // This handles saving placeholder
-                 };
-                 reader.readAsDataURL(audioBlob);
-                 resFlag = true;
-             } else {
-                  // Handle potential error response returned as JSON instead of audio blob
-                  try {
-                      const errorText = await audioBlob.text();
-                      const errorJson = JSON.parse(errorText);
-                      throw new Error("TTS失败: " + (errorJson.error?.message || errorText));
-                  } catch (e) {
-                       throw new Error("TTS失败: 无法处理响应。");
-                  }
-             }
-        } else if (streamRequested) {
-            // Handle Streaming Response (Chat Completions, Completions)
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder("utf-8");
-            resFlag = false; // Assume not complete until done
-            currentAssistantMessage = ''; // Reset accumulator
-
-             while (true) {
-                 const { done, value } = await reader.read();
-                 if (done) {
-                     addResponseMessage("", true); // Signal completion
-                     resFlag = true;
-                     break; // Exit loop
-                 }
-
-                 const chunk = decoder.decode(value, { stream: true });
-                 // Process Server-Sent Events (SSE)
-                 const lines = chunk.split("\n");
-                 for (const line of lines) {
-                     if (line.startsWith("data: ")) {
-                         const dataStr = line.substring(6).trim();
-                         if (dataStr === "[DONE]") {
-                              addResponseMessage("", true); // Signal completion from DONE message
-                              resFlag = true;
-                              // reader.cancel(); // No need to cancel if already done
-                              // break; // Exit inner loop, outer loop will catch 'done' next
-                              continue; // Skip to next line/chunk
-                         }
-                         try {
-                             const jsonObj = JSON.parse(dataStr);
-                             let contentChunk = "";
-                              // Handle different response structures
-                              if (jsonObj.choices && jsonObj.choices[0]) {
-                                  if (jsonObj.choices[0].delta && jsonObj.choices[0].delta.content) {
-                                      contentChunk = jsonObj.choices[0].delta.content; // OpenAI Chat Stream
-                                  } else if (jsonObj.choices[0].text) {
-                                       contentChunk = jsonObj.choices[0].text; // OpenAI Completion Stream
-                                   } else if (jsonObj.choices[0].message && jsonObj.choices[0].message.content) {
-                                        // Some models might send full message object in stream chunks
-                                        contentChunk = jsonObj.choices[0].message.content;
-                                    }
-                              } else if (jsonObj.candidates && jsonObj.candidates[0]?.content?.parts[0]?.text) {
-                                  contentChunk = jsonObj.candidates[0].content.parts[0].text; // Gemini Stream
-                              }
-                              // Add more parsers if needed for other APIs
-
-                             if (contentChunk) {
-                                 addResponseMessage(contentChunk, false); // Add chunk, not complete yet
-                                 resFlag = true; // Indicate we got *some* valid data
-                             }
-                         } catch (e) {
-                             console.error("Error parsing stream chunk:", dataStr, e);
-                             // Decide how to handle parse errors - skip chunk, show error?
-                         }
-                     }
-                 } // End line processing loop
-             } // End while loop
-        } else {
-            // Handle Non-Streaming Response
-            const responseData = await response.json();
-             let finalContent = null;
-
-            // Handle different response structures
-             if (responseData.choices && responseData.choices.length > 0) {
-                  if (responseData.choices[0].message && responseData.choices[0].message.content) {
-                       finalContent = responseData.choices[0].message.content; // OpenAI Chat
-                  } else if (responseData.choices[0].text) {
-                       finalContent = responseData.choices[0].text; // OpenAI Completion
-                   }
-             } else if (responseData.candidates && responseData.candidates[0]?.content?.parts[0]?.text) {
-                  finalContent = responseData.candidates[0].content.parts[0].text; // Gemini Non-Stream
-             } else if (determinedPath === '/v1beta/models/model:generateContent?key=apikey' && responseData.candidates && responseData.candidates[0]?.content?.parts) {
-                 // Handle Gemini multimodal non-stream (image + text) - needs special handling
-                  console.log("Received Gemini multimodal non-stream response:", responseData);
-                  // TODO: Implement display logic for combined text/image parts if needed
-                  // For now, extract first text part if available
-                  const textPart = responseData.candidates[0].content.parts.find(p => p.text);
-                  finalContent = textPart ? textPart.text : "[Multimodal content received]";
-             }
-             // Add more parsers if needed
-
-
-             if (finalContent !== null) {
-                 addResponseMessage(finalContent, true); // Add complete message
-                 resFlag = true;
-             } else {
-                 // Throw error if no usable content found but response was OK
-                 throw new Error("处理响应失败: " + (responseData.error?.message || "无法解析响应内容"));
-             }
         }
 
-    } catch (error) {
-         ajaxRequest = null; // Clear request object on error too
-         console.error("API Request Error:", error);
-          // Check if the error was due to aborting
-          if (error.name === 'AbortError') {
-              addFailMessage("请求已中止。");
-          } else {
-              addFailMessage(error.message || "发生未知错误");
-          }
-         resFlag = false;
-    } finally {
-         // Ensure stop button is hidden and send button is enabled unless streaming correctly finished
-         if (resFlag && !streamRequested) { // Non-stream success or handled stream completion
-             $('.stop').hide();
-             chatBtn.attr('disabled', false);
-             chatInput.on("keydown", handleEnter);
-         } else if (!resFlag) { // Failure case
-              $('.stop').hide();
-              chatBtn.attr('disabled', false);
-              chatInput.on("keydown", handleEnter);
-         }
-          // If streaming is ongoing, the stop button remains visible, button disabled
-          ajaxRequest = null; // Final clear in case it wasn't cleared before
+        messageContent = escapedMessage;
+        let viewButtons = [];
+
+        // Parse the message content as HTML to find <a> tags
+        let tempElement = $('<div>').html(messageContent);
+        let links = tempElement.find('a');
+
+
+        if (links.length > 0) {
+            links.each(function() {
+                let url = $(this).attr('href');
+                if (url) {
+                    let viewButton = $('<button class="view-button"><i class="fas fa-search"></i></button>');
+                    viewButton.data('url', url);
+                    viewButtons.push(viewButton);
+                }
+            });
+             messageContent = tempElement.html(); // Update messageContent
+        }
+
+
+        if (message.startsWith('"//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message.replace(/"/g, '');
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        } else if (message.startsWith('//')) {
+            // 处理包含base64编码的音频
+            const base64Data = message;
+            lastResponseElement.append('<div class="message-text">' + '<audio controls=""><source src="data:audio/mpeg;base64,' + base64Data + '" type="audio/mpeg"></audio> ' + '</div>' + '<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        } else {
+            lastResponseElement.append('<div class="message-text">' + messageContent + '</div>' + '<button class="copy-button"><i class="far fa-copy"></i></button>');
+            viewButtons.forEach(button => {
+                lastResponseElement.append(button);
+            });
+            lastResponseElement.append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
+        }
+        // ... (rest of button bindings for text messages are unchanged) ...
+    }
+scrollDownBtn.show();
+
+    // 绑定按钮事件 (for both text and image messages)
+    lastResponseElement.find('.view-button').on('click', function() {
+        const urlToOpen = $(this).data('url');
+        window.open(urlToOpen, '_blank');
+    });
+    lastResponseElement.find('.copy-button').click(function() {
+        copyMessage($(this).prev().text().trim());
+    });
+    lastResponseElement.find('.delete-message-btn').click(function() {
+    const messageBubble = $(this).closest('.message-bubble');
+    messageBubble.prev('.message-bubble').remove(); // 删除请求消息 bubble
+    messageBubble.remove(); // 删除响应消息 bubble
+
+    if (localStorage.getItem('archiveSession') === 'true') {
+        messages = []; // 清空 messages 数组
+        localStorage.removeItem("session"); // 移除 session
+
+        // 重新遍历 chatWindow 中的消息 bubble，重建 messages 数组
+        $('#chatWindow .message-bubble').each(function() {
+            const role = $(this).find('.chat-icon').hasClass('request-icon') ? 'user' : 'assistant';
+            const content = $(this).find('.message-text p').text() || $(this).find('.message-text pre').text() || $(this).find('.message-text audio').length > 0 ? '//audio base64...' : ''; // 获取消息内容，音频消息内容简化为占位符
+            if (role && content) { // 确保 role 和 content 都存在
+                 if (role === 'user') {
+                    messages.push({ "role": "user", "content": $(this).find('.message-text p').text() || $(this).find('.message-text pre').text()});
+                } else if (role === 'assistant') {
+                    let messageContent = "";
+                    if ($(this).find('.message-text p').length > 0) {
+                        messageContent = $(this).find('.message-text p').text();
+                    } else if ($(this).find('.message-text pre').length > 0) {
+                        messageContent = $(this).find('.message-text pre').text();
+                    } else if ($(this).find('.message-text audio').length > 0) {
+                        messageContent = "//audio base64..."; // 音频消息内容简化为占位符
+                    } else if ($(this).find('.message-text img').length > 0) {
+                        messageContent = "//image url..."; // 图片消息内容简化为占位符
+                    } else {
+                        messageContent = $(this).find('.message-text').text(); // 兜底方案
+                    }
+                    messages.push({ "role": "assistant", "content": messageContent });
+                }
+            }
+        });
+         if (messages.length > 0) { // 只有当 messages 不为空时才保存
+            localStorage.setItem("session", JSON.stringify(messages)); // 重新保存 session
+        }
+    }
+});
+    lastResponseElement.find('.delete-message-btn').click(function() {
+        $(this).closest('.message-bubble').remove();
+    });
+}
+
+// 复制按钮点击事件
+$(document).on('click', '.copy-button', function() {
+  let messageText = $(this).prev().text().trim(); // 去除末尾的换行符
+  // 创建一个临时文本框用于复制内容
+  let tempTextarea = $('<textarea>');
+  tempTextarea.val(messageText).css({position: 'absolute', left: '-9999px'}).appendTo('body').select();
+  document.execCommand('copy');
+  tempTextarea.remove();
+
+  // 将复制按钮显示为√
+  let checkMark = $('<i class="far fa-check-circle"></i>'); // 创建√图标元素
+  $(this).html(checkMark); // 替换按钮内容为√图标
+
+  // 延时一段时间后恢复原始复制按钮
+  let originalButton = $(this);
+  setTimeout(function() {
+    originalButton.html('<i class="far fa-copy"></i>'); // 恢复原始复制按钮内容
+  }, 2000); // 设置延时时间为2秒
+});
+
+  // 添加失败信息到窗口
+  function addFailMessage(message) {
+    let lastResponseElement = $(".message-bubble .response").last();
+    lastResponseElement.empty();
+    lastResponseElement.append('<p class="error">' + message + '</p>');
+    messages.pop() // 失败就让用户输入信息从数组删除
+  }
+
+let datas;
+
+// 解码 Base64 编码的 API 密钥
+function decodeApiKey(encodedApiKey) {
+  return atob(encodedApiKey);
+}
+
+// 获取配置信息
+async function getConfig() {
+  try {
+    const response = await fetch("/config");
+    const data = await response.json();
+
+    if (data.api_url) {
+      datas = { "api_url": data.api_url };
+    } else {
+      datas = { "api_url": "" };
+    }
+  } catch (error) {
+    // 处理错误情况
+  }
+}
+
+// 获取随机的 API 密钥
+function getRandomApiKey() {
+  const apiKeyInput = $(".settings-common .api-key").val().trim();
+  if (apiKeyInput) {
+    const apiKeys = apiKeyInput.split(',').map(key => key.trim());
+    return apiKeys[Math.floor(Math.random() * apiKeys.length)];
+  }
+  return null;
+}
+
+// 获取 API 密钥
+async function getApiKey() {
+  try {
+    let apiKey = getRandomApiKey();
+
+    if (!apiKey) {
+      const password = $(".settings-common .password").val();
+
+      if (!password) {
+        addFailMessage("请输入正确的访问密码或者输入自己的 API key 和 API URL 使用！");
+        return null;
+      }
+
+      const response = await fetch("/get_api_key", {
+        method: "POST",
+        body: new URLSearchParams({ password }),
+      });
+
+      if (response.status === 403) {
+        const errorData = await response.json();
+        addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
+        return null;
+      }
+
+      const data = await response.json();
+
+      if (data.apiKey) {
+        // 解码 API 密钥
+        apiKey = decodeApiKey(data.apiKey);
+        return apiKey;
+      } else {
+        addFailMessage("请在设置填写好环境变量");
+        return null;
+      }
+    } else {
+      return apiKey;
+    }
+  } catch (error) {
+    addFailMessage("出错了，请稍后再试！");
+    return null;
+  }
+}
+
+// 发送请求获得响应
+async function sendRequest(data) {
+  await getConfig();
+  const apiKey = await getApiKey();
+
+  if (!datas || !datas.api_url || !apiKey) {
+    addFailMessage("请输入正确的访问密码或者输入自己的 API Key 和 API URL 使用！");
+    return;
+  }
+
+// 检查api_url是否存在非空值
+if ($(".settings-common .api_url").val().trim()) {
+    // 存储api_url值
+    datas.api_url =cleanApiUrl($(".settings-common .api_url").val());
+    // 检查api_url是否是正确的网址格式
+    var apiUrlRegex = /^(http|https):\/\/[^ "]+$/;
+    if (!apiUrlRegex.test(datas.api_url)) {
+        // 如果不是正确的网址格式，则返回错误消息
+        addFailMessage("请检查并输入正确的代理网址");
     }
 }
 
+let apiUrl = datas.api_url + "/v1/chat/completions"; // Default path
+let requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": data.temperature,
+    "top_p": 1,
+    "n": 1,
+    "stream": getCookie('streamOutput') !== 'false' // 从 Cookie 获取流式输出设置
+};
 
-  // --- Event Handlers ---
+// Use selected API path if it's not the default one
+const selectedApiPath = apiPathSelect.val();
+if (selectedApiPath) {
+    apiUrl = datas.api_url + selectedApiPath;
+} else {
+    apiUrl = datas.api_url + "/v1/chat/completions"; // Fallback to default if no path selected
+}
 
-  // Send Button Click
-  chatBtn.click(function() {
-    const message = chatInput.val().trim();
-    if (!message) return; // Don't send empty messages
 
-    // Disable button and unbind enter immediately
-    chatBtn.attr('disabled', true);
-    chatInput.off("keydown", handleEnter);
-    resetInputHeight(); // Reset input height visually
+const model = data.model.toLowerCase(); // Convert model name to lowercase for easier comparison
 
-    // Get image data if present
-    let imageBase64 = "";
-    if ($('#imagePreviewContainer').is(':visible') && imagePreview && imagePreview.src.startsWith('data:image')) {
-         imageBase64 = imagePreview.src.split(',')[1];
-    }
-
-    // Prepare request data structure
-    let requestData = {
-      model: modelSelect.val(), // Get current model
-      temperature: parseFloat($(".settings-common .temperature").val()),
-      max_tokens: parseInt($(".settings-common .max-tokens").val()),
-      prompts: [], // Will be populated based on history settings
-      image_base64: imageBase64
+if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && model.includes("gpt-3.5-turbo-instruct") || model.includes("babbage-002") || model.includes("davinci-002"))) {
+    apiUrl = datas.api_url + "/v1/completions";
+    requestBody = {
+        "prompt": data.prompts[0].content,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": getCookie('streamOutput') !== 'false'
     };
+} else if (data.image_base64 && data.image_base64.trim() !== '' && (selectedApiPath === '/v1/chat/completions' || apiPathSelect.val() === null )) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+   requestBody = {
+    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "text", "text": data.prompts[0].content},
+                                {
+                                    "type": "image_url",
+                                    "image_url": {"url": "data:image/jpeg;base64," + data.image_base64},
+                                },
+                            ],
+                        }
+                    ],
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": data.temperature,
+    "top_p": 1,
+    "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
+    };
+} else if ((selectedApiPath === '/v1/images/generations' || apiPathSelect.val() === null ) && (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3"))) {
+    apiUrl = datas.api_url + "/v1/images/generations";
+    let size = "1024x1024";
+    let quality = "standard";
+    let style = "natural";
 
-    addRequestMessage(message); // Add user message to UI
-    messages.push({"role": "user", "content": message}); // Add user message to array
-
-    // Handle History / Prompts
-    const continuousDialogueEnabled = localStorage.getItem('continuousDialogue') === 'true';
-    const modelRequiresNoHistory = requestData.model.toLowerCase().includes("dall-e") ||
-                                   requestData.model.toLowerCase().includes("cogview") ||
-                                   requestData.model.toLowerCase().includes("moderation") ||
-                                   requestData.model.toLowerCase().includes("embedding") ||
-                                   requestData.model.toLowerCase().includes("tts-1") ||
-                                   requestData.model.toLowerCase().includes("grok-2-image") ||
-                                   apiPathSelect.val() === '/v1/completions' || // Completions endpoint uses prompt, not messages
-                                   apiPathSelect.val() === '/v1beta/models/model:generateContent?key=apikey'; // Gemini API structure
+    if (model.includes("256x256")) size = "256x256";
+    if (model.includes("512x512")) size = "512x512";
+    if (model.includes("1792x1024")) size = "1792x1024";
+    if (model.includes("1024x1792")) size = "1024x1792";
+    if (model.includes("-hd")) quality = "hd";
+    if (model.includes("-v") || model.includes("-p")) style = "vivid";
 
 
-    if (continuousDialogueEnabled && !modelRequiresNoHistory) {
-        const maxMessages = parseInt(getCookie('maxDialogueMessages')) || 150;
-        requestData.prompts = messages.slice(-maxMessages); // Get last N messages
-         // Simple check for message limit (could be more robust)
-         if (messages.length >= maxMessages + 5) { // Add buffer before warning
-             console.warn("Approaching max dialogue length. Consider clearing history.");
-             // Optionally display a non-blocking warning to the user
-         }
-
-    } else {
-        // Send only the last user message
-        requestData.prompts = [messages[messages.length - 1]];
+    requestBody = {
+        "prompt": data.prompts[0].content, // Image generation uses only the last message as prompt
+        "model": data.model,
+        "n": 1,
+        "size": size,
+        "quality": quality,
+        "style": style,
+    };
+    if (model.includes("cogview-3")) {
+        requestBody = {
+            "prompt": data.prompts[0].content,
+            "model": data.model,
+            "size": "1024x1024",
+        };
     }
 
-     // Specific check for link + continuous dialogue (disable for this request)
-     if (containsLink(message) && continuousDialogueEnabled && !modelRequiresNoHistory) {
-         console.log("Link detected, sending only current message despite continuous dialogue setting.");
-         requestData.prompts = [messages[messages.length - 1]];
-     }
+} else if ((selectedApiPath === '/v1/moderations' || apiPathSelect.val() === null ) && model.includes("moderation")) {
+    apiUrl = datas.api_url + "/v1/moderations";
+    requestBody = {
+        "input": data.prompts[0].content, // Moderation uses the last message as input
+        "model": data.model,
+    };
+} else if ((selectedApiPath === '/v1/embeddings' || apiPathSelect.val() === null ) && model.includes("embedding")) {
+    apiUrl = datas.api_url + "/v1/embeddings";
+    requestBody = {
+        "input": data.prompts[0].content, // Embedding uses the last message as input
+        "model": data.model,
+    };
+} else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null ) && model.includes("tts-1")) {
+    apiUrl = datas.api_url + "/v1/audio/speech";
+    requestBody = {
+        "input": data.prompts[0].content, // TTS uses the last message as input
+        "model": data.model,
+        "voice": "alloy",
+    };
+}else if (model.includes("gemini-2.0-flash-exp-image-generation") && (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null)) { // Gemini models handling
+    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+    requestBody = {
+        "contents": [{
+            "parts": [{"text": data.prompts[0].content}]}],
+            "generationConfig":{"responseModalities":["Text","Image"]}
+    };
+}else if (selectedApiPath === '/v1beta/models/model:generateContent?key=apikey' || apiPathSelect.val() === null) { // Gemini models handling
+    apiUrl = `https://gemini.baipiao.io/v1beta/models/${data.model}:generateContent?key=${apiKey}`;
+    requestBody = {
+        "contents": [{
+            "parts": [{"text": data.prompts[0].content}]
+        }]
+    };
+}
+ else { // Default to /v1/chat/completions for other models or if path is not explicitly set
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+        "messages": data.prompts,
+        "model": data.model,
+        "max_tokens": data.max_tokens,
+        "temperature": data.temperature,
+        "top_p": 1,
+        "n": 1,
+        "stream": getCookie('streamOutput') !== 'false'
+    };
+}
+    if (data.model.includes("o1") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": false // 强制非流式
+    };
+}
+    if (data.model.includes("o3") && !data.model.includes("all")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": false // 强制非流式
+    };
+}
+        if (data.model.includes("grok-2-image")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "n": 1,
+    };
+}
+if (data.model.includes("deepseek-r") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
+     if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
+     if (data.model.includes("claude-3-7-sonnet-thinking") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
+ if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
+     apiUrl = datas.api_url + "/v1/chat/completions";
+     requestBody = {
+     "messages": data.prompts,
+     "model": data.model,
+     "max_tokens": data.max_tokens,
+     "n": 1,
+     };
+ }
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: selectedApiPath === '/v1beta/models/model:generateContent?key=apikey'? { // Conditional headers
+            'Content-Type': 'application/json'
+        } : {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify(requestBody)
+    });
+
+if (!response.ok) {
+    const errorData = await response.json();
+    addFailMessage(`请求失败，状态码: ${response.status}, 错误信息: ${errorData.error ? errorData.error.message : response.statusText}`);
+    return;
+}
+
+if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3") || model.includes("grok-2-image")) {
+    const responseData = await response.json();
+    if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
+        addImageMessage(responseData.data[0].url);
+        resFlag = true;
+    } else if (responseData.data && responseData.data.length > 0 && responseData.data[0].revised_prompt) {
+        addResponseMessage(responseData.data[0].revised_prompt);
+        resFlag = true;
+    }else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("图片生成失败，返回数据格式不正确");
+        resFlag = false;
+    }
+    return; // For image generation, we handle response differently and return early
+} else if (model.includes("moderation")) {
+    const responseData = await response.json();
+    if (responseData.results) {
+        addModerationMessage(responseData.results);
+        resFlag = true;
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("内容审查失败，返回数据格式不正确");
+        resFlag = false;
+    }
+    return; // For moderation, handle response and return
+} else if (model.includes("embedding")) {
+    const responseData = await response.json();
+    if (responseData.data && responseData.data.length > 0 && responseData.data[0].embedding) {
+        addEmbeddingMessage(responseData.data[0].embedding);
+        resFlag = true;
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("Embedding 获取失败，返回数据格式不正确");
+        resFlag = false;
+    }
+    return; // For embedding, handle response and return
+} else if (model.includes("tts-1")) {
+    const audioBlob = await response.blob();
+    const reader = new FileReader();
+    reader.onloadend = () => {
+        const base64Audio = reader.result.split(',')[1];
+        addTTSMessage(base64Audio);
+    };
+    reader.readAsDataURL(audioBlob);
+    resFlag = true;
+    return; // For TTS, handle response and return
+} else if (model.includes("gemini-2.0-flash-exp-image-generation") && selectedApiPath === '/v1beta/models/model:generateContent?key=apikey') {
+    const responseData = await response.json();
+    if (responseData.candidates && responseData.candidates[0].content && responseData.candidates[0].content.parts) {
+        addResponseMessage(responseData.candidates[0].content.parts); // Pass parts array to addResponseMessage
+        resFlag = true;
+    } else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+    } else {
+        addFailMessage("图片生成失败，返回数据格式不正确");
+        resFlag = false;
+    }
+    return;
+}
 
 
-    sendRequest(requestData); // Call the async function
+if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设置, 默认流式
+    const reader = response.body.getReader();
+    let res = '';
+    let str;
+    // **新增代码 - 在请求前记录是否滚动到底部**
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+            break;
+        }
+        str = '';
+        res += new TextDecoder().decode(value).replace(/^data: /gm, '').replace("[DONE]", '');
+        const lines = res.trim().split(/[\n]+(?=\{)/);
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            let jsonObj;
+            try {
+                jsonObj = JSON.parse(line);
+            } catch (e) {
+                break;
+            }
+    if (jsonObj.choices) {
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
+            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
+            const content = jsonObj.choices[0].delta.content;
 
-     // Clear image preview AFTER sending the request containing it
-     if (imageBase64) {
-          resetImageUpload();
-     }
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {
+                str += content;
+            }
+        } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
+            str += jsonObj.choices[0].text;
+        } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
+            const message = jsonObj.choices[0].message;
+            const reasoningContent = message.reasoning_content;
+            const content = message.content;
 
-  }); // End chatBtn click
+            if (reasoningContent && reasoningContent.trim() !== "") {
+                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
+            } else if (content && content.trim() !== "") {  
+                str += content;
+            }
+        }
+                addResponseMessage(str);
+                resFlag = true;
+            } else if (jsonObj.candidates) { // Gemini stream response handling
+                let geminiContent = '';
+                if (jsonObj.candidates[0].content && jsonObj.candidates[0].content.parts && jsonObj.candidates[0].content.parts[0].text) {
+                    geminiContent = jsonObj.candidates[0].content.parts[0].text;
+                }
+                str += geminiContent;
+                addResponseMessage(str);
+                resFlag = true;
+            }
 
-  // Stop Button Click
-  $('.stop a').click(function(e) {
-      e.preventDefault();
-      if (ajaxRequest) {
-          ajaxRequest.abort(); // Abort the fetch request
-          console.log("Request aborted by user.");
-          ajaxRequest = null; // Clear the controller reference
-          // addFailMessage("请求已中止。"); // Already handled in sendRequest's catch block
-          $(this).closest('.stop').hide(); // Hide the stop button itself
-          // Re-enable send button and input
-          chatBtn.attr('disabled', false);
-          chatInput.on("keydown", handleEnter);
+             else {
+                if (jsonObj.error) {
+                    addFailMessage(jsonObj.error.type + " : " + jsonObj.error.message + jsonObj.error.code);
+                    resFlag = false;
+                }
+            }
+        }
+    }
+
+    return str;
+}else { // 非流式输出处理
+    const responseData = await response.json();
+    if (responseData.choices && responseData.choices.length > 0) {
+        let content = '';
+        if (apiUrl === datas.api_url + "/v1/chat/completions" && responseData.choices[0].message) {
+            content = responseData.choices[0].message.content;
+        } else if (apiUrl === datas.api_url + "/v1/completions" && responseData.choices[0].text) {
+            content = responseData.choices[0].text;
+        }
+        addResponseMessage(content);
+        resFlag = true;
+        return content;
+    } else if (responseData.candidates && responseData.candidates.length > 0 && responseData.candidates[0].content && responseData.candidates[0].content.parts && responseData.candidates[0].content.parts.length > 0) { // Gemini non-stream response handling
+        const content = responseData.candidates[0].content.parts[0].text;
+        addResponseMessage(content);
+        resFlag = true;
+        return content;
+    }
+     else if (responseData.error) {
+        addFailMessage(responseData.error.message);
+        resFlag = false;
+        return null;
+    } else {
+        addFailMessage("Unexpected response format.");
+        resFlag = false;
+        return null;
+    }
+
+}
+
+
+  }
+
+
+  // 处理用户输入
+  chatBtn.click(function() {
+    // 解绑键盘事件
+    chatInput.off("keydown",handleEnter);
+let data = {};
+let imageSrc = document.getElementById('imagePreview').src;
+    data.image_base64 = imageSrc.split(',')[1];
+    let message = chatInput.val();
+    if (message.length == 0){
+      // 重新绑定键盘事件
+      chatInput.on("keydown",handleEnter);
+      return
+    }
+
+    addRequestMessage(message);
+    // 将用户消息保存到数组
+    messages.push({"role": "user", "content": message})
+
+    // 获取连续对话消息上限，默认值 150
+    let maxMessages = parseInt(getCookie('maxDialogueMessages')) || 150;
+
+    if(messages.length> maxMessages){
+      addFailMessage("此次对话长度过长，请点击下方删除按钮清除对话内容！");
+      // 重新绑定键盘事件
+      chatInput.on("keydown",handleEnter);
+      chatBtn.attr('disabled',false) // 让按钮可点击
+      return ;
+    }
+
+ // 获取所选的模型
+  data.model = $(".settings-common .model").val();
+  data.temperature = parseFloat($(".settings-common .temperature").val());
+  data.max_tokens = parseInt($(".settings-common .max-tokens").val());
+
+    const selectedModel = data.model.toLowerCase();
+    if (selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1") || selectedModel.includes("grok-2-image")) {
+        data.prompts = [{"role": "user", "content": message}]; // For image/moderation/embedding/tts, only send the last message
+    } else {
+        // 判读是否已开启连续对话
+        if(localStorage.getItem('continuousDialogue') == 'true'){
+            // 控制上下文，对话长度超过100轮，取最新的99轮,即数组最后199条数据
+          data.prompts = messages.slice();  // 拷贝一份全局messages赋值给data.prompts,然后对data.prompts处理
+          if (data.prompts.length > 200) {
+            data.prompts.splice(0, data.prompts.length - 199);
+          }
+        }else{
+          data.prompts = messages.slice();
+          data.prompts.splice(0, data.prompts.length - 1); // 未开启连续对话，取最后一条
+        }
+    }
+
+
+    sendRequest(data).then((res) => {
+      chatInput.val('');
+      // 收到回复，让按钮可点击
+      chatBtn.attr('disabled',false)
+      // 重新绑定键盘事件
+      chatInput.on("keydown",handleEnter);
+      // 判断是否是回复正确信息
+      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1") || selectedModel.includes("grok-2-image")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
+        messages.push({"role": "assistant", "content": res});
+        // 判断是否本地存储历史会话
+        if(localStorage.getItem('archiveSession')=="true"){
+          localStorage.setItem("session",JSON.stringify(messages));
+        }
       }
+      // 添加复制
+      copy();
+    });
+  });
+// 停止并隐藏
+$('.stop a').click(function() {
+  if (ajaxRequest) {
+    ajaxRequest.abort();
+  }
+  // 隐藏具有类名为 "stop" 的父元素（假设你想隐藏整个父元素）
+  $(this).closest('.stop').hide();
+});
+// Enter键盘事件
+function handleEnter(e) {
+  // 如果是电脑端，判断同时按下Ctrl键和Enter键
+  if (!isMobile() && e.ctrlKey && e.keyCode == 13) {
+    chatBtn.click();
+    e.preventDefault();  //避免回车换行
+  }
+}
+
+// 绑定键盘事件
+chatInput.on("keydown", handleEnter);
+
+
+  // 设置栏宽度自适应
+  let width = $('.function .others').width();
+  $('.function .settings .dropdown-menu').css('width', width);
+
+  $(window).resize(function() {
+    width = $('.function .others').width();
+    $('.function .settings .dropdown-menu').css('width', width);
   });
 
 
-  // Enter Key Handler Function
-  function handleEnter(e) {
-      if (!isMobile() && (e.ctrlKey || e.metaKey) && e.keyCode === 13) {
-          e.preventDefault();
-          chatBtn.click();
-      } else if (isMobile() && e.keyCode === 13 && !e.shiftKey) {
-          e.preventDefault();
-          chatBtn.click();
-      }
-  }
-  // Initial binding
-  chatInput.on("keydown", handleEnter);
-
-
-  // --- Settings Dropdown Width ---
-  function adaptSettingsWidth() {
-     const othersWidth = $('.function .others').width();
-     // Ensure width is reasonable before applying
-     if (othersWidth && othersWidth > 50) {
-          $('.function .settings .dropdown-menu').css('width', othersWidth);
-     }
-  }
-  adaptSettingsWidth(); // Initial call
-  $(window).resize(adaptSettingsWidth); // Adapt on resize
-
-
-  // --- Theme Management ---
-  function setBgColor(theme) {
+  // 主题
+  function setBgColor(theme){
     $(':root').attr('bg-theme', theme);
-    // Update select dropdown value
     $('.settings-common .theme').val(theme);
-    // Apply to detached elements if necessary (though CSS variables should handle this)
-    $('.settings-common').css('background-color', 'var(--bg-color)'); // Example
+    // 定位在文档外的元素也同步主题色
+    $('.settings-common').css('background-color', 'var(--bg-color)');
   }
 
-  let currentTheme = localStorage.getItem('theme') || "light"; // Default to light
-  setBgColor(currentTheme);
+  let theme = localStorage.getItem('theme');
+  // 如果之前选择了主题，则将其应用到网站中
+  if (theme) {
+    setBgColor(theme);
+  }else{
+    localStorage.setItem('theme', "light"); //默认的主题
+    theme = localStorage.getItem('theme');
+    setBgColor(theme);
+  }
 
+  // 监听主题选择的变化
   $('.settings-common .theme').change(function() {
     const selectedTheme = $(this).val();
     localStorage.setItem('theme', selectedTheme);
-    setBgColor(selectedTheme);
+    $(':root').attr('bg-theme', selectedTheme);
+    // 定位在文档外的元素也同步主题色
+    $('.settings-common').css('background-color', 'var(--bg-color)');
   });
 
-    // --- Settings Persistence (Password, API Key, URL) ---
-    // Load from localStorage on startup
-    $(".settings-common .password").val(localStorage.getItem('password') || '');
-    $(".settings-common .api-key").val(localStorage.getItem('apiKey') || '');
-    $(".settings-common .api_url").val(localStorage.getItem('api_url') || '');
+  // password
+  const password = localStorage.getItem('password');
+  if (password) {
+    $(".settings-common .password").val(password);
+  }
 
-    // Save on blur (focus lost)
-    $(".settings-common .password").blur(function() {
-        const value = $(this).val().trim();
-        if (value) localStorage.setItem('password', value);
-        else localStorage.removeItem('password');
-    });
-    $(".settings-common .api-key").blur(function() {
-        const value = $(this).val().trim();
-        if (value) localStorage.setItem('apiKey', value);
-        else localStorage.removeItem('apiKey');
-        // Trigger balance update on blur if value changed significantly (handled in initListeners)
-    });
-    $(".settings-common .api_url").blur(function() {
-        const value = $(this).val().trim();
-        if (value) localStorage.setItem('api_url', cleanApiUrl(value)); // Save cleaned URL
-        else localStorage.removeItem('api_url');
-         // Trigger balance update (handled in initListeners)
-    });
+  // password输入框事件
+  $(".settings-common .password").blur(function() {
+    const password = $(this).val();
+    if(password.length!=0){
+      localStorage.setItem('password', password);
+    }else{
+      localStorage.removeItem('password');
+    }
 
-  // --- Archive Session Setting ---
-  var archiveSession = localStorage.getItem('archiveSession') !== 'false'; // Default true
-  $("#chck-1").prop("checked", archiveSession);
+  })
+  // apiKey
+  const apiKey = localStorage.getItem('apiKey');
+  if (apiKey) {
+    $(".settings-common .api-key").val(apiKey);
+  }
+
+  // apiKey输入框事件
+  $(".settings-common .api-key").blur(function() {
+    const apiKey = $(this).val();
+    if(apiKey.length!=0){
+      localStorage.setItem('apiKey', apiKey);
+    }else{
+      localStorage.removeItem('apiKey');
+    }
+  })
+
+ // 读取apiUrl
+  const api_url = localStorage.getItem('api_url');
+  if (api_url) {
+    $(".settings-common .api_url").val(api_url);
+  }
+
+  // apiUrl输入框事件
+  $(".settings-common .api_url").blur(function() {
+    const api_url = $(this).val();
+    if(api_url.length!=0){
+      localStorage.setItem('api_url', api_url);
+    }else{
+      localStorage.removeItem('api_url');
+    }
+  })
+
+  // 是否保存历史对话
+  var archiveSession = localStorage.getItem('archiveSession');
+
+  // 初始化archiveSession
+  if(archiveSession == null){
+    archiveSession = "true";
+    localStorage.setItem('archiveSession', archiveSession);
+  }
+
+  if(archiveSession == "true"){
+    $("#chck-1").prop("checked", true);
+  }else{
+    $("#chck-1").prop("checked", false);
+  }
 
   $('#chck-1').click(function() {
-    const isChecked = $(this).prop('checked');
-    localStorage.setItem('archiveSession', isChecked);
-    if (isChecked && messages.length > 0) {
-      // Save current session if newly enabled
-      localStorage.setItem("session", JSON.stringify(messages));
-    } else if (!isChecked) {
-      // Clear session if disabled
+    if ($(this).prop('checked')) {
+      // 开启状态的操作
+      localStorage.setItem('archiveSession', true);
+      if(messages.length != 0){
+        localStorage.setItem("session",JSON.stringify(messages));
+      }
+    } else {
+      // 关闭状态的操作
+      localStorage.setItem('archiveSession', false);
       localStorage.removeItem("session");
     }
   });
 
-    // --- Load History ---
-    if (archiveSession) {
-        const savedSession = localStorage.getItem("session");
-        if (savedSession) {
-            try {
-                messages = JSON.parse(savedSession);
-                if (!Array.isArray(messages)) messages = []; // Ensure it's an array
-
-                // Clear existing chat window before loading history
-                chatWindow.empty();
-
-                // Load messages into UI
-                let lastRequestBubble = null;
-                messages.forEach(item => {
-                    if (item.role === 'user') {
-                         addRequestMessage(item.content);
-                         // Find the bubble just added (it's the last request-bubble)
-                         lastRequestBubble = chatWindow.find('.message-bubble.request-bubble').last();
-                    } else if (item.role === 'assistant') {
-                         // Ensure we have a preceding request bubble's response placeholder
-                         if (lastRequestBubble && lastRequestBubble.next('.message-bubble.response-bubble').length) {
-                             const responseBubble = lastRequestBubble.next('.message-bubble.response-bubble');
-                             const responseTextElement = responseBubble.find('.message-text.response');
-                             const responseButtonsContainer = responseBubble.find('.message-buttons');
-
-                            // Determine content type and use appropriate function
-                             const content = item.content;
-                             if (content && (content.startsWith('http://') || content.startsWith('https://') || content.startsWith('data:image'))) {
-                                  // It's an image URL - use addImageMessage logic (simplified for loading)
-                                  responseTextElement.empty().append(`<div class="message-text"><img src="${content}" style="max-width: 100%; max-height: 300px; display: block; margin-top: 5px;" alt="Saved Image"></div>`);
-                                  responseButtonsContainer.empty()
-                                      .append('<button class="view-button"><i class="fas fa-search"></i></button>')
-                                      .append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-                                  // Re-bind buttons for this loaded image
-                                  responseButtonsContainer.find('.view-button').on('click', function() { window.open(content, '_blank'); });
-                                  responseButtonsContainer.find('.delete-message-btn').click(function() {
-                                      lastRequestBubble.remove(); responseBubble.remove(); rebuildAndSaveMessages();
-                                  });
-
-                             } else if (content === "//audio base64...") {
-                                 responseTextElement.empty().append('<div class="message-text"><audio controls style="margin-top: 5px;" title="Audio playback not available from history"><source src="" type="audio/mpeg">Cannot load audio from history.</audio></div>'); // Placeholder element
-                                 responseButtonsContainer.empty()
-                                      .append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-                                  responseButtonsContainer.find('.delete-message-btn').click(function() {
-                                       lastRequestBubble.remove(); responseBubble.remove(); rebuildAndSaveMessages();
-                                  });
-
-                              } else if (content === "//embedding data..." || content.startsWith('{') || content.startsWith('[')) {
-                                  // Handle JSON data (moderation) or placeholders (embedding) as text/code
-                                  let displayContent = content;
-                                  try { // Try to pretty-print JSON if it is JSON
-                                       const parsed = JSON.parse(content);
-                                       displayContent = `<pre style="white-space: pre-wrap; word-wrap: break-word;">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
-                                  } catch(e) {
-                                       // Not JSON or placeholder, treat as text
-                                       displayContent = `<p>${escapeHtml(content)}</p>`;
-                                  }
-                                  responseTextElement.empty().html(displayContent); // Use html() for pre tag
-                                  responseButtonsContainer.empty()
-                                      .append('<button class="copy-button" title="Copy"><i class="far fa-copy"></i></button>')
-                                      .append('<button class="delete-message-btn"><i class="far fa-trash-alt"></i></button>');
-                                   bindResponseButtons(responseBubble, content); // Bind standard text buttons
-
-                              } else {
-                                 // Regular text message
-                                 addResponseMessage(content, true); // Call addResponseMessage to render markdown and add buttons
-                             }
-                         } else {
-                              console.warn("Orphaned assistant message found during loading:", item);
-                         }
-                         lastRequestBubble = null; // Reset for next pair
-                    }
-                });
-                scrollToBottom(true); // Scroll to bottom immediately after loading
-                copy(); // Re-apply code copy buttons after loading
-
-            } catch (e) {
-                console.error("Error parsing saved session:", e);
-                messages = []; // Reset messages array on parse error
-                localStorage.removeItem("session"); // Remove corrupted session data
-            }
-        } else {
-             messages = []; // Ensure messages is empty if no session found
+  // 加载历史保存会话
+  if(archiveSession == "true"){
+    const messagesList = JSON.parse(localStorage.getItem("session"));
+    if(messagesList){
+      messages = messagesList;
+      $.each(messages, function(index, item) {
+        if (item.role === 'user') {
+          addRequestMessage(item.content)
+        } else if (item.role === 'assistant') {
+          addResponseMessage(item.content)
         }
-    } else {
-         messages = []; // Ensure messages is empty if archive is off
+      });
+      // 添加复制
+      copy();
     }
+  }
 
+  // 是否连续对话
+  var continuousDialogue = localStorage.getItem('continuousDialogue');
 
-  // --- Continuous Dialogue Setting ---
-  var continuousDialogue = localStorage.getItem('continuousDialogue') !== 'false'; // Default true
-  $("#chck-2").prop("checked", continuousDialogue);
+  // 初始化continuousDialogue
+  if(continuousDialogue == null){
+    continuousDialogue = "true";
+    localStorage.setItem('continuousDialogue', continuousDialogue);
+  }
+
+  if(continuousDialogue == "true"){
+    $("#chck-2").prop("checked", true);
+  }else{
+    $("#chck-2").prop("checked", false);
+  }
 
   $('#chck-2').click(function() {
-    localStorage.setItem('continuousDialogue', $(this).prop('checked'));
+    if ($(this).prop('checked')) {
+      localStorage.setItem('continuousDialogue', true);
+    } else {
+      localStorage.setItem('continuousDialogue', false);
+    }
+// 删除输入框中的消息
+function deleteInputMessage() {
+  chatInput.val('');
+}
   });
+// 读取model配置
+const selectedModel = localStorage.getItem('selectedModel');
 
-// --- Model Change Logic ---
-const streamOutputCheckbox = document.getElementById('streamOutput');
-
+// 检测模型并更新设置
 function updateModelSettings(modelName) {
-    const lowerModelName = modelName.toLowerCase();
+    const isNonStreamModel = modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all") ||
+                               modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all");
 
-    // --- Streaming Setting Logic ---
-    const forceNonStream = (lowerModelName.includes("o1") && !lowerModelName.includes("all")) ||
-                           (lowerModelName.includes("o3") && !lowerModelName.includes("all"));
+    const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
+                                      modelName.toLowerCase().includes("cogview") ||
+                                      modelName.toLowerCase().includes("moderation") ||
+                                      modelName.toLowerCase().includes("embedding") ||
+                                      modelName.toLowerCase().includes("grok-2-image") ||
+                                      modelName.toLowerCase().includes("tts-1");
 
-    const hideStreamSetting = lowerModelName.includes("dall-e") ||
-                              lowerModelName.includes("cogview") ||
-                              lowerModelName.includes("moderation") ||
-                              lowerModelName.includes("embedding") ||
-                              lowerModelName.includes("tts-1") ||
-                              lowerModelName.includes("grok-2-image") ||
-                              apiPathSelect.val() === '/v1beta/models/model:generateContent?key=apikey'; // Gemini path often non-streamed
+    var streamOutputCheckbox = document.getElementById('streamOutput');
 
-    if (streamOutputSetting) { // Check if element exists
-        if (hideStreamSetting) {
-            streamOutputSetting.hide();
-             // Optional: Set underlying cookie value if needed when hidden?
-             // setCookie('streamOutput', 'false', 30); // Example: force non-stream if hidden
-        } else {
-            streamOutputSetting.show();
-            if (forceNonStream) {
-                if (streamOutputCheckbox) streamOutputCheckbox.checked = false;
-                setCookie('streamOutput', 'false', 30);
-                 if (streamOutputCheckbox) streamOutputCheckbox.disabled = true; // Disable checkbox
-            } else {
-                 if (streamOutputCheckbox) streamOutputCheckbox.disabled = false; // Re-enable checkbox
-                 // Restore user's preferred setting if not forced
-                 const preferredStream = getCookie('streamOutput') !== 'false';
-                 if (streamOutputCheckbox) streamOutputCheckbox.checked = preferredStream;
-            }
+    if (isNonStreamModel) {
+        streamOutputCheckbox.checked = false;
+        setCookie('streamOutput', 'false', 30);
+        streamOutputSetting.show(); // 确保设置行显示
+    } else if (isHideStreamSettingModel) {
+        streamOutputSetting.hide(); // 隐藏设置行
+    } else {
+        streamOutputSetting.show(); // 确保设置行显示
+        // 如果之前是非流式，切换到流式
+        if (getCookie('streamOutput') === 'false') {
+            streamOutputCheckbox.checked = true;
+            setCookie('streamOutput', 'true', 30);
         }
     }
 
-    // --- Continuous Dialogue Setting Logic ---
-    const disableContinuous = lowerModelName.includes("dall-e") ||
-                               lowerModelName.includes("cogview") ||
-                               lowerModelName.includes("moderation") ||
-                               lowerModelName.includes("embedding") ||
-                               lowerModelName.includes("tts-1") ||
-                               lowerModelName.includes("grok-2-image") ||
-                               // Models primarily used with specific, non-chat endpoints
-                               lowerModelName.includes("gpt-3.5-turbo-instruct") ||
-                               lowerModelName.includes("babbage-002") ||
-                               lowerModelName.includes("davinci-002") ||
-                               // Vision models might or might not support history well depending on API
-                               lowerModelName.includes("vision") || // General vision keyword
-                               lowerModelName.includes("glm-4v") ||
-                               // Other non-chat or specialized models
-                               lowerModelName.includes("midjourney") || lowerModelName.includes("stable") ||
-                               lowerModelName.includes("flux") || lowerModelName.includes("video") ||
-                               lowerModelName.includes("sora") || lowerModelName.includes("suno") ||
-                               lowerModelName.includes("kolors") || lowerModelName.includes("kling") ||
-                               apiPathSelect.val() === '/v1beta/models/model:generateContent?key=apikey'; // Gemini path
+    // 检测是否含有"tts"或"dall"并设置连续对话状态 - 保持原有的连续对话逻辑
+    const hasTTS = modelName.toLowerCase().includes("tts");
+    const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
+    const hasCompletion2 = modelName.toLowerCase().includes("babbage-002");
+    const hasCompletion3 = modelName.toLowerCase().includes("davinci-002");
+    const hasTextem = modelName.toLowerCase().includes("embedding");
+    const hasTextmo = modelName.toLowerCase().includes("moderation");
+    const hasDALL = modelName.toLowerCase().includes("dall-e");
+    const hasCog = modelName.toLowerCase().includes("cogview");
+    const hasVs = modelName.toLowerCase().includes("glm-4v");
+    const hasVi = modelName.toLowerCase().includes("vision");
+    const hasMj = modelName.toLowerCase().includes("midjourney");
+    const hasSD = modelName.toLowerCase().includes("stable");
+    const hasFlux = modelName.toLowerCase().includes("flux");
+    const hasVd = modelName.toLowerCase().includes("video");
+    const hasSora = modelName.toLowerCase().includes("sora");
+    const hasSuno = modelName.toLowerCase().includes("suno");
+    const hasKo = modelName.toLowerCase().includes("kolors");
+    const hasKl = modelName.toLowerCase().includes("kling");
 
 
-    const continuousCheckbox = $("#chck-2");
-    continuousCheckbox.prop("disabled", disableContinuous);
+    const isContinuousDialogueEnabled = !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
 
-    if (disableContinuous) {
-        continuousCheckbox.prop("checked", false);
-        localStorage.setItem('continuousDialogue', false);
-    } else {
-        // If enabling continuous, restore user's preference
-        const preferredContinuous = localStorage.getItem('continuousDialogue') !== 'false';
-        continuousCheckbox.prop("checked", preferredContinuous);
-    }
+    // 设置连续对话状态
+    $("#chck-2").prop("checked", isContinuousDialogueEnabled);
+    localStorage.setItem('continuousDialogue', isContinuousDialogueEnabled);
 
-    // --- Clear History when switching from non-history model ---
+    // 设置是否禁用checkbox
+    $("#chck-2").prop("disabled", hasTTS || hasDALL  || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl);
+
+    // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
-    const lowerPreviousModel = previousModel.toLowerCase();
-    const previousWasDisabled = lowerPreviousModel.includes("dall-e") || lowerPreviousModel.includes("cogview") ||
-                                lowerPreviousModel.includes("moderation") || lowerPreviousModel.includes("embedding") ||
-                                lowerPreviousModel.includes("tts-1") || lowerPreviousModel.includes("grok-2-image") ||
-                                lowerPreviousModel.includes("gpt-3.5-turbo-instruct") || lowerPreviousModel.includes("babbage-002") ||
-                                lowerPreviousModel.includes("davinci-002") || lowerPreviousModel.includes("vision") ||
-                                lowerPreviousModel.includes("glm-4v") || lowerPreviousModel.includes("midjourney") ||
-                                lowerPreviousModel.includes("stable") || lowerPreviousModel.includes("flux") ||
-                                lowerPreviousModel.includes("video") || lowerPreviousModel.includes("sora") ||
-                                lowerPreviousModel.includes("suno") || lowerPreviousModel.includes("kolors") ||
-                                lowerPreviousModel.includes("kling") ||
-                                localStorage.getItem('previousApiPath') === '/v1beta/models/model:generateContent?key=apikey';
+    const hadTTS = previousModel.toLowerCase().includes("tts");
+    const hadDALL = previousModel.toLowerCase().includes("dall-e");
+    const hadCog = previousModel.toLowerCase().includes("cogview");
+    const hadCompletion1 = previousModel.toLowerCase().includes("gpt-3.5-turbo-instruct");
+    const hadCompletion2 = previousModel.toLowerCase().includes("babbage-002");
+    const hadCompletion3= previousModel.toLowerCase().includes("davinci-002");
+    const hadTextem = previousModel.toLowerCase().includes("embedding");
+    const hadTextmo = previousModel.toLowerCase().includes("moderation");
+    const hadVs = previousModel.toLowerCase().includes("glm-4v");
+    const hadVi = previousModel.toLowerCase().includes("vision");
+    const hadMj = previousModel.toLowerCase().includes("midjourney");
+    const hadSD = previousModel.toLowerCase().includes("stable");
+    const hadFlux = previousModel.toLowerCase().includes("flux");
+    const hadVd = previousModel.toLowerCase().includes("video");
+    const hadSora = previousModel.toLowerCase().includes("sora");
+    const hadSuno = previousModel.toLowerCase().includes("suno");
+    const hadKo = previousModel.toLowerCase().includes("kolors");
+    const hadKl = previousModel.toLowerCase().includes("kling");
 
 
-    if (previousWasDisabled && !disableContinuous) {
-        // Switched from a model that disables history TO a model that allows it
-        // Ask user or automatically clear? Let's clear automatically for simplicity.
-        console.log("Switched from non-history model, clearing conversation.");
+    // 如果从包含tts或dall的模型切换到不包含这些的模型，清除对话
+    if ((hadTTS || hadDALL || hadCog || hadCompletion1 || hadCompletion2 || hadCompletion3 || hadTextem || hadTextmo || hadVs || hadVi || hadMj || hadSD || hadFlux || hadVd || hadSora || hadSuno || hadKo || hadKl) && !(hasTTS || hasDALL || hasCog || hasCompletion1 || hasCompletion2 || hasCompletion3 || hasTextem || hasTextmo || hasVs || hasVi || hasMj || hasSD || hasFlux || hasVd || hasSora || hasSuno || hasKo || hasKl)) {
         clearConversation();
     }
 
-    // --- Auto-switch API Path ---
-    let autoSelectedPath = null; // Default: let user choose or keep current
-     if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
-         autoSelectedPath = '/v1/completions';
-     } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3") || lowerModelName.includes("grok-2-image")) {
-         autoSelectedPath = '/v1/images/generations';
-     } else if (lowerModelName.includes("moderation")) {
-         autoSelectedPath = '/v1/moderations';
-     } else if (lowerModelName.includes("embedding")) {
-         autoSelectedPath = '/v1/embeddings';
-     } else if (lowerModelName.includes("tts-1")) {
-         autoSelectedPath = '/v1/audio/speech';
-     } else if (lowerModelName.includes("gemini")) {
-         // Check if specific Gemini path exists in dropdown
-          if ($('#apiPathSelect option[value="/v1beta/models/model:generateContent?key=apikey"]').length > 0) {
-              autoSelectedPath = '/v1beta/models/model:generateContent?key=apikey';
-          } else {
-               autoSelectedPath = '/v1/chat/completions'; // Fallback if path not available
-           }
-     } else {
-         // Default to chat completions for most other models if no specific path detected
-         autoSelectedPath = '/v1/chat/completions';
-     }
-
-     // Update the dropdown *only if* the auto-selected path exists as an option
-     if (autoSelectedPath && $(`#apiPathSelect option[value='${autoSelectedPath}']`).length > 0) {
-          apiPathSelect.val(autoSelectedPath);
-          localStorage.setItem('apiPath', autoSelectedPath); // Save auto-selected path
-     } else if (!autoSelectedPath && $(`#apiPathSelect option[value='/v1/chat/completions']`).length > 0) {
-         // If no specific path detected, but chat/completions exists, default to it
-         apiPathSelect.val('/v1/chat/completions');
-         localStorage.setItem('apiPath', '/v1/chat/completions');
-     }
-     // else: Keep the user's current selection if auto-path doesn't exist or isn't determined
-
-
-    // Store current model and path for next change detection
+    // 更新上一个模型名称为当前模型
     localStorage.setItem('previousModel', modelName);
-    localStorage.setItem('previousApiPath', apiPathSelect.val());
 
-     // Also update title
-     updateTitle();
-     // Check image upload visibility
-     checkModelAndShowUpload();
-}
+        // --- Start of Path Auto-Switching Logic ---
+        let selectedApiPath = null; // Use null to represent the default/empty option if needed
+        const lowerModelName = modelName.toLowerCase();
 
-
-// --- Initial Model Setup ---
-const initialSelectedModel = localStorage.getItem('selectedModel');
-if (initialSelectedModel) {
-    // Check if the saved model still exists in the dropdown
-    if ($(`.settings-common .model option[value='${initialSelectedModel}']`).length > 0) {
-        $(".settings-common .model").val(initialSelectedModel);
-    } else {
-        // Saved model doesn't exist (maybe deleted), select the first one
-        if ($(".settings-common .model option").length > 0) {
-             $(".settings-common .model").prop('selectedIndex', 0);
-             localStorage.setItem('selectedModel', $(".settings-common .model").val());
+        if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
+            selectedApiPath = '/v1/completions';
+        } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) { // Added grok image
+            selectedApiPath = '/v1/images/generations';
+        } else if (lowerModelName.includes("moderation")) {
+            selectedApiPath = '/v1/moderations';
+        } else if (lowerModelName.includes("embedding")) {
+            selectedApiPath = '/v1/embeddings';
+        } else if (lowerModelName.includes("tts-1")) {
+            selectedApiPath = '/v1/audio/speech';
+        } else if (lowerModelName.includes("gemini")) { // General Gemini case
+             // Check if a specific Gemini path exists in the dropdown, otherwise default
+             if ($('#apiPathSelect option[value="/v1beta/models/model:generateContent?key=apikey"]').length > 0) {
+                 selectedApiPath = '/v1beta/models/model:generateContent?key=apikey';
+             } else {
+                 selectedApiPath = '/v1/chat/completions'; // Fallback if specific Gemini path isn't an option
+             }
         } else {
-             localStorage.removeItem('selectedModel'); // No models left
+             // Default for most chat models if none of the above conditions match
+             selectedApiPath = '/v1/chat/completions';
         }
+
+        // ***** FIX: Update the dropdown selection *****
+        apiPathSelect.val(selectedApiPath); // Use the variable holding the selector
+
+        // Optional: Save the auto-selected path to localStorage immediately
+        // This makes the auto-selection sticky until the user manually changes it
+        if (selectedApiPath) { // Only save if a specific path was determined
+             localStorage.setItem('apiPath', selectedApiPath);
+        } else {
+            // If selectedApiPath is null (or empty string depending on dropdown setup),
+            // you might want to remove the item or save an empty string
+             localStorage.removeItem('apiPath'); // Or localStorage.setItem('apiPath', '');
+        }
+        // ***** END FIX *****
+
     }
-} else if ($(".settings-common .model option").length > 0) {
-     // No saved model, select the first one by default
-     $(".settings-common .model").prop('selectedIndex', 0);
-     localStorage.setItem('selectedModel', $(".settings-common .model").val());
-}
-
-// Initialize settings based on the finally selected model
-updateModelSettings($(".settings-common .model").val() || ""); // Pass current value or empty string
 
 
-// Model Select Change Handler
-$('.settings-common .model').change(function() {
-    const selectedModel = $(this).val();
-    localStorage.setItem('selectedModel', selectedModel);
-    updateModelSettings(selectedModel); // Update settings, path, title etc.
-});
+        // 初始加载时检测selectedModel
+        if (selectedModel) {
+            $(".settings-common .model").val(selectedModel);
+            updateModelSettings(selectedModel);
+            // Update the title to use the selected option's data-description
+            $(".title h2").text($(".settings-common .model option:selected").data('description'));
+        }
 
-// --- Clear Conversation ---
+        // 监听model选择的变化
+        $('.settings-common .model').change(function() {
+            const selectedModel = $(this).val();
+            localStorage.setItem('selectedModel', selectedModel);
+            updateModelSettings(selectedModel);
+            // Update the title to use the selected option's data-description
+            $(".title h2").text($(this).find("option:selected").data('description'));
+        });
+
+// 删除对话
 function clearConversation() {
-    chatWindow.empty(); // Clear chat display
-    if(chatInput) chatInput.val(''); // Clear input field
-    resetInputHeight(); // Reset input height
-    $(".answer .tips").css({"display":"flex"}); // Show tips card
-    messages = []; // Clear message array
-    localStorage.removeItem("session"); // Clear storage
-    if (scrollDownBtn) {
-         scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-         scrollDownBtn.data('scroll-state', 'down');
-    }
-     // Also reset image upload state
-     resetImageUpload();
+    chatWindow.empty();
+    deleteInputMessage();
+    $(".answer .tips").css({"display":"flex"});
+    messages = [];
+    localStorage.removeItem("session");
+    scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down'); // Reset to scroll down icon
+    scrollDownBtn.data('scroll-state', 'down'); // Reset scroll state
 }
 
-// Delete Button Handler
-$(".delete a").click(function(e){
-    e.preventDefault(); // Prevent potential anchor link behavior
+// 删除功能
+$(".delete a").click(function(){
     clearConversation();
 });
 
-// --- Scroll Handling ---
-// Scroll to bottom helper
-function scrollToBottom(immediate = false) {
-     if (isScrolling) return; // Don't interrupt existing animation
-
-     const targetScrollTop = chatWindow.prop('scrollHeight');
-     if (immediate) {
-          chatWindow.scrollTop(targetScrollTop);
-          // Update button state immediately after manual scroll
-          if (chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 1) {
-               scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
-               scrollDownBtn.data('scroll-state', 'up');
-          } else {
-               scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-               scrollDownBtn.data('scroll-state', 'down');
-          }
-     } else {
-          // Animate scroll only if not already near the bottom
-          if (chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() > 50) { // Threshold
-               isScrolling = true;
-               chatWindow.animate({ scrollTop: targetScrollTop }, scrollDuration, 'linear', function() {
-                   isScrolling = false;
-                   // Update button state after animation completes
-                   scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
-                   scrollDownBtn.data('scroll-state', 'up');
-               });
-          } else {
-               // If already near bottom, just snap and update state
-               chatWindow.scrollTop(targetScrollTop);
-               scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
-               scrollDownBtn.data('scroll-state', 'up');
-          }
-     }
-}
-
-// Scroll event listener for button state
+// 添加滚动监听器
 chatWindow.on('scroll', function() {
-    if (isScrolling) return; // Ignore scroll events during animation
+    const isScrolledToBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 1;
+    const isScrolledToTop = chatWindow.scrollTop() === 0;
 
-    const isNearTop = chatWindow.scrollTop() < 50; // Threshold near top
-    const isNearBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 50; // Threshold near bottom
+    if (isScrolling) return; // Prevent state change during scrolling
 
-    if (isNearBottom) {
+    if (isScrolledToBottom) {
         scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
         scrollDownBtn.data('scroll-state', 'up');
-    } else if (isNearTop) {
-         scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-         scrollDownBtn.data('scroll-state', 'down');
+    } else if (isScrolledToTop) {
+        scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+        scrollDownBtn.data('scroll-state', 'down');
     } else {
-         // In the middle, default to scroll down state/icon
-         scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-         scrollDownBtn.data('scroll-state', 'down');
+        scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down'); // Keep down arrow when in middle
+        scrollDownBtn.data('scroll-state', 'down'); // Keep state as down when in middle, for default down scroll
     }
 });
 
-// Scroll button click handler
+// scroll-down 按钮点击事件
 scrollDownBtn.click(function(e) {
-    e.preventDefault();
-    if (isScrolling) return;
-
-    let scrollState = scrollDownBtn.data('scroll-state') || 'down';
-    let targetScrollTop = scrollState === 'down' ? chatWindow[0].scrollHeight : 0;
+    e.preventDefault(); // Prevent default anchor behavior
+    if (isScrolling) return; // Prevent multiple clicks during scrolling
 
     isScrolling = true;
+    let scrollState = scrollDownBtn.data('scroll-state') || 'down';
+    let targetScrollTop = scrollState === 'down' ? chatWindow[0].scrollHeight : 0; // Scroll to bottom if 'down', top if 'up'
+
     chatWindow.animate({
         scrollTop: targetScrollTop
-    }, scrollDuration, 'linear', function() {
+    }, scrollDuration, 'linear', function() { // 'linear' for constant speed
         isScrolling = false;
-        // Update state after animation
-        if (targetScrollTop === 0) { // Scrolled to top
-            scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-            scrollDownBtn.data('scroll-state', 'down');
-        } else { // Scrolled to bottom
+        if (scrollState === 'down') {
             scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
             scrollDownBtn.data('scroll-state', 'up');
+        } else {
+            scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
+            scrollDownBtn.data('scroll-state', 'down');
         }
     });
 });
 
-// Stop scroll animation on user interaction (wheel or touch)
-chatWindow.on('wheel touchstart', function() {
-     if (isScrolling) {
-          chatWindow.stop(true, false); // Stop animation immediately
-          isScrolling = false;
-          // Manually update button state based on current position after stopping
-           const isNearBottom = chatWindow[0].scrollHeight - chatWindow.scrollTop() - chatWindow.innerHeight() < 50;
-           if (isNearBottom) {
-                scrollDownBtn.find('i').removeClass('fa-chevron-down').addClass('fa-chevron-up');
-                scrollDownBtn.data('scroll-state', 'up');
-           } else {
-                scrollDownBtn.find('i').removeClass('fa-chevron-up').addClass('fa-chevron-down');
-                scrollDownBtn.data('scroll-state', 'down');
-           }
-     }
+// 监听文档点击事件，用于停止滚动
+$(document).on('click', function(event) {
+    if (isScrolling && !$(event.target).closest('.scroll-down').length) { // Clicked outside scroll button
+        chatWindow.stop(true, false); // Stop the animation immediately
+        isScrolling = false; // Reset scrolling flag
+    }
 });
 
 
-  // --- Temperature/Max Tokens Persistence (Saving) ---
-  // Note: Loading is handled earlier in the ready function
-  // Slider change event
-  $(".settings-common .temperature").on('change', function() {
-      localStorage.setItem('temperature', $(this).val());
-  });
-  $(".settings-common .max-tokens").on('change', function() {
-      localStorage.setItem('max_tokens ', $(this).val()); // Key has space
-  });
-  // Input change/blur events already handle saving in their respective sync logic
-
-
-    // --- Screenshot Function ---
-    $(".screenshot a").click(function(e) {
-        e.preventDefault();
-        // Use a library like html2canvas
-        if (typeof html2canvas === 'undefined') {
-            alert("Screenshot library (html2canvas) not loaded.");
-            return;
-        }
-
-         // Temporarily style for capture if needed (e.g., remove scrollbars for full capture)
-         // Note: Capturing full scroll height can be complex and memory-intensive
-         const originalStyle = chatWindow.attr('style');
-         chatWindow.css({
-              overflow: 'visible', // Allow content to overflow for capture
-              height: 'auto'     // Let height adjust to content
-         });
-         const captureHeight = chatWindow.prop('scrollHeight'); // Get full height
-
-        html2canvas(chatWindow[0], {
-            allowTaint: false,
-            useCORS: true, // Important for external images/icons if any
-             // scrollY: -window.scrollY, // Adjust based on page scroll if needed
-             windowHeight: captureHeight, // Try to capture full height
-             height: captureHeight,
-             backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-color').trim() || '#ffffff' // Use theme background
-        }).then(function(canvas) {
-            // Restore original styles
-            chatWindow.attr('style', originalStyle || ''); // Restore or remove style attr
-
-            // Convert canvas to image and trigger download
-            const imgData = canvas.toDataURL('image/png');
-            const link = document.createElement('a');
-            link.download = "chat-screenshot-" + Date.now() + ".png";
-            link.href = imgData;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }).catch(err => {
-            console.error("Screenshot failed:", err);
-            alert("截图失败。");
-            // Restore original styles even on failure
-            chatWindow.attr('style', originalStyle || '');
-        });
-    });
-
-
-  // --- Code Copy Button Logic ---
-  function copy() {
-    // Remove existing buttons first to avoid duplicates on reload/redraw
-    $('pre .copy-code-btn').remove();
-
-    $('pre').each(function() {
-      let btn = $('<button class="copy-code-btn" title="Copy Code"><i class="far fa-copy"></i></button>');
-      $(this).append(btn); // Append directly to pre
-       // Initially hide? Or use CSS for hover effect
-       // btn.hide();
-    });
-
-    // Use event delegation for dynamically added buttons
-    $(document).off('click', '.copy-code-btn').on('click', '.copy-code-btn', function() {
-        let text = $(this).siblings('code').text();
-        copyMessage(text); // Use the main copy helper
-        showCheckmark($(this), "Copied"); // Show visual feedback
-    });
-
-     // Optional: Hover effect using CSS is generally better
-     /*
-     $('pre').hover(
-       function() { $(this).find('.copy-code-btn').show(); },
-       function() { $(this).find('.copy-code-btn').hide(); }
-     );
-     */
+  // 读取temperature
+  const temperature = localStorage.getItem('temperature');
+  if (temperature) {
+    $(".settings-common .temperature-input").val(temperature);
+    $(".settings-common .temperature").val(temperature);
   }
-  copy(); // Initial application
 
+  // temperature输入框事件
+  $(".settings-common .temperature-input").change(function() {
+    const temperature = $(this).val();
+    localStorage.setItem('temperature', temperature);
+  })
 
-    // --- API Path Selection ---
-    const initialApiPath = localStorage.getItem('apiPath');
-    if (initialApiPath && $(`#apiPathSelect option[value='${initialApiPath}']`).length > 0) {
-         apiPathSelect.val(initialApiPath);
-    } // Loading handled earlier as well
+  // temperature滑条事件
+  $(".settings-common .temperature").change(function() {
+    const temperature = $(this).val();
+    localStorage.setItem('temperature', temperature);
+     })
 
-    apiPathSelect.change(function() {
+// 读取max_tokens
+  const max_tokens  = localStorage.getItem('max_tokens ');
+  if (max_tokens) {
+    $(".settings-common .max-tokens-input").val(max_tokens );
+    $(".settings-common .max-tokens ").val(max_tokens );
+  }
+
+  // max_tokens 输入框事件
+  $(".settings-common .max-tokens-input").change(function() {
+    const max_tokens  = $(this).val();
+    localStorage.setItem('max_tokens ', max_tokens );
+      })
+
+  // max_tokens 滑条事件
+  $(".settings-common .max-tokens").change(function() {
+    const max_tokens  = $(this).val();
+    localStorage.setItem('max_tokens ', max_tokens );
+      })
+
+// 删除输入框中的消息
+function deleteInputMessage() {
+  chatInput.val('');
+}
+
+// 删除功能
+$(".delete a").click(function(){
+  chatWindow.empty();
+  deleteInputMessage();
+  $(".answer .tips").css({"display":"flex"});
+  messages = [];
+  localStorage.removeItem("session");
+});
+
+// 删除功能
+$(".delete a").click(function(){
+    clearConversation();
+});
+  // 截图功能
+  $(".screenshot a").click(function() {
+    // 创建副本元素
+    const clonedChatWindow = chatWindow.clone();
+    clonedChatWindow.css({
+      position: "absolute",
+      left: "-9999px",
+      overflow: "visible",
+      width: chatWindow.width(),
+      height: "auto"
+    });
+    $("body").append(clonedChatWindow);
+    // 截图
+    html2canvas(clonedChatWindow[0], {
+      allowTaint: false,
+      useCORS: true,
+      scrollY: 0,
+    }).then(function(canvas) {
+      // 将 canvas 转换成图片
+      const imgData = canvas.toDataURL('image/png');
+      // 创建下载链接
+      const link = document.createElement('a');
+      link.download = "screenshot_" + Math.floor(Date.now() / 1000) + ".png";
+      link.href = imgData;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      clonedChatWindow.remove();
+    });
+  });
+
+  // 复制代码功能
+  function copy(){
+    $('pre').each(function() {
+      let btn = $('<button class="copy-btn">复制</button>');
+      $(this).append(btn);
+      btn.hide();
+    });
+
+    $('pre').hover(
+      function() {
+        $(this).find('.copy-btn').show();
+      },
+      function() {
+        $(this).find('.copy-btn').hide();
+      }
+    );
+
+    $('pre').on('click', '.copy-btn', function() {
+      let text = $(this).siblings('code').text();
+      // 创建一个临时的 textarea 元素
+      let textArea = document.createElement("textarea");
+      textArea.value = text;
+      document.body.appendChild(textArea);
+
+      // 选择 textarea 中的文本
+      textArea.select();
+
+      // 执行复制命令
+      try {
+        document.execCommand('copy');
+        $(this).text('复制成功');
+      } catch (e) {
+        $(this).text('复制失败');
+      }
+
+      // 从文档中删除临时的 textarea 元素
+      document.body.removeChild(textArea);
+
+      setTimeout(() => {
+        $(this).text('复制');
+      }, 2000);
+    });
+  }
+
+    // 读取apiPath
+    const apiPath = localStorage.getItem('apiPath');
+    if (apiPath) {
+        $('#apiPathSelect').val(apiPath);
+    }
+
+    // apiPath select event
+    $('#apiPathSelect').change(function() {
         const selectedApiPath = $(this).val();
         localStorage.setItem('apiPath', selectedApiPath);
-        // Trigger model settings update as path change might affect stream/history options
-        updateModelSettings(modelSelect.val() || "");
     });
+});
 
-}); 
+$(document).ready(function() {
+    // 初始化时滚动到底部
+    chatWindow.scrollTop(chatWindow.prop('scrollHeight'));
+    scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
+    scrollDownBtn.show(); // 确保按钮默认显示
+});
