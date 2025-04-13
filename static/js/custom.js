@@ -635,7 +635,7 @@ $(document).ready(function() {
   renderer.list = function(body, ordered, start) {
     const type = ordered ? 'ol' : 'ul';
     const startAttr = (ordered && start) ? ` start="${start}"` : '';
-    return `<${type}${startAttr}>\n${body}</${type}>\n`;
+    return `<${type}${startAttr}>\n${body}\n</${type}>\n`;
   };
 
   // 设置marked选项
@@ -1000,25 +1000,8 @@ function addResponseMessage(message) {
         if (typeof message !== 'string') {
             return; // Exit if message is not a string
         }
-        let codeMarkCount = 0;
-        let index = message.indexOf('```'); // Line 809 - Error was happening here
-
-        while (index !== -1) {
-            codeMarkCount++;
-            index = message.indexOf('```', index + 3);
-        }
-
-        if (codeMarkCount % 2 == 1) {  // 有未闭合的 code
-            escapedMessage = marked.parse(message + '\n\n```');
-        } else if (codeMarkCount % 2 == 0 && codeMarkCount != 0) {
-            escapedMessage = marked.parse(message);  // 响应消息markdown实时转换为html
-        } else if (codeMarkCount == 0) {  // 输出的代码没有markdown代码块
-            if (message.includes('`')) {
-                escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
-            } else {
-                escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
-            }
-        }
+        // 直接使用 marked.parse 来处理包含 markdown 语法的消息
+        escapedMessage = marked.parse(message);
 
         messageContent = escapedMessage;
         let viewButtons = [];
