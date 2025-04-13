@@ -1392,15 +1392,6 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "stream": false // 强制非流式
     };
 }
-if (data.model.includes("grok-2-image")) {
-                apiUrl = datas.api_url + "/v1/images/generations";
-                requestBody = {
-                    "model": data.model,
-                    "prompt": data.prompts[0].content,
-                    "response_format": "url",
-                    "n": 1
-                };
-}
 if (data.model.includes("deepseek-r") ) {
      apiUrl = datas.api_url + "/v1/chat/completions";
      requestBody = {
@@ -1962,25 +1953,47 @@ function updateModelSettings(modelName) {
     // 更新上一个模型名称为当前模型
     localStorage.setItem('previousModel', modelName);
 
-    // --- Start of Path Auto-Switching Logic ---
-    let selectedApiPath = null;
-    const lowerModelName = modelName.toLowerCase();
+        // --- Start of Path Auto-Switching Logic ---
+        let selectedApiPath = null; // Use null to represent the default/empty option if needed
+        const lowerModelName = modelName.toLowerCase();
 
-    if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
-        selectedApiPath = '/v1/completions';
-    } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3") || lowerModelName.includes("grok-2-image")) {
-        selectedApiPath = '/v1/images/generations';
-    } else if (lowerModelName.includes("moderation")) {
-        selectedApiPath = '/v1/moderations';
-    } else if (lowerModelName.includes("embedding")) {
-        selectedApiPath = '/v1/embeddings';
-    } else if (lowerModelName.includes("tts-1")) {
-        selectedApiPath = '/v1/audio/speech';
-    }else {
-        selectedApiPath = '/v1/chat/completions'; // Default path
+        if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
+            selectedApiPath = '/v1/completions';
+        } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3") || lowerModelName.includes("grok-2-image")) { // Added grok image
+            selectedApiPath = '/v1/images/generations';
+        } else if (lowerModelName.includes("moderation")) {
+            selectedApiPath = '/v1/moderations';
+        } else if (lowerModelName.includes("embedding")) {
+            selectedApiPath = '/v1/embeddings';
+        } else if (lowerModelName.includes("tts-1")) {
+            selectedApiPath = '/v1/audio/speech';
+        } else if (lowerModelName.includes("gemini")) { // General Gemini case
+             // Check if a specific Gemini path exists in the dropdown, otherwise default
+             if ($('#apiPathSelect option[value="/v1beta/models/model:generateContent?key=apikey"]').length > 0) {
+                 selectedApiPath = '/v1beta/models/model:generateContent?key=apikey';
+             } else {
+                 selectedApiPath = '/v1/chat/completions'; // Fallback if specific Gemini path isn't an option
+             }
+        } else {
+             // Default for most chat models if none of the above conditions match
+             selectedApiPath = '/v1/chat/completions';
+        }
+
+        // ***** FIX: Update the dropdown selection *****
+        apiPathSelect.val(selectedApiPath); // Use the variable holding the selector
+
+        // Optional: Save the auto-selected path to localStorage immediately
+        // This makes the auto-selection sticky until the user manually changes it
+        if (selectedApiPath) { // Only save if a specific path was determined
+             localStorage.setItem('apiPath', selectedApiPath);
+        } else {
+            // If selectedApiPath is null (or empty string depending on dropdown setup),
+            // you might want to remove the item or save an empty string
+             localStorage.removeItem('apiPath'); // Or localStorage.setItem('apiPath', '');
+        }
+        // ***** END FIX *****
+
     }
-
-}
 
 
         // 初始加载时检测selectedModel
