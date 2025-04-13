@@ -1967,7 +1967,7 @@ function updateModelSettings(modelName) {
 
         if (lowerModelName.includes("gpt-3.5-turbo-instruct") || lowerModelName.includes("babbage-002") || lowerModelName.includes("davinci-002")) {
             selectedApiPath = '/v1/completions';
-        } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3") || lowerModelName.includes("grok-2-image")) { // Added grok image
+        } else if (lowerModelName.includes("dall-e-2") || lowerModelName.includes("dall-e-3") || lowerModelName.includes("cogview-3")) { // Added grok image
             selectedApiPath = '/v1/images/generations';
         } else if (lowerModelName.includes("moderation")) {
             selectedApiPath = '/v1/moderations';
