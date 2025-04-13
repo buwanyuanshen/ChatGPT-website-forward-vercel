@@ -1661,10 +1661,10 @@ let imageSrc = document.getElementById('imagePreview').src;
     } else {
         // 判读是否已开启连续对话
         if(localStorage.getItem('continuousDialogue') == 'true'){
-            // 控制上下文，对话长度超过4轮，取最新的3轮,即数组最后7条数据
+            // 控制上下文，对话长度超过100轮，取最新的99轮,即数组最后199条数据
           data.prompts = messages.slice();  // 拷贝一份全局messages赋值给data.prompts,然后对data.prompts处理
-          if (data.prompts.length > 8) {
-            data.prompts.splice(0, data.prompts.length - 7);
+          if (data.prompts.length > 200) {
+            data.prompts.splice(0, data.prompts.length - 199);
           }
         }else{
           data.prompts = messages.slice();
