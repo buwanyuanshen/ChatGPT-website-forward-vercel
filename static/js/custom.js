@@ -1392,6 +1392,14 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "stream": false // 强制非流式
     };
 }
+        if (data.model.includes("grok-2-image")) {
+    apiUrl = datas.api_url + "/v1/chat/completions";
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "n": 1,
+    };
+}
 if (data.model.includes("deepseek-r") ) {
      apiUrl = datas.api_url + "/v1/chat/completions";
      requestBody = {
