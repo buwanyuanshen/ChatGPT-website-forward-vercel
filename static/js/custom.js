@@ -981,7 +981,7 @@ function addResponseMessage(message) {
                     if (textPart.includes('`')) {
                         escapedMessage = marked.parse(textPart);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
                     } else {
-                        escapedMessage = marked.parse(textPart); //  不再使用 escapeHtml, 直接解析 Markdown
+                        escapedMessage = marked.parse(escapeHtml(textPart)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
                     }
                 }
                 messageContentHTML += '<div class="message-text">' + escapedMessage + '</div><button class="copy-button"><i class="far fa-copy"></i></button>'; // 添加复制按钮到文字部分
@@ -1016,7 +1016,7 @@ function addResponseMessage(message) {
             if (message.includes('`')) {
                 escapedMessage = marked.parse(message);  // 没有markdown代码块，但有代码段，依旧是 markdown格式
             } else {
-                escapedMessage = marked.parse(message); // 不再使用 escapeHtml, 直接解析 Markdown
+                escapedMessage = marked.parse(escapeHtml(message)); // 有可能不是markdown格式，都用escapeHtml处理后再转换，防止非markdown格式html紊乱页面
             }
         }
 
