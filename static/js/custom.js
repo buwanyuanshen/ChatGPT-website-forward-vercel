@@ -4,7 +4,7 @@ const searchInput = document.querySelector('.model-search-input');
 
 if (selectElement) {
     // 遍历 select 元素下的所有 option 元素
-    Array.from(selectElement.options).forEach(option => {  
+    Array.from(selectElement.options).forEach(option => {
         const originalText = option.textContent; // 保存原始文本
         option.setAttribute('data-description', originalText); // 设置 data-description
         option.textContent = option.value; // 设置 textContent 为 value
@@ -12,7 +12,7 @@ if (selectElement) {
 }
 
 searchInput.addEventListener('input', function() {
-    const searchTerm = searchInput.value.toLowerCase();    
+    const searchTerm = searchInput.value.toLowerCase();
     Array.from(selectElement.options).forEach(option => {
         const description = option.getAttribute('data-description').toLowerCase();
         if (description.includes(searchTerm)) {
@@ -696,7 +696,7 @@ lastResponseElement.find('.delete-message-btn').click(function() {
                     } else {
                         messageContent = $(this).find('.message-text').text(); // 兜底方案
                     }
-                    messages.push({ "role": "assistant", "content": messageContent });
+                    messages.push({ "role": "assistant", "content": messageContent, "isImage": true }); // Add "isImage" flag
                 }
             }
         });
@@ -1097,7 +1097,7 @@ scrollDownBtn.show();
                     } else {
                         messageContent = $(this).find('.message-text').text(); // 兜底方案
                     }
-                    messages.push({ "role": "assistant", "content": messageContent });
+                    messages.push({ "role": "assistant", "content": messageContent, "isImage": $(this).find('.message-text img').length > 0 }); // Add "isImage" flag
                 }
             }
         });
@@ -1456,7 +1456,10 @@ if (!response.ok) {
 if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("cogview-3") || model.includes("grok-2-image")) {
     const responseData = await response.json();
     if (responseData.data && responseData.data.length > 0 && responseData.data[0].url) {
-        addImageMessage(responseData.data[0].url);
+        const imageUrl = responseData.data[0].url;
+        addImageMessage(imageUrl);
+        messages.push({"role": "assistant", "content": imageUrl, "isImage": true}); // Store image URL in messages
+        localStorage.setItem("session",JSON.stringify(messages)); // Save session immediately after image generation
         resFlag = true;
     } else if (responseData.data && responseData.data.length > 0 && responseData.data[0].revised_prompt) {
         addResponseMessage(responseData.data[0].revised_prompt);
@@ -1561,7 +1564,7 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
 
             if (reasoningContent && reasoningContent.trim() !== "") {
                 str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {  
+            } else if (content && content.trim() !== "") {
                 str += content;
             }
         }
@@ -1835,7 +1838,11 @@ chatInput.on("keydown", handleEnter);
         if (item.role === 'user') {
           addRequestMessage(item.content)
         } else if (item.role === 'assistant') {
-          addResponseMessage(item.content)
+          if (item.isImage) { // Check if it's an image message
+              addImageMessage(item.content); // Use addImageMessage for images
+          } else {
+              addResponseMessage(item.content); // Use addResponseMessage for text
+          }
         }
       });
       // 添加复制
