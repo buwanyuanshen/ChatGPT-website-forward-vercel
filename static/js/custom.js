@@ -1377,6 +1377,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "temperature": 1,
     "top_p": 1,
     "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
@@ -1387,6 +1388,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "temperature": 1,
     "top_p": 1,
     "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
         if (data.model.includes("o4") && !data.model.includes("all")) {
@@ -1397,6 +1399,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "temperature": 1,
     "top_p": 1,
     "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
     };
 }
         if (data.model.includes("grok-2-image")) {
@@ -1412,6 +1415,7 @@ if (data.model.includes("deepseek-r") ) {
      "model": data.model,
      "max_tokens": data.max_tokens,
      "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
      };
  }
      if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
@@ -1420,6 +1424,7 @@ if (data.model.includes("deepseek-r") ) {
      "model": data.model,
      "max_tokens": data.max_tokens,
      "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
      };
  }
      if (data.model.includes("claude-3-7-sonnet-thinking") ) {
@@ -1428,6 +1433,7 @@ if (data.model.includes("deepseek-r") ) {
      "model": data.model,
      "max_tokens": data.max_tokens,
      "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
      };
  }
  if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
@@ -1436,6 +1442,7 @@ if (data.model.includes("deepseek-r") ) {
      "model": data.model,
      "max_tokens": data.max_tokens,
      "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
      };
  }
     const response = await fetch(apiUrl, {
