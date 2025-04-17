@@ -81,7 +81,8 @@ function checkModelAndShowUpload() {
         selectedModel.includes("learnlm-1.5-pro-experimental") ||
         selectedModel.includes("vision") ||
         selectedModel.includes("o1") ||
-        selectedModel.includes("o3")
+        selectedModel.includes("o3") ||
+        selectedModel.includes("o4")
 
     ) {
         uploadArea.style.display = 'block';
@@ -1369,7 +1370,6 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
     if (data.model.includes("o1") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
     "messages": data.prompts,
     "model": data.model,
@@ -1377,11 +1377,9 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // 强制非流式
     };
 }
     if (data.model.includes("o3") && !data.model.includes("all")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
     "messages": data.prompts,
     "model": data.model,
@@ -1389,11 +1387,19 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "temperature": 1,
     "top_p": 1,
     "n": 1,
-    "stream": false // 强制非流式
+    };
+}
+        if (data.model.includes("o4") && !data.model.includes("all")) {
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
     };
 }
         if (data.model.includes("grok-2-image")) {
-    apiUrl = datas.api_url + "/v1/chat/completions";
     requestBody = {
     "messages": data.prompts,
     "model": data.model,
@@ -1401,7 +1407,6 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     };
 }
 if (data.model.includes("deepseek-r") ) {
-     apiUrl = datas.api_url + "/v1/chat/completions";
      requestBody = {
      "messages": data.prompts,
      "model": data.model,
@@ -1410,7 +1415,6 @@ if (data.model.includes("deepseek-r") ) {
      };
  }
      if (data.model.includes("claude-3-7-sonnet-20250219-thinking") ) {
-     apiUrl = datas.api_url + "/v1/chat/completions";
      requestBody = {
      "messages": data.prompts,
      "model": data.model,
@@ -1419,7 +1423,6 @@ if (data.model.includes("deepseek-r") ) {
      };
  }
      if (data.model.includes("claude-3-7-sonnet-thinking") ) {
-     apiUrl = datas.api_url + "/v1/chat/completions";
      requestBody = {
      "messages": data.prompts,
      "model": data.model,
@@ -1428,7 +1431,6 @@ if (data.model.includes("deepseek-r") ) {
      };
  }
  if (data.model.includes("claude-3-7-sonnet-thinking-20250219") ) {
-     apiUrl = datas.api_url + "/v1/chat/completions";
      requestBody = {
      "messages": data.prompts,
      "model": data.model,
@@ -1881,8 +1883,6 @@ const selectedModel = localStorage.getItem('selectedModel');
 
 // 检测模型并更新设置
 function updateModelSettings(modelName) {
-    const isNonStreamModel = modelName.toLowerCase().includes("o1") && !modelName.toLowerCase().includes("all") ||
-                               modelName.toLowerCase().includes("o3") && !modelName.toLowerCase().includes("all");
 
     const isHideStreamSettingModel = modelName.toLowerCase().includes("dall-e") ||
                                       modelName.toLowerCase().includes("cogview") ||
@@ -1893,11 +1893,7 @@ function updateModelSettings(modelName) {
 
     var streamOutputCheckbox = document.getElementById('streamOutput');
 
-    if (isNonStreamModel) {
-        streamOutputCheckbox.checked = false;
-        setCookie('streamOutput', 'false', 30);
-        streamOutputSetting.show(); // 确保设置行显示
-    } else if (isHideStreamSettingModel) {
+    if (isHideStreamSettingModel) {
         streamOutputSetting.hide(); // 隐藏设置行
     } else {
         streamOutputSetting.show(); // 确保设置行显示
