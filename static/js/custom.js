@@ -1556,24 +1556,18 @@ if (getCookie('streamOutput') !== 'false') { // 从 Cookie 获取流式输出设
             }
     if (jsonObj.choices) {
         if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].delta) {
-            const reasoningContent = jsonObj.choices[0].delta.reasoning_content;
             const content = jsonObj.choices[0].delta.content;
 
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n"  + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
+if (content && content.trim() !== "") {
                 str += content;
             }
         } else if (apiUrl === datas.api_url + "/v1/completions" && jsonObj.choices[0].text) {
             str += jsonObj.choices[0].text;
         } else if (apiUrl === datas.api_url + "/v1/chat/completions" && jsonObj.choices[0].message) {
             const message = jsonObj.choices[0].message;
-            const reasoningContent = message.reasoning_content;
             const content = message.content;
 
-            if (reasoningContent && reasoningContent.trim() !== "") {
-                str += "思考过程:" + "\n" + reasoningContent + "\n" + "最终回答:" + "\n" + content ;
-            } else if (content && content.trim() !== "") {
+if (content && content.trim() !== "") {
                 str += content;
             }
         }
