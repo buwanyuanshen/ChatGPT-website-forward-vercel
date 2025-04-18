@@ -1985,13 +1985,6 @@ function updateModelSettings(modelName) {
             selectedApiPath = '/v1/embeddings';
         } else if (lowerModelName.includes("tts-1")) {
             selectedApiPath = '/v1/audio/speech';
-        } else if (lowerModelName.includes("gemini")) { // General Gemini case
-             // Check if a specific Gemini path exists in the dropdown, otherwise default
-             if ($('#apiPathSelect option[value="/v1beta/models/model:generateContent?key=apikey"]').length > 0) {
-                 selectedApiPath = '/v1beta/models/model:generateContent?key=apikey';
-             } else {
-                 selectedApiPath = '/v1/chat/completions'; // Fallback if specific Gemini path isn't an option
-             }
         } else {
              // Default for most chat models if none of the above conditions match
              selectedApiPath = '/v1/chat/completions';
