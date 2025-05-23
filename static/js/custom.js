@@ -74,6 +74,8 @@ function checkModelAndShowUpload() {
         selectedModel.includes("gpt-4") ||
         selectedModel.includes("glm-4v") ||
         selectedModel.includes("claude-3") ||
+        selectedModel.includes("claude-sonnet-4") ||
+        selectedModel.includes("claude-opus-4") ||
         selectedModel.includes("gemini-1.5") ||
         selectedModel.includes("gemini-2.0") ||
         selectedModel.includes("gemini-2.5") ||
@@ -1335,7 +1337,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "input": data.prompts[0].content, // Embedding uses the last message as input
         "model": data.model,
     };
-} else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null ) && model.includes("tts-1")) {
+} else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null ) && model.includes("tts")) {
     apiUrl = datas.api_url + "/v1/audio/speech";
     requestBody = {
         "input": data.prompts[0].content, // TTS uses the last message as input
@@ -1507,7 +1509,7 @@ if (model.includes("dall-e-2") || model.includes("dall-e-3") || model.includes("
         resFlag = false;
     }
     return; // For embedding, handle response and return
-} else if (model.includes("tts-1")) {
+} else if (model.includes("tts")) {
     const audioBlob = await response.blob();
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -1692,7 +1694,7 @@ let imageSrc = document.getElementById('imagePreview').src;
       // 重新绑定键盘事件
       chatInput.on("keydown",handleEnter);
       // 判断是否是回复正确信息
-      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts-1") || selectedModel.includes("grok-2-image")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
+      if(resFlag && !(selectedModel.includes("dall-e-2") || selectedModel.includes("dall-e-3") || selectedModel.includes("cogview-3") || selectedModel.includes("moderation") || selectedModel.includes("embedding") || selectedModel.includes("tts") || selectedModel.includes("grok-2-image")) ){ // Image/moderation/embedding/tts models don't add to messages array for continuous conversation
         messages.push({"role": "assistant", "content": res});
         // 判断是否本地存储历史会话
         if(localStorage.getItem('archiveSession')=="true"){
@@ -1896,7 +1898,7 @@ function updateModelSettings(modelName) {
                                       modelName.toLowerCase().includes("moderation") ||
                                       modelName.toLowerCase().includes("embedding") ||
                                       modelName.toLowerCase().includes("grok-2-image") ||
-                                      modelName.toLowerCase().includes("tts-1");
+                                      modelName.toLowerCase().includes("tts");
 
     var streamOutputCheckbox = document.getElementById('streamOutput');
 
@@ -1983,7 +1985,7 @@ function updateModelSettings(modelName) {
             selectedApiPath = '/v1/moderations';
         } else if (lowerModelName.includes("embedding")) {
             selectedApiPath = '/v1/embeddings';
-        } else if (lowerModelName.includes("tts-1")) {
+        } else if (lowerModelName.includes("tts")) {
             selectedApiPath = '/v1/audio/speech';
         } else {
              // Default for most chat models if none of the above conditions match
