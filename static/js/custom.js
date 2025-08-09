@@ -1340,7 +1340,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "input": data.prompts[0].content, // Embedding uses the last message as input
         "model": data.model,
     };
-}else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null) && (model.includes("tts") || model.includes("transcribe"))) {
+}else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null) && model.includes("tts") )) {
     apiUrl = datas.api_url + "/v1/audio/speech";
     requestBody = {
         "input": data.prompts[0].content, // TTS uses the last message as input
@@ -1912,7 +1912,6 @@ function updateModelSettings(modelName) {
                                       modelName.toLowerCase().includes("moderation") ||
                                       modelName.toLowerCase().includes("embedding") ||
                                       modelName.toLowerCase().includes("grok-2-image") ||
-                                      modelName.toLowerCase().includes("transcribe") ||
                                       modelName.toLowerCase().includes("tts");
 
     var streamOutputCheckbox = document.getElementById('streamOutput');
@@ -1929,7 +1928,7 @@ function updateModelSettings(modelName) {
     }
 
     // 检测是否含有"tts"或"dall"并设置连续对话状态 - 保持原有的连续对话逻辑
-    const hasTTS = modelName.toLowerCase().includes("tts") || modelName.toLowerCase().includes("transcribe");
+    const hasTTS = modelName.toLowerCase().includes("tts");
     const hasCompletion1 = modelName.toLowerCase().includes("gpt-3.5-turbo-instruct");
     const hasCompletion2 = modelName.toLowerCase().includes("babbage-002");
     const hasCompletion3 = modelName.toLowerCase().includes("davinci-002");
@@ -1960,7 +1959,7 @@ function updateModelSettings(modelName) {
 
     // 获取上一个模型名称
     const previousModel = localStorage.getItem('previousModel') || "";
-    const hadTTS = previousModel.toLowerCase().includes("tts") || previousModel.toLowerCase().includes("transcribe");
+    const hadTTS = previousModel.toLowerCase().includes("tts");
     const hadDALL = previousModel.toLowerCase().includes("dall-e");
     const hadCog = previousModel.toLowerCase().includes("cogview");
     const hadCompletion1 = previousModel.toLowerCase().includes("gpt-3.5-turbo-instruct");
@@ -2001,8 +2000,6 @@ function updateModelSettings(modelName) {
         } else if (lowerModelName.includes("embedding")) {
             selectedApiPath = '/v1/embeddings';
         } else if (lowerModelName.includes("tts")) {
-            selectedApiPath = '/v1/audio/speech';
-        }else if (lowerModelName.includes("transcribe")) {
             selectedApiPath = '/v1/audio/speech';
         } else {
              // Default for most chat models if none of the above conditions match
@@ -2260,5 +2257,6 @@ $(document).ready(function() {
     scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
     scrollDownBtn.show(); // 确保按钮默认显示
 });
+
 
 
