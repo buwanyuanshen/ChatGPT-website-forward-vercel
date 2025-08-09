@@ -74,6 +74,7 @@ function checkModelAndShowUpload() {
         selectedModel.includes("gpt-4") ||
         selectedModel.includes("glm-4v") ||
         selectedModel.includes("claude-3") ||
+        selectedModel.includes("claude-4") ||
         selectedModel.includes("claude-sonnet-4") ||
         selectedModel.includes("claude-opus-4") ||
         selectedModel.includes("gemini-1.5") ||
@@ -84,7 +85,9 @@ function checkModelAndShowUpload() {
         selectedModel.includes("vision") ||
         selectedModel.includes("o1") ||
         selectedModel.includes("o3") ||
-        selectedModel.includes("o4")
+        selectedModel.includes("o4") ||
+        selectedModel.includes("gpt-5")
+        
 
     ) {
         uploadArea.style.display = 'block';
@@ -1393,6 +1396,17 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
     "stream": getCookie('streamOutput') !== 'false'
     };
 }
+        if (data.model.includes("gpt-5") && !data.model.includes("all")) {
+    requestBody = {
+    "messages": data.prompts,
+    "model": data.model,
+    "max_tokens": data.max_tokens,
+    "temperature": 1,
+    "top_p": 1,
+    "n": 1,
+    "stream": getCookie('streamOutput') !== 'false'
+    };
+}
         if (data.model.includes("o4") && !data.model.includes("all")) {
     requestBody = {
     "messages": data.prompts,
@@ -1989,7 +2003,7 @@ function updateModelSettings(modelName) {
             selectedApiPath = '/v1/audio/speech';
         } else {
              // Default for most chat models if none of the above conditions match
-             selectedApiPath = '/v1/chat/completions';
+             selectedApiPath = apiPathSelect.val();
         }
 
         // ***** FIX: Update the dropdown selection *****
@@ -2243,3 +2257,4 @@ $(document).ready(function() {
     scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
     scrollDownBtn.show(); // 确保按钮默认显示
 });
+
