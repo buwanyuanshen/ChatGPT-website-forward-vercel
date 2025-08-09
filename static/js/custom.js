@@ -1340,7 +1340,7 @@ if (selectedApiPath === '/v1/completions' || (apiPathSelect.val() === null && mo
         "input": data.prompts[0].content, // Embedding uses the last message as input
         "model": data.model,
     };
-}else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null) && model.includes("tts") )) {
+}else if ((selectedApiPath === '/v1/audio/speech' || apiPathSelect.val() === null) && model.includes("tts")) {
     apiUrl = datas.api_url + "/v1/audio/speech";
     requestBody = {
         "input": data.prompts[0].content, // TTS uses the last message as input
@@ -2257,6 +2257,7 @@ $(document).ready(function() {
     scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
     scrollDownBtn.show(); // 确保按钮默认显示
 });
+
 
 
 
