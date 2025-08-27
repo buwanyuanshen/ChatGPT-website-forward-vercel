@@ -196,131 +196,146 @@ document.addEventListener('DOMContentLoaded', function() {
         return cleanedUrl;
     }
 
+    // 全局变量，用于存储从后端获取的默认 API URL
+    let defaultApiUrl = '';
 
-    async function fetchBalance(apiUrl, apiKey) {
+    // Helper function to clean up API URL (this function should already exist in your code, keep it)
+    function cleanApiUrl(apiUrl) {
+        if (!apiUrl) {
+            return apiUrl;
+        }
+        let cleanedUrl = apiUrl.trim();
+        cleanedUrl = cleanedUrl.replace(/\s/g, ''); // Remove spaces
+        cleanedUrl = cleanedUrl.replace(/\/+$/, ''); // Remove trailing slashes
+        cleanedUrl = cleanedUrl.replace(/\/v1(\/chat\/completions)?$/i, ''); // Remove /v1 or /v1/chat/completions at the end
+        return cleanedUrl;
+    }
+
+    // [新] 函数：使用用户提供的凭证（或后端的URL）获取余额
+    async function fetchCustomBalance(apiUrl, apiKey) {
         const headers = new Headers({
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
         });
 
+        // Set loading state
+        document.getElementById('totalBalance').innerText = '总额: 加载中...';
+        document.getElementById('usedBalance').innerText = '已用: 加载中...';
+        document.getElementById('remainingBalance').innerText = '剩余: 加载中...';
+
         try {
-            // Clean the apiUrl before using it
             const cleanedApiUrl = cleanApiUrl(apiUrl);
-
-            // Get the total balance (quota)
-            let subscriptionResponse = await fetch(`${cleanedApiUrl}/v1/dashboard/billing/subscription`, { headers });
-            if (!subscriptionResponse.ok) {
-                throw new Error('Failed to fetch subscription data');
+            if (!cleanedApiUrl) {
+                throw new Error('API URL is not configured.');
             }
-            let subscriptionData = await subscriptionResponse.json();
-            let total = subscriptionData.hard_limit_usd;
 
-            // Get the usage information
-            let startDate = new Date();
-            startDate.setDate(startDate.getDate() - 99);
-            let endDate = new Date();
-            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end-date=${endDate.toISOString().split('T')[0]}`;
+            // 获取总额度
+            const subscriptionUrl = `${cleanedApiUrl}/v1/dashboard/billing/subscription`;
+            const subscriptionResponse = await fetch(subscriptionUrl, { headers });
+            if (!subscriptionResponse.ok) throw new Error('获取订阅数据失败');
+            const subscriptionData = await subscriptionResponse.json();
+            const total = subscriptionData.hard_limit_usd || 0;
 
-            let usageResponse = await fetch(usageUrl, { headers });
-            if (!usageResponse.ok) {
-                throw new Error('Failed to fetch usage data');
-            }
-            let usageData = await usageResponse.json();
-            let totalUsage = usageData.total_usage / 100;
+            // 获取使用量
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(endDate.getDate() - 99);
+            const usageUrl = `${cleanedApiUrl}/v1/dashboard/billing/usage?start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}`;
+            
+            const usageResponse = await fetch(usageUrl, { headers });
+            if (!usageResponse.ok) throw new Error('获取使用数据失败');
+            const usageData = await usageResponse.json();
+            const totalUsage = (usageData.total_usage || 0) / 100;
 
-            let remaining = total - totalUsage;
+            const remaining = total - totalUsage;
 
-            // Update the balance display
+            // 更新余额显示
             document.getElementById('totalBalance').innerText = `总额: ${total.toFixed(4)} $`;
             document.getElementById('usedBalance').innerText = `已用: ${totalUsage.toFixed(4)} $`;
             document.getElementById('remainingBalance').innerText = `剩余: ${remaining.toFixed(4)} $`;
 
         } catch (error) {
+            console.error("Fetch custom balance error:", error);
             document.getElementById('totalBalance').innerText = '总额: 加载失败';
             document.getElementById('usedBalance').innerText = '已用: 加载失败';
             document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
         }
     }
 
-    // Function to fetch default balance from the backend
-    let defaultApiUrl = ''; // Variable to store default apiUrl from backend
+    // [新] 函数：从后端获取默认余额
     async function fetchDefaultBalance() {
+        // Set loading state
+        document.getElementById('totalBalance').innerText = '总额: 加载中...';
+        document.getElementById('usedBalance').innerText = '已用: 加载中...';
+        document.getElementById('remainingBalance').innerText = '剩余: 加载中...';
         try {
-            let response = await fetch('/default_balance');
-            if (!response.ok) {
-                throw new Error('Failed to fetch default balance data');
-            }
-            let data = await response.json();
-            if (data.error) {
-                throw new Error(data.error.message);
-            }
+            const response = await fetch('/default_balance');
+            if (!response.ok) throw new Error('获取默认余额失败');
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
 
-            // Store default apiUrl
-            defaultApiUrl = data.url; // Assuming the backend returns url in data
-
-            // Update the balance display with default balance
+            // 更新余额显示
             document.getElementById('totalBalance').innerText = `总额: ${data.total_balance.toFixed(4)} $`;
             document.getElementById('usedBalance').innerText = `已用: ${data.used_balance.toFixed(4)} $`;
             document.getElementById('remainingBalance').innerText = `剩余: ${data.remaining_balance.toFixed(4)} $`;
 
         } catch (error) {
+            console.error("Fetch default balance error:", error);
             document.getElementById('totalBalance').innerText = '总额: 加载失败';
             document.getElementById('usedBalance').innerText = '已用: 加载失败';
             document.getElementById('remainingBalance').innerText = '剩余: 加载失败';
         }
     }
 
-    // Function to initialize the listeners
-    function initListeners() {
-        const apiKeyField = document.querySelector('.api-key');
-        const apiUrlField = document.querySelector('.api_url');
+    // [新] 核心逻辑函数：根据输入框状态决定如何更新余额
+    function updateBalanceInfo() {
+        const userApiKey = document.querySelector('.api-key').value.trim();
+        const userApiUrl = document.querySelector('.api_url').value.trim();
 
-        // Initial check
-        if (apiKeyField.value.trim()) {
-            let apiUrl = apiUrlField.value.trim();
-            if (!apiUrl) {
-                apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
+        if (userApiKey) {
+            // Case 1: 用户输入了API Key
+            // 如果用户没有输入URL，则使用从后端获取的默认URL
+            const apiUrlToUse = userApiUrl || defaultApiUrl;
+            if (apiUrlToUse) {
+                fetchCustomBalance(apiUrlToUse, userApiKey);
+            } else {
+                // 如果两个URL都不可用，显示提示信息
+                document.getElementById('totalBalance').innerText = '总额: 缺少API URL';
+                document.getElementById('usedBalance').innerText = '已用: -';
+                document.getElementById('remainingBalance').innerText = '剩余: -';
             }
-            fetchBalance(apiUrl, apiKeyField.value.trim());
         } else {
+            // Case 2: 用户没有输入API Key，获取默认余额
             fetchDefaultBalance();
         }
-
-        // Event listeners
-        apiKeyField.addEventListener('input', function () {
-            const apiKey = apiKeyField.value.trim();
-            if (apiKey) {
-                let apiUrl = apiUrlField.value.trim();
-                if (!apiUrl) {
-                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty
-                }
-                fetchBalance(apiUrl, apiKey);
-            } else {
-                fetchDefaultBalance();
-            }
-        });
-
-        apiUrlField.addEventListener('input', function () {
-            const apiKey = apiKeyField.value.trim();
-            if (apiKey) {
-                let apiUrl = apiUrlField.value.trim();
-                if (!apiUrl) {
-                    apiUrl = defaultApiUrl; // Use default apiUrl if input is empty, but in this case apiUrl is not empty because it's triggered by apiUrlField input event. So no need to check again.
-                        apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
-                } else {
-                    apiUrl = apiUrlField.value.trim(); // Use current apiUrl input value
-                }
-                fetchBalance(apiUrl, apiKey);
-            } else {
-                fetchDefaultBalance();
-            }
-        });
     }
 
-    // Ensure DOM is fully loaded before adding event listeners
-    document.addEventListener('DOMContentLoaded', function () {
-        initListeners();
-    });
+    // [新] 页面加载时的初始化函数
+    async function initializeApp() {
+        // 1. 先从后端获取并存储默认的API URL
+        try {
+            const response = await fetch('/config');
+            if (response.ok) {
+                const config = await response.json();
+                defaultApiUrl = config.api_url || '';
+            }
+        } catch (error) {
+            console.error("无法获取后端配置:", error);
+        }
+
+        // 2. 为输入框绑定事件监听器
+        const apiKeyField = document.querySelector('.api-key');
+        const apiUrlField = document.querySelector('.api_url');
+        apiKeyField.addEventListener('input', updateBalanceInfo);
+        apiUrlField.addEventListener('input', updateBalanceInfo);
+        
+        // 3. 初始加载时调用一次以显示余额
+        updateBalanceInfo();
+    }
+
+    // 确保DOM完全加载后再执行初始化
+    document.addEventListener('DOMContentLoaded', initializeApp);
+
 
 
 $(document).ready(function () {
@@ -2384,6 +2399,7 @@ $(document).ready(function() {
     scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
     scrollDownBtn.show(); // 确保按钮默认显示
 });
+
 
 
 
