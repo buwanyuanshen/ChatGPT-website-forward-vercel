@@ -324,6 +324,133 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
 $(document).ready(function () {
+    // Helper function to get API credentials for fetching models
+    async function getCredentialsForModelFetch() {
+        // Use the first key if multiple are provided, separated by commas
+        let apiKey = ($(".settings-common .api-key").val().trim().split(','))[0].trim();
+        let apiUrl = $(".settings-common .api_url").val().trim();
+
+        // Fallback for API URL from backend if not provided in UI
+        if (!apiUrl) {
+            try {
+                const response = await fetch("/config");
+                const data = await response.json();
+                apiUrl = data.api_url || '';
+            } catch (e) {
+                console.error("Failed to fetch default API URL", e);
+                apiUrl = '';
+            }
+        }
+
+        // Fallback for API Key from backend if not provided in UI
+        if (!apiKey) {
+            try {
+                const password = $(".settings-common .password").val();
+                if (!password) {
+                    console.log("No API key or password provided for model fetch.");
+                    return { apiKey: null, apiUrl: null };
+                }
+
+                const response = await fetch("/get_api_key", {
+                    method: "POST",
+                    body: new URLSearchParams({ password }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to get API key from backend');
+                }
+
+                const data = await response.json();
+                if (data.apiKey) {
+                    apiKey = atob(data.apiKey); // atob is a built-in function to decode base64
+                } else if (data.error) {
+                    throw new Error(data.error);
+                }
+            } catch(e) {
+                console.error("Error fetching default API key", e);
+                alert("获取默认 API key 失败: " + e.message);
+                apiKey = null;
+            }
+        }
+
+        return { apiKey, apiUrl: cleanApiUrl(apiUrl) };
+    }
+
+    // Event listener for the new "Fetch Models" button
+    $("#fetchModelsBtn").on("click", async function() {
+        const fetchButton = $(this);
+        const icon = fetchButton.find('i');
+        fetchButton.prop('disabled', true);
+        icon.addClass('fa-spin'); // Add spinner animation
+
+        try {
+            const { apiKey, apiUrl } = await getCredentialsForModelFetch();
+
+            if (!apiKey || !apiUrl) {
+                alert("无法获取 API 凭证。请在设置中输入您的 API Key 和 URL，或确保后端配置了密码。");
+                return;
+            }
+
+            const response = await fetch(`${apiUrl}/v1/models`, {
+                headers: {
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API 错误: ${errorData.error ? errorData.error.message : response.statusText}`);
+            }
+
+            const modelData = await response.json();
+            const models = modelData.data;
+
+            if (!models || !Array.isArray(models)) {
+                throw new Error("从 models API 返回的数据格式无效。");
+            }
+
+            // Sort models alphabetically by ID
+            models.sort((a, b) => a.id.localeCompare(b.id));
+
+            const modelSelect = $(".model.model-select");
+            const previouslySelectedModel = modelSelect.val(); // Save current selection
+            modelSelect.empty(); // Clear existing options
+
+            models.forEach(model => {
+                const newOption = $('<option>', {
+                    value: model.id,
+                    text: model.id,
+                    'data-description': model.id
+                });
+                modelSelect.append(newOption);
+            });
+
+            // Re-select the previous model if it exists in the new list
+            if (previouslySelectedModel && modelSelect.find(`option[value='${previouslySelectedModel}']`).length > 0) {
+                modelSelect.val(previouslySelectedModel);
+            } else if (models.length > 0) {
+                // Otherwise, select the first model in the new list
+                modelSelect.val(models[0].id);
+            }
+
+            // Update the chat title based on the new selection
+            updateTitle();
+
+            // Save the new list to localStorage (the function already exists in your code)
+            saveModelsToLocalStorage();
+
+            alert("模型列表更新成功！共获取 " + models.length + " 个模型。");
+
+        } catch (error) {
+            alert("获取模型列表失败: " + error.message);
+        } finally {
+            fetchButton.prop('disabled', false);
+            icon.removeClass('fa-spin'); // Remove spinner animation
+        }
+    });
+    
         // Function to detect links
     function containsLink(input) {
         const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -2257,6 +2384,7 @@ $(document).ready(function() {
     scrollDownBtn.data('scroll-state', 'down'); // 初始化状态为 'down'
     scrollDownBtn.show(); // 确保按钮默认显示
 });
+
 
 
 
